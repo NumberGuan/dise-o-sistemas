@@ -7,14 +7,19 @@ Cambios del proyecto anual
 1.  __Nuevas clases__ --> Van a tener que agregaese a la documentacion.
    * Persona(Se modificaron atributos en Cliente, Empleado, Proveedor)
    * Telefono(Se modifico atributo en Direccion y lo convertimos en una clase en sí)
-   * DetalleOrdenMaquina (Se agrego con el fin de asociar el ordenproduccion con la maquina utilizada) 
+   * DetalleOrdenMaquina (Se agrego con el fin de asociar el ordenproduccion con la maquina utilizada)
+   * DetalleReciboPagoCliente (Se agrego con el fin de que un cliente pueda pagar con varios metodos de pago)
+   * DevolucionCliente (Se agrego con el fin de que el cliente pueda realizar la devolucion de productos)
+   * DetalleDevolucionCliente (Se agrego con el fin de que el cliente pueda realizar la devolucion de productos)
+   * SE ELIMINO la clase "DetalleProducto"
 2.  __Cambios en atributos dentro de clases__ --> Es importante guardar los cambios de atributos para despues saber que modificar en la documentacion.
    * OrdenPedidoCliente y OrdenCompraProveedor: Se agrego "IdEmpleado" .
-   * OrdenProduccion: Se agrego "Estado" y "NmrLote". Se elimino "IdReceta".
+   * OrdenProduccion: Se agrego "Estado", "NmrLote" e "IdEmpleado". Se elimino "IdReceta".
    * DetalleOrdenProduccion: Se agrego "IdReceta". Se elimino "IdMateriaPrima". Cambiamos "CantidadProducto" por "CantidadRealGenerada" y "CantidadMateriaPrima" por "CantidadRealUtilizada".
-   * Producto: Se agrego "FechaVencimiento".
+   * Producto: Se agrego "FechaVencimiento" y "IdReceta".
    * Persona: "Nombre", "RazonSocial" y "Apellido" -> Ya no estan en cliente, proveedor ni empleado.
    * DetalleProducto: Cambiamos "CantidadGenerada" por "CantidadEsperada". (Una receta especifica cuanto producto vas a generar sin embargo puede pasar que salga mas o menos. Ese valor real esta en la clase "DetalleOrdenProduccion") --> Charlable tengo mis dudas de como para generar la orden debas saber de antemano cuanto vas a  obtener.
+   * ReciboPagoCliente: Se elimino el atributo "MontoAbonado"
 3.  __Cambios en las relaciones__
    * Se modifico la relacion Direccion -> Provincia a Direccion -> Calle. (Quedo segun lo que dijo David).
    * Ahora OrdenPedidoCliente y OrdenCompraProveedor estan relacionadas con Empleado.
@@ -22,6 +27,9 @@ Cambios del proyecto anual
    * Nueva relacion entre "Maquina", "DetalleOrdenMaquina" , "DetalleOrdenProduccion".
    * La "Receta" ahora se relaciona con "DetalleOrdenProduccion", de esta manera en una misma orden se pueden fabricar varios productos. (Antes: "Receta" --> "OrdenProduccion")
    * Se agrego una relacion entre "PresupuestoProveedor" y "OrdenCompraProveedor"
+   * Se agrego una relacion entre "Empleado" y "OrdenProduccion"
+   * Se elimino la clase "DetalleProducto" por lo que ahora la relacion es directa entre "Receta" y "Producto"
+   * Se elimino la relacion entre "MedioPago" con "OrdenCompraProveedor" y "OrdenPedidoCliente"
      
 ## Cosas a hacer cada uno
 1.  __Tomas__
