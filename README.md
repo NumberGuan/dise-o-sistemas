@@ -13,13 +13,16 @@ Cambios del proyecto anual
    * DetalleDevolucionCliente (Se agrego con el fin de que el cliente pueda realizar la devolucion de productos)
    * SE ELIMINO la clase "DetalleProducto"
 2.  __Cambios en atributos dentro de clases__ --> Es importante guardar los cambios de atributos para despues saber que modificar en la documentacion.
-   * OrdenPedidoCliente y OrdenCompraProveedor: Se agrego "IdEmpleado" .
+   * OrdenPedidoCliente y OrdenCompraProveedor: Se agrego "IdEmpleado", se elimino "IdMedioPago" .
    * OrdenProduccion: Se agrego "Estado", "NmrLote" e "IdEmpleado". Se elimino "IdReceta".
    * DetalleOrdenProduccion: Se agrego "IdReceta". Se elimino "IdMateriaPrima". Cambiamos "CantidadProducto" por "CantidadRealGenerada" y "CantidadMateriaPrima" por "CantidadRealUtilizada".
    * Producto: Se agrego "FechaVencimiento" y "IdReceta".
    * Persona: "Nombre", "RazonSocial" y "Apellido" -> Ya no estan en cliente, proveedor ni empleado.
    * DetalleProducto: Cambiamos "CantidadGenerada" por "CantidadEsperada". (Una receta especifica cuanto producto vas a generar sin embargo puede pasar que salga mas o menos. Ese valor real esta en la clase "DetalleOrdenProduccion") --> Charlable tengo mis dudas de como para generar la orden debas saber de antemano cuanto vas a  obtener.
    * ReciboPagoCliente: Se elimino el atributo "MontoAbonado"
+   * OrdenCompraProveedor: Se elimino "IdMedioPago"
+   * Domicilio: Se borraron los atributos "IdCliente", "IdProveedor", "IdEmpleado". Se agrego "IdPersona"
+   * Empleado: Se agregaron los atributos "Cargo", "FechaIngreso", "HorasTrabajadas"
 3.  __Cambios en las relaciones__
    * Se modifico la relacion Direccion -> Provincia a Direccion -> Calle. (Quedo segun lo que dijo David).
    * Ahora OrdenPedidoCliente y OrdenCompraProveedor estan relacionadas con Empleado.
