@@ -23,7 +23,6 @@ Cambios del proyecto anual
    * OrdenCompraProveedor: Se elimino "IdMedioPago"
    * Domicilio: Se borraron los atributos "IdCliente", "IdProveedor", "IdEmpleado". Se agrego "IdPersona"
    * Empleado: Se agregaron los atributos "Cargo", "FechaIngreso", "HorasTrabajadas"
-   * Se cambio idDetalleReciboPagoCliente por clave compuesta de medio de pago y recibo de pago
 3.  __Cambios en las relaciones__
    * Se modifico la relacion Direccion -> Provincia a Direccion -> Calle. (Quedo segun lo que dijo David).
    * Ahora OrdenPedidoCliente y OrdenCompraProveedor estan relacionadas con Empleado.
