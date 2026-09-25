@@ -5,6 +5,7 @@ import { SalesPageHeader } from "~/components/SalesLayout";
 import { 
   SAMPLE_CLIENTS, 
   SAMPLE_ORDERS, 
+  SAMPLE_REMITS,
   SAMPLE_PRODUCTS, 
   ORDER_STATUSES, 
   type Client, 
@@ -373,6 +374,7 @@ type OrderDetailsProps = {
 };
 
 function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderDetailsProps) {
+  const activeRemit = SAMPLE_REMITS.find(remit => remit.orderId === order.id && remit.status !== "Anulado");
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/50 backdrop-blur-sm transition-opacity">
       <div className="flex w-full max-w-md flex-col bg-white shadow-2xl h-full animate-slide-left overflow-hidden">
@@ -460,7 +462,12 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
         </div>
         
         <div className="border-t border-gray-100 p-5 bg-gray-50 space-y-3">
-          {order.status !== "Cancelado" && order.status !== "Facturado" && (
+          {(activeRemit || order.status === "Listo para remito" || order.status === "Facturado") && (
+            <Link to={activeRemit ? `/ventas/remitos?remito=${encodeURIComponent(activeRemit.id)}` : `/ventas/remitos?pedido=${encodeURIComponent(order.id)}`} className="block w-full rounded-lg bg-amber-600 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm hover:bg-amber-700">
+              {activeRemit ? `Consultar remito ${activeRemit.number}` : "Generar remito"}
+            </Link>
+          )}
+          {order.status !== "Cancelado" && order.status !== "Facturado" && !activeRemit && (
             <button type="button" onClick={onEdit} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
               Editar Pedido
             </button>
@@ -480,7 +487,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
 
           
 
-          {order.status !== "Cancelado" && order.status !== "Facturado" && (
+          {order.status !== "Cancelado" && order.status !== "Facturado" && !activeRemit && (
             <button type="button" onClick={() => {
               if (confirm("¿Está seguro que desea cancelar este pedido?")) {
                 onChangeStatus("Cancelado");
@@ -657,7 +664,7 @@ export default function Pedidos() {
                   </div>
                   <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
                     <button type="button" onClick={() => setSelectedOrder(order)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                    {order.status !== "Cancelado" && order.status !== "Facturado" && (
+                    {order.status !== "Cancelado" && order.status !== "Facturado" && !SAMPLE_REMITS.some(remit => remit.orderId === order.id && remit.status !== "Anulado") && (
                       <button type="button" onClick={() => setEditingOrder(order)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
                     )}
                   </div>

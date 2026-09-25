@@ -292,3 +292,41 @@ export const SAMPLE_BUDGETS: Budget[] = [
   }
 ];
 
+
+export const REMIT_STATUSES = ["Borrador", "Despachado", "Entregado", "Anulado"] as const;
+export type RemitStatus = (typeof REMIT_STATUSES)[number];
+
+export type RemitItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+};
+
+export type Remit = {
+  id: string;
+  number: string;
+  date: string;
+  clientId: string;
+  orderId: string;
+  items: RemitItem[];
+  status: RemitStatus;
+  observations: string;
+};
+
+export const SAMPLE_REMITS: Remit[] = [
+  {
+    id: "rem-1",
+    number: "R-0001-00000092",
+    date: "2026-09-18",
+    clientId: "c-148",
+    orderId: "o-148",
+    items: [
+      { id: "ri-1", productId: "p-1", productName: "Tallarines 500g", quantity: 40 },
+      { id: "ri-2", productId: "p-2", productName: "Ravioles verdura", quantity: 18 }
+    ],
+    status: "Entregado",
+    observations: "Entrega completada sin novedades."
+  }
+];
+
