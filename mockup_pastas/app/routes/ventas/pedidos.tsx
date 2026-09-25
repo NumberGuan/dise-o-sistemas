@@ -142,7 +142,11 @@ function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
                   <select
                     required
                     value={clientId}
-                    onChange={e => setClientId(e.target.value)}
+                    onChange={e => {
+                      setClientId(e.target.value);
+                      setDeliveryAddressType("client");
+                      setCustomDeliveryAddress("");
+                    }}
                     className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                   >
                     <option value="">Seleccionar cliente...</option>
@@ -160,29 +164,18 @@ function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
                 )}
                 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Empleado responsable *</label>
-                  <div className="overflow-hidden rounded-lg border border-gray-200">
-                    <table className="w-full text-left text-sm text-gray-900">
-                      <thead className="bg-gray-50 text-gray-500">
-                        <tr>
-                          <th className="px-4 py-2 font-medium">Nombre</th>
-                          <th className="px-4 py-2 font-medium">Rol</th>
-                          <th className="px-4 py-2 text-center font-medium">Sel.</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {SAMPLE_EMPLOYEES.filter(e => e.status === "Activo").map(emp => (
-                          <tr key={emp.id} className={`transition-colors hover:bg-gray-50 ${employeeId === emp.id ? "bg-amber-50" : "bg-white"}`} onClick={() => setEmployeeId(emp.id)}>
-                            <td className="px-4 py-2 font-medium">{emp.name}</td>
-                            <td className="px-4 py-2">{emp.role}</td>
-                            <td className="px-4 py-2 text-center">
-                              <input type="radio" name="employee" checked={employeeId === emp.id} onChange={() => setEmployeeId(emp.id)} className="h-4 w-4 text-amber-600 focus:ring-amber-500 cursor-pointer" />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <label className="block text-sm font-medium text-gray-700">Empleado responsable *</label>
+                  <select
+                    required
+                    value={employeeId}
+                    onChange={e => setEmployeeId(e.target.value)}
+                    className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                  >
+                    <option value="">Seleccionar empleado...</option>
+                    {SAMPLE_EMPLOYEES.filter(e => e.status === "Activo").map(emp => (
+                      <option key={emp.id} value={emp.id}>{emp.name}</option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -212,16 +205,29 @@ function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dirección de entrega</label>
                   <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <label className="flex items-center gap-2 text-sm text-gray-900 cursor-pointer">
-                      <input type="radio" name="addressType" checked={deliveryAddressType === "client"} onChange={() => setDeliveryAddressType("client")} className="h-4 w-4 text-amber-600 focus:ring-amber-500" />
-                      <span>Usar dirección del cliente {selectedClient ? `(${[selectedClient.address, selectedClient.locality, selectedClient.province].filter(Boolean).join(", ")})` : ""}</span>
-                    </label>
-                    <label className="flex items-center gap-2 text-sm text-gray-900 cursor-pointer">
-                      <input type="radio" name="addressType" checked={deliveryAddressType === "custom"} onChange={() => setDeliveryAddressType("custom")} className="h-4 w-4 text-amber-600 focus:ring-amber-500" />
-                      <span>Ingresar dirección alternativa</span>
+                    <p className="text-sm text-gray-700">
+                      Predeterminada: <span className="font-medium text-gray-900">{selectedClient ? [selectedClient.address, selectedClient.locality, selectedClient.province].filter(Boolean).join(", ") || "No disponible" : "Seleccione un cliente"}</span>
+                    </p>
+                    <label className="mt-3 flex items-center gap-2 text-sm text-gray-900 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={deliveryAddressType === "custom"}
+                        onChange={(e) => setDeliveryAddressType(e.target.checked ? "custom" : "client")}
+                        className="h-4 w-4 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
+                      />
+                      <span className="font-medium">Ingresar una dirección de entrega distinta para este pedido</span>
                     </label>
                     {deliveryAddressType === "custom" && (
-                      <input type="text" value={customDeliveryAddress} onChange={e => setCustomDeliveryAddress(e.target.value)} placeholder="Ej: Av. Corrientes 1234, CABA" className="mt-2 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
+                      <div className="pt-2">
+                        <input
+                          type="text"
+                          value={customDeliveryAddress}
+                          onChange={e => setCustomDeliveryAddress(e.target.value)}
+                          placeholder="Ej: Av. Corrientes 1234, CABA"
+                          className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                          autoFocus
+                        />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -465,11 +471,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
             </button>
           )}
 
-          {order.status === "Listo para remito" && (
-            <button type="button" onClick={() => onChangeStatus("Facturado")} className="w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm hover:bg-purple-700 transition">
-              Marcar como Facturado
-            </button>
-          )}
+          
 
           {order.status !== "Cancelado" && order.status !== "Facturado" && (
             <button type="button" onClick={() => {
@@ -487,7 +489,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
 }
 
 export default function Pedidos() {
-  const [orders, setOrders] = useState<Order[]>(SAMPLE_ORDERS);
+  const [orders, setOrders] = useState<Order[]>(() => [...SAMPLE_ORDERS]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos los estados");
   const [notice, setNotice] = useState("");
@@ -519,14 +521,16 @@ export default function Pedidos() {
   }, [editingOrder, selectedOrder]);
 
   function saveOrder(order: Order) {
-    const isNew = !orders.some(o => o.id === order.id);
+    const isNew = !SAMPLE_ORDERS.some(o => o.id === order.id);
     if (isNew) {
-      setOrders(current => [order, ...current]);
-      setNotice("Pedido registrado correctamente durante esta sesión.");
+      SAMPLE_ORDERS.unshift(order);
+      setNotice("Pedido registrado en memoria hasta recargar la aplicación.");
     } else {
-      setOrders(current => current.map(o => o.id === order.id ? order : o));
-      setNotice("Pedido actualizado durante esta sesión.");
+      const orderIndex = SAMPLE_ORDERS.findIndex(o => o.id === order.id);
+      if (orderIndex >= 0) SAMPLE_ORDERS[orderIndex] = order;
+      setNotice("Pedido actualizado en memoria hasta recargar la aplicación.");
     }
+    setOrders([...SAMPLE_ORDERS]);
     setEditingOrder(undefined);
     if (selectedOrder && selectedOrder.id === order.id) {
         setSelectedOrder(order);
@@ -597,36 +601,37 @@ export default function Pedidos() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid grid-cols-[minmax(8rem,1fr)_minmax(12rem,1.5fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_auto] gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div>Número / Fecha</div>
-              <div>Cliente</div>
-              <div>Total</div>
-              <div className="text-center">Estado</div>
-              <div className="text-right"><span className="sr-only">Acciones</span></div>
+            <div className="hidden lg:grid lg:grid-cols-5 items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <div className="min-w-0 text-center">Número / Fecha</div>
+              <div className="min-w-0 text-center">Cliente</div>
+              <div className="min-w-0 text-center">Total</div>
+              <div className="min-w-0 text-center">Estado</div>
+              <div className="min-w-0 text-center">Acciones</div>
             </div>
             <div className="divide-y divide-gray-100">
             {filteredOrders.map(order => {
               const client = SAMPLE_CLIENTS.find(c => c.id === order.clientId);
               return (
-                <article key={order.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[minmax(8rem,1fr)_minmax(12rem,1.5fr)_minmax(8rem,1fr)_minmax(8rem,1fr)_auto] lg:gap-5 lg:px-5">
-                  <div className="min-w-0">
+                <article key={order.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-5 lg:px-5">
+                  <div className="min-w-0 text-left lg:text-center">
                     <p className="mb-1 text-xs font-medium text-gray-500">{order.date}</p>
                     <h3 className="font-semibold leading-5 text-gray-900">{order.number}</h3>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500">Cliente</p>
-                    <p className="mt-1 break-words text-sm font-medium text-gray-800">{client?.name || "Desconocido"}</p>
+                  <div className="min-w-0 text-left lg:text-center">
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
+                    <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
                   </div>
-                  <div className="min-w-0">
-                    <p className="text-xs font-medium text-gray-500">Total</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900">${order.total}</p>
+                  <div className="min-w-0 lg:text-center text-left">
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">${order.total}</p>
                   </div>
-                  <div className="flex items-center justify-start lg:justify-center">
+                  <div className="flex flex-col items-start gap-1 lg:items-center">
+                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(order.status)}`}>
                       {order.status}
                     </span>
                   </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0">
+                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
                     <button type="button" onClick={() => setSelectedOrder(order)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
                     {order.status !== "Cancelado" && order.status !== "Facturado" && (
                       <button type="button" onClick={() => setEditingOrder(order)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
@@ -659,3 +664,4 @@ export default function Pedidos() {
     </div>
   );
 }
+

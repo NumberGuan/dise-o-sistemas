@@ -3,12 +3,12 @@ import type { NavItem } from "~/data/navigation";
 export const SALES_PAGES = [
   { label: "Resumen", to: "/ventas" },
   { label: "Clientes", to: "/ventas/clientes" },
+  { label: "Presupuestos", to: "/ventas/presupuestos" },
   { label: "Pedidos", to: "/ventas/pedidos" },
   { label: "Comprobantes", to: "/ventas/comprobantes" },
-  { label: "Presupuestos", to: "/ventas/presupuestos" },
+  { label: "Recibos", to: "/ventas/recibos" },
   { label: "Remitos", to: "/ventas/remitos" },
   { label: "Devoluciones", to: "/ventas/devoluciones" },
-  { label: "Recibos", to: "/ventas/recibos" },
 ] as const satisfies readonly NavItem[];
 
 export type ClientStatus = "Activo" | "Inactivo";
@@ -117,7 +117,7 @@ export const SAMPLE_ORDERS: Order[] = [
     subtotal: 143000,
     discount: 14600,
     total: 128400,
-    status: "En preparación",
+    status: "Facturado",
     observations: "Entrega por la mañana, verificar stock de ravioles."
   },
   {
@@ -155,3 +155,78 @@ export const SAMPLE_ORDERS: Order[] = [
     observations: "Llamar antes de enviar."
   }
 ];
+
+export const INVOICE_STATUSES = ["Borrador", "Emitido", "Anulado"] as const;
+export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
+
+export const INVOICE_TYPES = ["Factura A", "Factura B", "Factura C", "Nota de Crédito"] as const;
+export type InvoiceType = (typeof INVOICE_TYPES)[number];
+
+export type InvoiceItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
+
+export type Invoice = {
+  id: string;
+  number: string;
+  type: InvoiceType;
+  date: string;
+  dueDate: string;
+  clientId: string;
+  orderId?: string;
+  items: InvoiceItem[];
+  subtotal: number;
+  discount: number;
+  tax: number;
+  total: number;
+  status: InvoiceStatus;
+  observations: string;
+
+};
+
+export const SAMPLE_INVOICES: Invoice[] = [
+  {
+    id: "inv-1",
+    number: "FC-0001-00000381",
+    type: "Factura A",
+    date: "2026-09-18",
+    dueDate: "2026-10-18",
+    clientId: "c-148",
+    orderId: "o-148",
+    items: [
+      { id: "ii-1", productId: "p-1", productName: "Tallarines 500g", quantity: 40, unitPrice: 2000, subtotal: 80000 },
+      { id: "ii-2", productId: "p-2", productName: "Ravioles verdura", quantity: 18, unitPrice: 3500, subtotal: 63000 },
+    ],
+    subtotal: 143000,
+    discount: 14600,
+    tax: 0,
+    total: 128400,
+    status: "Emitido",
+    observations: "Pago a 30 días.",
+
+  },
+  {
+    id: "inv-2",
+    number: "FC-0001-00000382",
+    type: "Factura B",
+    date: "2026-09-20",
+    dueDate: "2026-09-20",
+    clientId: "c-144",
+    items: [
+      { id: "ii-3", productId: "p-3", productName: "Spaghetti 500g", quantity: 2, unitPrice: 2200, subtotal: 4400 },
+    ],
+    subtotal: 4400,
+    discount: 0,
+    tax: 0,
+    total: 4400,
+    status: "Emitido",
+    observations: "",
+
+  }
+];
+

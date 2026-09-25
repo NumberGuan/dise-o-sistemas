@@ -13,14 +13,14 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Ventas",
     to: "/ventas",
-    items: [
+        items: [
       { label: "Clientes", to: "/ventas/clientes" },
+      { label: "Presupuesto Cliente", to: "/ventas/presupuestos" },
       { label: "Pedidos de Clientes", to: "/ventas/pedidos" },
       { label: "Comprobantes de Venta", to: "/ventas/comprobantes" },
-      { label: "Presupuesto Cliente", to: "/ventas/presupuestos" },
+      { label: "Recibos de Pago de Cliente", to: "/ventas/recibos" },
       { label: "Remito Cliente", to: "/ventas/remitos" },
       { label: "Devoluciones", to: "/ventas/devoluciones" },
-      { label: "Recibos de Pago de Cliente", to: "/ventas/recibos" },
     ],
   },
   {
