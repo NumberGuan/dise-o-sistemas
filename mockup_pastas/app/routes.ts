@@ -19,7 +19,8 @@ export default [
       route("ordenes", "routes/compras/ordenes.tsx"),
       route("ordenes/nueva", "routes/compras/ordenes-nueva.tsx"),
       route("ordenes/:id", "routes/compras/ordenes-detalle.tsx"),
-      route("presupuestos", "routes/compras/presupuestos.tsx"),
+      route("presupuesto-proveedor", "routes/compras/presupuesto-proveedor.tsx"),
+      route("presupuesto-proveedor/:id", "routes/compras/presupuesto-proveedor-detalle.tsx"),
       route("remitos", "routes/compras/remitos.tsx"),
     ]),
 

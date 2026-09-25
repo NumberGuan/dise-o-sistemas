@@ -26,11 +26,11 @@ export const PRESUPUESTOS = [
 ];
 
 export const MATERIAS_PRIMAS = [
-  { id: 1, nombre: "Harina 000", precioUnitario: 450 },
-  { id: 2, nombre: "Harina 0000", precioUnitario: 520 },
-  { id: 3, nombre: "Sémola de trigo", precioUnitario: 610 },
-  { id: 4, nombre: "Huevos frescos", precioUnitario: 180 },
-  { id: 5, nombre: "Sal", precioUnitario: 40 },
+  { id: 1, nombre: "Harina 000", marca: "Molino La Plata", precioUnitario: 450 },
+  { id: 2, nombre: "Harina 0000", marca: "Molino La Plata", precioUnitario: 520 },
+  { id: 3, nombre: "Sémola de trigo", marca: "AgroHarinas", precioUnitario: 610 },
+  { id: 4, nombre: "Huevos frescos", marca: "Granja Don Juan", precioUnitario: 180 },
+  { id: 5, nombre: "Sal", marca: "Salinas del Sur", precioUnitario: 40 },
 ];
 
 export const ORDENES: OrdenCompra[] = [
