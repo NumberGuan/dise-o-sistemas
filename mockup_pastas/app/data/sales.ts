@@ -230,3 +230,65 @@ export const SAMPLE_INVOICES: Invoice[] = [
   }
 ];
 
+
+export const BUDGET_STATUSES = ["Borrador", "Enviado", "Aceptado", "Rechazado", "Vencido", "Convertido"] as const;
+export type BudgetStatus = (typeof BUDGET_STATUSES)[number];
+
+export type BudgetItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
+
+export type Budget = {
+  id: string;
+  number: string;
+  date: string;
+  validUntil: string;
+  clientId: string;
+  items: BudgetItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  status: BudgetStatus;
+  observations: string;
+  orderId?: string;
+};
+
+export const SAMPLE_BUDGETS: Budget[] = [
+  {
+    id: "bud-1",
+    number: "PR-000064",
+    date: "2026-09-12",
+    validUntil: "2026-09-26",
+    clientId: "c-148",
+    items: [
+      { id: "bi-1", productId: "p-1", productName: "Tallarines 500g", quantity: 20, unitPrice: 2000, subtotal: 40000 },
+      { id: "bi-2", productId: "p-2", productName: "Ravioles verdura", quantity: 10, unitPrice: 3500, subtotal: 35000 },
+    ],
+    subtotal: 75000,
+    discount: 5000,
+    total: 70000,
+    status: "Aceptado",
+    observations: "Pedido semanal a 8 productos."
+  },
+  {
+    id: "bud-2",
+    number: "PR-000065",
+    date: "2026-09-15",
+    validUntil: "2026-09-30",
+    clientId: "c-144",
+    items: [
+      { id: "bi-3", productId: "p-3", productName: "Spaghetti 500g", quantity: 50, unitPrice: 2200, subtotal: 110000 },
+    ],
+    subtotal: 110000,
+    discount: 10000,
+    total: 100000,
+    status: "Enviado",
+    observations: "Presupuesto especial por cantidad."
+  }
+];
+

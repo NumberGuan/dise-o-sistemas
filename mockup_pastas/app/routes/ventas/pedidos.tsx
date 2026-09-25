@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 
 import { SalesPageHeader } from "~/components/SalesLayout";
 import { 
@@ -426,11 +426,16 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
             </div>
           </div>
 
-          {order.deliveryDate && (
+          {(order.deliveryDate || order.deliveryAddressType) && (
             <div>
+              {order.deliveryDate && (
+                <>
               <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Entrega Estimada</h3>
               <p className="text-sm font-medium text-gray-800">{order.deliveryDate}</p>
-              
+                </>
+              )}
+              {order.deliveryAddressType && (
+                <>
               <h3 className="mt-4 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Dirección de Entrega</h3>
               <p className="text-sm font-medium text-gray-800">
                 {order.deliveryAddressType === "custom" 
@@ -440,6 +445,8 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
                   ({order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
                 </span>
               </p>
+                </>
+              )}
             </div>
           )}
 
@@ -489,6 +496,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
 }
 
 export default function Pedidos() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [orders, setOrders] = useState<Order[]>(() => [...SAMPLE_ORDERS]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos los estados");
@@ -513,12 +521,28 @@ export default function Pedidos() {
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") {
         setEditingOrder(undefined);
-        setSelectedOrder(null);
+        closeOrderDetails();
       }
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [editingOrder, selectedOrder]);
+  }, [editingOrder, selectedOrder, searchParams]);
+
+  useEffect(() => {
+    const orderId = searchParams.get("pedido");
+    if (!orderId) return;
+    const order = orders.find(candidate => candidate.id === orderId);
+    if (order) setSelectedOrder(order);
+  }, [orders, searchParams]);
+
+  function closeOrderDetails() {
+    setSelectedOrder(null);
+    if (searchParams.has("pedido")) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("pedido");
+      setSearchParams(nextParams, { replace: true });
+    }
+  }
 
   function saveOrder(order: Order) {
     const isNew = !SAMPLE_ORDERS.some(o => o.id === order.id);
@@ -656,8 +680,8 @@ export default function Pedidos() {
         <OrderDetails 
           order={selectedOrder} 
           client={SAMPLE_CLIENTS.find(c => c.id === selectedOrder.clientId)}
-          onClose={() => setSelectedOrder(null)} 
-          onEdit={() => { setEditingOrder(selectedOrder); setSelectedOrder(null); }}
+          onClose={closeOrderDetails}
+          onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(); }}
           onChangeStatus={changeOrderStatus}
         />
       )}
