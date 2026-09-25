@@ -7,7 +7,7 @@ import {
   PRESUPUESTOS,
   PROVEEDORES,
   formatMoney,
-  getMateriaPrimaPorId,
+  getMarcaPorId,
   getOrdenPorId,
   getProveedorPorId,
 } from "~/data/ordenes";
@@ -15,6 +15,7 @@ import {
 type OrdenItem = {
   key: number;
   idMateriaPrima: number | "";
+  idMarca: number | "";
   cantidad: number;
   subtotal: number;
 };
@@ -24,6 +25,7 @@ let nextItemKey = 1;
 const createEmptyItem = (): OrdenItem => ({
   key: nextItemKey++,
   idMateriaPrima: "",
+  idMarca: "",
   cantidad: 1,
   subtotal: 0,
 });
@@ -37,10 +39,14 @@ const labelClasses =
 
 export default function OrdenCompraPage({
   ordenId,
+  onClose,
 }: {
   ordenId?: string;
+  onClose?: () => void;
 } = {}) {
   const navigate = useNavigate();
+  const irVolver = () =>
+    onClose ? onClose() : navigate("/compras/ordenes");
 
   const orden =
     ordenId && ordenId !== "nueva" ? getOrdenPorId(Number(ordenId)) : undefined;
@@ -62,6 +68,7 @@ export default function OrdenCompraPage({
       ? orden.detalle.map((item) => ({
           key: nextItemKey++,
           idMateriaPrima: item.idMateriaPrima,
+          idMarca: item.idMarca,
           cantidad: item.cantidad,
           subtotal: item.subtotal,
         }))
@@ -103,13 +110,22 @@ export default function OrdenCompraPage({
         if (item.key !== key) {
           return item;
         }
-        const materiaPrima = MATERIAS_PRIMAS.find(
-          (mp) => mp.id === Number(idMateriaPrima),
-        );
-        const subtotal = materiaPrima
-          ? item.cantidad * materiaPrima.precioUnitario
-          : item.subtotal;
-        return { ...item, idMateriaPrima, subtotal };
+        return { ...item, idMateriaPrima, idMarca: "", subtotal: 0 };
+      }),
+    );
+  };
+
+  const handleMarcaChange = (key: number, idMarca: number | "") => {
+    setItems((current) =>
+      current.map((item) => {
+        if (item.key !== key) {
+          return item;
+        }
+        const marca = idMarca
+          ? getMarcaPorId(Number(idMarca))?.marca
+          : undefined;
+        const subtotal = marca ? item.cantidad * marca.precioUnitario : 0;
+        return { ...item, idMarca, subtotal };
       }),
     );
   };
@@ -120,10 +136,10 @@ export default function OrdenCompraPage({
         if (item.key !== key) {
           return item;
         }
-        const materiaPrima = getMateriaPrimaPorId(Number(item.idMateriaPrima));
-        const subtotal = materiaPrima
-          ? cantidad * materiaPrima.precioUnitario
-          : item.subtotal;
+        const marca = item.idMarca
+          ? getMarcaPorId(Number(item.idMarca))?.marca
+          : undefined;
+        const subtotal = marca ? cantidad * marca.precioUnitario : 0;
         return { ...item, cantidad, subtotal };
       }),
     );
@@ -156,10 +172,19 @@ export default function OrdenCompraPage({
       newErrors.push("Debes seleccionar un proveedor.");
     }
     const itemsValidos = items.filter(
-      (item) => item.idMateriaPrima !== "" && item.cantidad > 0,
+      (item) =>
+        item.idMateriaPrima !== "" &&
+        item.idMarca !== "" &&
+        item.cantidad > 0,
     );
     if (itemsValidos.length === 0) {
       newErrors.push("Debes agregar al menos un ítem válido al detalle.");
+    } else if (
+      items.some(
+        (item) => item.idMateriaPrima !== "" && item.idMarca === "",
+      )
+    ) {
+      newErrors.push("Todos los ítems con materia prima deben tener una marca.");
     }
 
     setErrors(newErrors);
@@ -179,6 +204,7 @@ export default function OrdenCompraPage({
       montoTotal,
       detalle: itemsValidos.map((item) => ({
         idMateriaPrima: item.idMateriaPrima,
+        idMarca: item.idMarca,
         cantidad: item.cantidad,
         subtotal: item.subtotal,
       })),
@@ -197,7 +223,7 @@ export default function OrdenCompraPage({
         </p>
         <button
           type="button"
-          onClick={() => navigate("/compras/ordenes")}
+          onClick={irVolver}
           className="mt-6 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           Volver a Órdenes
@@ -208,28 +234,8 @@ export default function OrdenCompraPage({
 
   const proveedor = idProveedor ? getProveedorPorId(Number(idProveedor)) : undefined;
 
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">
-            {esNueva ? "Nueva Orden de Compra" : "Detalle de Orden de Compra"}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500">
-            {esNueva
-              ? "Completa la cabecera y agrega los ítems para registrar la orden de compra."
-              : `${orden?.numero} · ${proveedor?.nombre ?? "Proveedor"} · ${formatMoney(montoTotal)}`}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate("/compras/ordenes")}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-        >
-          Volver a Órdenes
-        </button>
-      </div>
-
+  const contenido = (
+    <> 
       {saved && (
         <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-800">
           Orden de compra guardada correctamente.
@@ -260,7 +266,7 @@ export default function OrdenCompraPage({
               >
                 <option value="">Seleccionar proveedor</option>
                 {PROVEEDORES.map((proveedor) => (
-                  <option key={proveedor.id} value={proveedor.id}>
+                  <option key={proveedor.idPersona} value={proveedor.idPersona}>
                     {proveedor.nombre}
                   </option>
                 ))}
@@ -319,90 +325,115 @@ export default function OrdenCompraPage({
           </div>
 
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
+            <table className="w-full min-w-[820px] text-left text-sm">
               <thead>
                 <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400">
                   <th className="px-3 py-3 font-medium">N°</th>
                   <th className="px-3 py-3 font-medium">Materia Prima</th>
+                  <th className="px-3 py-3 font-medium">Marca</th>
                   <th className="px-3 py-3 font-medium">Cantidad</th>
                   <th className="px-3 py-3 font-medium">Subtotal</th>
                   <th className="px-3 py-3 font-medium" />
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {items.map((item, index) => (
-                  <tr key={item.key}>
-                    <td className="px-3 py-3 text-gray-500">{index + 1}</td>
-                    <td className="px-3 py-3">
-                      <select
-                        value={item.idMateriaPrima}
-                        onChange={(event) =>
-                          handleMateriaPrimaChange(
-                            item.key,
-                            Number(event.target.value),
-                          )
-                        }
-                        className={selectClasses}
-                      >
-                        <option value="">Seleccionar materia prima</option>
-                        {MATERIAS_PRIMAS.map((materiaPrima) => (
-                          <option key={materiaPrima.id} value={materiaPrima.id}>
-                            {materiaPrima.nombre} · {formatMoney(materiaPrima.precioUnitario)}/u
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-3 py-3">
-                      <input
-                        type="number"
-                        min={1}
-                        value={item.cantidad}
-                        onChange={(event) =>
-                          handleCantidadChange(item.key, Number(event.target.value))
-                        }
-                        className={inputClasses}
-                      />
-                    </td>
-                    <td className="px-3 py-3">
-                      <input
-                        type="number"
-                        min={0}
-                        value={item.subtotal}
-                        onChange={(event) =>
-                          handleSubtotalChange(item.key, event.target.value)
-                        }
-                        className={inputClasses}
-                      />
-                    </td>
-                    <td className="px-3 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(item.key)}
-                        aria-label={`Eliminar ítem ${index + 1}`}
-                        className="inline-flex rounded-md p-2 text-gray-400 transition hover:bg-rose-50 hover:text-rose-600"
-                      >
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-5 w-5"
-                          aria-hidden="true"
+                {items.map((item, index) => {
+                  const productoSeleccionado = item.idMateriaPrima
+                    ? MATERIAS_PRIMAS.find(
+                        (mp) => mp.id === Number(item.idMateriaPrima),
+                      )
+                    : undefined;
+                  return (
+                    <tr key={item.key}>
+                      <td className="px-3 py-3 text-gray-500">{index + 1}</td>
+                      <td className="px-3 py-3">
+                        <select
+                          value={item.idMateriaPrima}
+                          onChange={(event) =>
+                            handleMateriaPrimaChange(
+                              item.key,
+                              Number(event.target.value),
+                            )
+                          }
+                          className={selectClasses}
                         >
-                          <path d="M3 6h18" />
-                          <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
-                          <path d="M10 11v6M14 11v6" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                          <option value="">Seleccionar materia prima</option>
+                          {MATERIAS_PRIMAS.map((materiaPrima) => (
+                            <option key={materiaPrima.id} value={materiaPrima.id}>
+                              {materiaPrima.nombre}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-3">
+                        <select
+                          value={item.idMarca}
+                          onChange={(event) =>
+                            handleMarcaChange(item.key, Number(event.target.value))
+                          }
+                          disabled={!productoSeleccionado}
+                          className={`${selectClasses} disabled:bg-gray-100 disabled:text-gray-400`}
+                        >
+                          <option value="">Seleccionar marca</option>
+                          {productoSeleccionado?.marcas.map((marca) => (
+                            <option key={marca.id} value={marca.id}>
+                              {marca.nombre} · {formatMoney(marca.precioUnitario)}/u
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="number"
+                          min={1}
+                          value={item.cantidad}
+                          onChange={(event) =>
+                            handleCantidadChange(item.key, Number(event.target.value))
+                          }
+                          className={inputClasses}
+                        />
+                      </td>
+                      <td className="px-3 py-3">
+                        <input
+                          type="number"
+                          min={0}
+                          value={item.subtotal}
+                          onChange={(event) =>
+                            handleSubtotalChange(item.key, event.target.value)
+                          }
+                          className={inputClasses}
+                        />
+                      </td>
+                      <td className="px-3 py-3 text-right">
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveItem(item.key)}
+                          aria-label={`Eliminar ítem ${index + 1}`}
+                          className="inline-flex rounded-md p-2 text-gray-400 transition hover:bg-rose-50 hover:text-rose-600"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-5 w-5"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 6h18" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                            <path d="M10 11v6M14 11v6" />
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
                 {items.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-3 py-8 text-center text-gray-400">
+                    <td colSpan={6} className="px-3 py-8 text-center text-gray-400">
                       No hay ítems cargados. Usa "Agregar Ítem" para comenzar.
                     </td>
                   </tr>
@@ -422,7 +453,7 @@ export default function OrdenCompraPage({
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate("/compras/ordenes")}
+              onClick={irVolver}
               className="rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
             >
               Cancelar
@@ -436,6 +467,35 @@ export default function OrdenCompraPage({
           </div>
         </section>
       </form>
+    </>
+  );
+
+  if (onClose) {
+    return contenido;
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {esNueva ? "Nueva Orden de Compra" : "Detalle de Orden de Compra"}
+          </h1>
+          <p className="mt-1 text-sm text-gray-500">
+            {esNueva
+              ? "Completa la cabecera y agrega los ítems para registrar la orden de compra."
+              : `${orden?.numero} · ${proveedor?.nombre ?? "Proveedor"} · ${formatMoney(montoTotal)}`}
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={irVolver}
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+        >
+          Volver a Órdenes
+        </button>
+      </div>
+      {contenido}
     </div>
   );
 }

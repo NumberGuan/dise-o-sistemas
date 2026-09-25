@@ -4,14 +4,21 @@ import {
   PRESUPUESTOS,
   formatFecha,
   formatMoney,
-  getMateriaPrimaPorId,
+  getMarcaPorId,
   getMontoTotal,
   getOrdenPorId,
   getProveedorPorId,
 } from "~/data/ordenes";
 
-export default function OrdenDetallePage({ ordenId }: { ordenId: string }) {
+export default function OrdenDetallePage({
+  ordenId,
+  onClose,
+}: {
+  ordenId: string;
+  onClose?: () => void;
+}) {
   const navigate = useNavigate();
+  const irVolver = () => (onClose ? onClose() : navigate("/compras/ordenes"));
   const orden = getOrdenPorId(Number(ordenId));
 
   if (!orden) {
@@ -23,7 +30,7 @@ export default function OrdenDetallePage({ ordenId }: { ordenId: string }) {
         </p>
         <button
           type="button"
-          onClick={() => navigate("/compras/ordenes")}
+          onClick={irVolver}
           className="mt-6 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           Volver a Órdenes
@@ -38,24 +45,8 @@ export default function OrdenDetallePage({ ordenId }: { ordenId: string }) {
     : undefined;
   const montoTotal = getMontoTotal(orden.detalle);
 
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{orden.numero}</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Orden de compra al proveedor {proveedor?.nombre ?? "—"}.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate("/compras/ordenes")}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-        >
-          Volver a Órdenes
-        </button>
-      </div>
-
+  const contenido = (
+    <>
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-gray-900">Cabecera</h2>
         <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -112,19 +103,19 @@ export default function OrdenDetallePage({ ordenId }: { ordenId: string }) {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {orden.detalle.map((linea, index) => {
-                const materiaPrima = getMateriaPrimaPorId(linea.idMateriaPrima);
+                const productoMarca = getMarcaPorId(linea.idMarca);
                 return (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-5 py-3 text-gray-500">{index + 1}</td>
                     <td className="px-5 py-3 font-medium text-gray-900">
-                      {materiaPrima?.nombre ?? "—"}
+                      {productoMarca?.producto.nombre ?? "—"}
                     </td>
                     <td className="px-5 py-3 text-gray-600">
-                      {materiaPrima?.marca ?? "—"}
+                      {productoMarca?.marca.nombre ?? "—"}
                     </td>
                     <td className="px-5 py-3 text-gray-600">
-                      {materiaPrima
-                        ? formatMoney(materiaPrima.precioUnitario)
+                      {productoMarca
+                        ? formatMoney(productoMarca.marca.precioUnitario)
                         : "—"}
                     </td>
                     <td className="px-5 py-3 text-gray-600">{linea.cantidad}</td>
@@ -151,6 +142,31 @@ export default function OrdenDetallePage({ ordenId }: { ordenId: string }) {
           </table>
         </div>
       </section>
+    </>
+  );
+
+  if (onClose) {
+    return contenido;
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{orden.numero}</h1>
+          <p className="mt-1 text-sm text-gray-500">
+            Orden de compra al proveedor {proveedor?.nombre ?? "—"}.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={irVolver}
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+        >
+          Volver a Órdenes
+        </button>
+      </div>
+      {contenido}
     </div>
   );
 }

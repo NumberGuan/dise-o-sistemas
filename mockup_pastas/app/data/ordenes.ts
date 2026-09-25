@@ -1,5 +1,22 @@
+import { PROVEEDORES, getProveedorPorId } from "./proveedores";
+
+export { PROVEEDORES, getProveedorPorId };
+
+export type Marca = {
+  id: number;
+  nombre: string;
+  precioUnitario: number;
+};
+
+export type MateriaPrima = {
+  id: number;
+  nombre: string;
+  marcas: Marca[];
+};
+
 export type DetalleOrden = {
   idMateriaPrima: number;
+  idMarca: number;
   cantidad: number;
   subtotal: number;
 };
@@ -13,24 +30,50 @@ export type OrdenCompra = {
   detalle: DetalleOrden[];
 };
 
-export const PROVEEDORES = [
-  { id: 1, nombre: "Molino La Plata S.A." },
-  { id: 2, nombre: "AgroHarinas S.R.L." },
-  { id: 3, nombre: "Proveedora del Norte" },
-];
-
 export const PRESUPUESTOS = [
   { id: 101, numero: "PP-2024-001", idProveedor: 1, total: 120000 },
   { id: 102, numero: "PP-2024-002", idProveedor: 1, total: 96000 },
   { id: 103, numero: "PP-2024-003", idProveedor: 2, total: 85000 },
 ];
 
-export const MATERIAS_PRIMAS = [
-  { id: 1, nombre: "Harina 000", marca: "Molino La Plata", precioUnitario: 450 },
-  { id: 2, nombre: "Harina 0000", marca: "Molino La Plata", precioUnitario: 520 },
-  { id: 3, nombre: "Sémola de trigo", marca: "AgroHarinas", precioUnitario: 610 },
-  { id: 4, nombre: "Huevos frescos", marca: "Granja Don Juan", precioUnitario: 180 },
-  { id: 5, nombre: "Sal", marca: "Salinas del Sur", precioUnitario: 40 },
+export const MATERIAS_PRIMAS: MateriaPrima[] = [
+  {
+    id: 1,
+    nombre: "Harina 000",
+    marcas: [
+      { id: 1, nombre: "Molino La Plata", precioUnitario: 450 },
+      { id: 2, nombre: "AgroHarinas", precioUnitario: 430 },
+    ],
+  },
+  {
+    id: 2,
+    nombre: "Harina 0000",
+    marcas: [
+      { id: 3, nombre: "Molino La Plata", precioUnitario: 520 },
+      { id: 4, nombre: "AgroHarinas", precioUnitario: 500 },
+    ],
+  },
+  {
+    id: 3,
+    nombre: "Sémola de trigo",
+    marcas: [
+      { id: 5, nombre: "AgroHarinas", precioUnitario: 610 },
+      { id: 6, nombre: "Proveedora del Norte", precioUnitario: 590 },
+    ],
+  },
+  {
+    id: 4,
+    nombre: "Huevos frescos",
+    marcas: [
+      { id: 7, nombre: "Granja Don Juan", precioUnitario: 180 },
+      { id: 8, nombre: "Granja Santa Clara", precioUnitario: 170 },
+    ],
+  },
+  {
+    id: 5,
+    nombre: "Sal",
+    marcas: [{ id: 9, nombre: "Salinas del Sur", precioUnitario: 40 }],
+  },
 ];
 
 export const ORDENES: OrdenCompra[] = [
@@ -41,9 +84,9 @@ export const ORDENES: OrdenCompra[] = [
     idPresupuestoProveedor: 101,
     fechaEmision: "2026-08-20",
     detalle: [
-      { idMateriaPrima: 1, cantidad: 50, subtotal: 22500 },
-      { idMateriaPrima: 2, cantidad: 30, subtotal: 15600 },
-      { idMateriaPrima: 4, cantidad: 10, subtotal: 1800 },
+      { idMateriaPrima: 1, idMarca: 1, cantidad: 50, subtotal: 22500 },
+      { idMateriaPrima: 2, idMarca: 3, cantidad: 30, subtotal: 15600 },
+      { idMateriaPrima: 4, idMarca: 7, cantidad: 10, subtotal: 1800 },
     ],
   },
   {
@@ -53,8 +96,8 @@ export const ORDENES: OrdenCompra[] = [
     idPresupuestoProveedor: 103,
     fechaEmision: "2026-09-01",
     detalle: [
-      { idMateriaPrima: 3, cantidad: 20, subtotal: 12200 },
-      { idMateriaPrima: 5, cantidad: 100, subtotal: 4000 },
+      { idMateriaPrima: 3, idMarca: 5, cantidad: 20, subtotal: 12200 },
+      { idMateriaPrima: 5, idMarca: 9, cantidad: 100, subtotal: 4000 },
     ],
   },
   {
@@ -63,7 +106,7 @@ export const ORDENES: OrdenCompra[] = [
     idProveedor: 3,
     idPresupuestoProveedor: null,
     fechaEmision: "2026-09-12",
-    detalle: [{ idMateriaPrima: 1, cantidad: 80, subtotal: 36000 }],
+    detalle: [{ idMateriaPrima: 1, idMarca: 1, cantidad: 80, subtotal: 36000 }],
   },
   {
     id: 4,
@@ -72,8 +115,8 @@ export const ORDENES: OrdenCompra[] = [
     idPresupuestoProveedor: 102,
     fechaEmision: "2026-09-18",
     detalle: [
-      { idMateriaPrima: 2, cantidad: 45, subtotal: 23400 },
-      { idMateriaPrima: 3, cantidad: 10, subtotal: 6100 },
+      { idMateriaPrima: 2, idMarca: 3, cantidad: 45, subtotal: 23400 },
+      { idMateriaPrima: 3, idMarca: 5, cantidad: 10, subtotal: 6100 },
     ],
   },
 ];
@@ -81,11 +124,20 @@ export const ORDENES: OrdenCompra[] = [
 export const getOrdenPorId = (id: number) =>
   ORDENES.find((orden) => orden.id === id);
 
-export const getProveedorPorId = (id: number) =>
-  PROVEEDORES.find((proveedor) => proveedor.id === id);
-
 export const getMateriaPrimaPorId = (id: number) =>
   MATERIAS_PRIMAS.find((materiaPrima) => materiaPrima.id === id);
+
+export const getMarcaPorId = (
+  id: number,
+): { producto: MateriaPrima; marca: Marca } | undefined => {
+  for (const producto of MATERIAS_PRIMAS) {
+    const marca = producto.marcas.find((m) => m.id === id);
+    if (marca) {
+      return { producto, marca };
+    }
+  }
+  return undefined;
+};
 
 export const getMontoTotal = (detalle: DetalleOrden[]) =>
   detalle.reduce(

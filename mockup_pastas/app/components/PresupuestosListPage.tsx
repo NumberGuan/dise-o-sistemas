@@ -1,7 +1,10 @@
-import { Link } from "react-router";
+import { useState } from "react";
 
+import Modal from "~/components/Modal";
+import PresupuestoDetallePage from "~/components/PresupuestoDetallePage";
 import {
   getMontoPresupuesto,
+  getPresupuestoPorId,
   PRESUPUESTOS_PROVEEDOR,
 } from "~/data/presupuestos";
 import {
@@ -12,6 +15,13 @@ import {
 
 export default function PresupuestosListPage() {
   const hoy = new Date().toISOString().slice(0, 10);
+  const [detalleId, setDetalleId] = useState<number | null>(null);
+
+  const presupuestoSeleccionado =
+    detalleId !== null ? getPresupuestoPorId(detalleId) : undefined;
+  const proveedorSeleccionado = presupuestoSeleccionado
+    ? getProveedorPorId(presupuestoSeleccionado.idProveedor)
+    : undefined;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -76,8 +86,9 @@ export default function PresupuestosListPage() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <Link
-                        to={`/compras/presupuesto-proveedor/${presupuesto.id}`}
+                      <button
+                        type="button"
+                        onClick={() => setDetalleId(presupuesto.id)}
                         className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
                       >
                         Ver detalle
@@ -93,7 +104,7 @@ export default function PresupuestosListPage() {
                         >
                           <path d="m9 18 6-6-6-6" />
                         </svg>
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -102,6 +113,22 @@ export default function PresupuestosListPage() {
           </table>
         </div>
       </div>
+
+      {presupuestoSeleccionado && (
+        <Modal
+          title={presupuestoSeleccionado.numero}
+          subtitle={`Presupuesto recibido por mensaje desde ${
+            proveedorSeleccionado?.nombre ?? "el proveedor"
+          }.`}
+          onClose={() => setDetalleId(null)}
+          wide
+        >
+          <PresupuestoDetallePage
+            presupuestoId={String(presupuestoSeleccionado.id)}
+            onClose={() => setDetalleId(null)}
+          />
+        </Modal>
+      )}
     </div>
   );
 }

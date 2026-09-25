@@ -13,10 +13,14 @@ import {
 
 export default function PresupuestoDetallePage({
   presupuestoId,
+  onClose,
 }: {
   presupuestoId: string;
+  onClose?: () => void;
 }) {
   const navigate = useNavigate();
+  const irVolver = () =>
+    onClose ? onClose() : navigate("/compras/presupuesto-proveedor");
   const presupuesto = getPresupuestoPorId(Number(presupuestoId));
   const hoy = new Date().toISOString().slice(0, 10);
 
@@ -31,7 +35,7 @@ export default function PresupuestoDetallePage({
         </p>
         <button
           type="button"
-          onClick={() => navigate("/compras/presupuesto-proveedor")}
+          onClick={irVolver}
           className="mt-6 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           Volver a Presupuestos
@@ -44,37 +48,8 @@ export default function PresupuestoDetallePage({
   const vencido = presupuesto.fechaVencimiento < hoy;
   const montoTotal = getMontoPresupuesto(presupuesto.detalle);
 
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {presupuesto.numero}
-            </h1>
-            <span
-              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                vencido
-                  ? "bg-rose-100 text-rose-700"
-                  : "bg-emerald-100 text-emerald-700"
-              }`}
-            >
-              {vencido ? "Vencido" : "Vigente"}
-            </span>
-          </div>
-          <p className="mt-1 text-sm text-gray-500">
-            Presupuesto recibido por mensaje desde {proveedor?.nombre ?? "el proveedor"}.
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => navigate("/compras/presupuesto-proveedor")}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-        >
-          Volver a Presupuestos
-        </button>
-      </div>
-
+  const contenido = (
+    <>
       <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-gray-900">Cabecera</h2>
         <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -133,19 +108,20 @@ export default function PresupuestoDetallePage({
             </thead>
             <tbody className="divide-y divide-gray-100">
               {presupuesto.detalle.map((linea, index) => {
-                const materiaPrima = getMateriaPrimaPorId(linea.idMateriaPrima);
+                const producto = getMateriaPrimaPorId(linea.idMateriaPrima);
+                const marca = producto?.marcas[0];
                 return (
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-5 py-3 text-gray-500">{index + 1}</td>
                     <td className="px-5 py-3 font-medium text-gray-900">
-                      {materiaPrima?.nombre ?? "—"}
+                      {producto?.nombre ?? "—"}
                     </td>
                     <td className="px-5 py-3 text-gray-600">
-                      {materiaPrima?.marca ?? "—"}
+                      {marca?.nombre ?? "—"}
                     </td>
                     <td className="px-5 py-3 text-gray-600">
-                      {materiaPrima
-                        ? formatMoney(materiaPrima.precioUnitario)
+                      {marca
+                        ? formatMoney(marca.precioUnitario)
                         : "—"}
                     </td>
                     <td className="px-5 py-3 text-gray-600">{linea.cantidad}</td>
@@ -169,6 +145,44 @@ export default function PresupuestoDetallePage({
           </table>
         </div>
       </section>
+    </>
+  );
+
+  if (onClose) {
+    return contenido;
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">
+              {presupuesto.numero}
+            </h1>
+            <span
+              className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                vencido
+                  ? "bg-rose-100 text-rose-700"
+                  : "bg-emerald-100 text-emerald-700"
+              }`}
+            >
+              {vencido ? "Vencido" : "Vigente"}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-gray-500">
+            Presupuesto recibido por mensaje desde {proveedor?.nombre ?? "el proveedor"}.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={irVolver}
+          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+        >
+          Volver a Presupuestos
+        </button>
+      </div>
+      {contenido}
     </div>
   );
 }

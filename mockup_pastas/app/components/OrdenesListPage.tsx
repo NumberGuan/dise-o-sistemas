@@ -1,14 +1,31 @@
-import { Link } from "react-router";
+import { useState } from "react";
 
+import Modal from "~/components/Modal";
+import OrdenCompraPage from "~/components/OrdenCompraPage";
+import OrdenDetallePage from "~/components/OrdenDetallePage";
 import {
   ORDENES,
   formatFecha,
   formatMoney,
   getMontoTotal,
+  getOrdenPorId,
   getProveedorPorId,
 } from "~/data/ordenes";
 
+type ModalState =
+  | { tipo: "nueva" }
+  | { tipo: "detalle"; id: number }
+  | null;
+
 export default function OrdenesListPage() {
+  const [modal, setModal] = useState<ModalState>(null);
+
+  const ordenSeleccionada =
+    modal?.tipo === "detalle" ? getOrdenPorId(modal.id) : undefined;
+  const proveedorSeleccionado = ordenSeleccionada
+    ? getProveedorPorId(ordenSeleccionada.idProveedor)
+    : undefined;
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
@@ -20,12 +37,13 @@ export default function OrdenesListPage() {
             Consulta las órdenes de compra registradas y accede a su detalle.
           </p>
         </div>
-        <Link
-          to="/compras/ordenes/nueva"
+        <button
+          type="button"
+          onClick={() => setModal({ tipo: "nueva" })}
           className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           + Nueva Orden
-        </Link>
+        </button>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -64,8 +82,9 @@ export default function OrdenesListPage() {
                       {formatMoney(getMontoTotal(orden.detalle))}
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <Link
-                        to={`/compras/ordenes/${orden.id}`}
+                      <button
+                        type="button"
+                        onClick={() => setModal({ tipo: "detalle", id: orden.id })}
                         className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
                       >
                         Ver detalle
@@ -81,7 +100,7 @@ export default function OrdenesListPage() {
                         >
                           <path d="m9 18 6-6-6-6" />
                         </svg>
-                      </Link>
+                      </button>
                     </td>
                   </tr>
                 );
@@ -90,6 +109,33 @@ export default function OrdenesListPage() {
           </table>
         </div>
       </div>
+
+      {modal?.tipo === "nueva" && (
+        <Modal
+          title="Nueva Orden de Compra"
+          subtitle="Completa la cabecera y agrega los ítems para registrar la orden."
+          onClose={() => setModal(null)}
+          wide
+        >
+          <OrdenCompraPage onClose={() => setModal(null)} />
+        </Modal>
+      )}
+
+      {ordenSeleccionada && (
+        <Modal
+          title={ordenSeleccionada.numero}
+          subtitle={`Orden de compra al proveedor ${
+            proveedorSeleccionado?.nombre ?? "—"
+          }.`}
+          onClose={() => setModal(null)}
+          wide
+        >
+          <OrdenDetallePage
+            ordenId={String(ordenSeleccionada.id)}
+            onClose={() => setModal(null)}
+          />
+        </Modal>
+      )}
     </div>
   );
 }
