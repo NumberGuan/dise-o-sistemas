@@ -13,7 +13,7 @@ export const SALES_PAGES = [
 
 export type ClientStatus = "Activo" | "Inactivo";
 
-// Opciones de referencia para la maqueta; no representan un catálogo fiscal oficial.
+// Opciones de referencia para la maqueta; no representan un catálago fiscal oficial.
 export const CLIENT_DOCUMENT_TYPES = ["DNI", "CUIT", "CUIL", "Pasaporte", "Otro"] as const;
 export type ClientDocumentType = (typeof CLIENT_DOCUMENT_TYPES)[number];
 
@@ -52,8 +52,106 @@ export type ClientActivity = { type: string; code: string; date: string; summary
 export const SAMPLE_CLIENT_ACTIVITY: ClientActivity[] = [
   { type: "Pedido", code: "PC-000148", date: "24 sep 2026", summary: "Tallarines 500g y ravioles de verdura", status: "En preparación", to: "/ventas/pedidos" },
   { type: "Remito", code: "R-000092", date: "18 sep 2026", summary: "Entrega de 12 cajas", status: "Entregado", to: "/ventas/remitos" },
-  { type: "Comprobante", code: "FC-000381", date: "18 sep 2026", summary: "Venta · $ 86.400", status: "Emitido", to: "/ventas/comprobantes" },
-  { type: "Presupuesto", code: "PR-000064", date: "12 sep 2026", summary: "Pedido semanal · 8 productos", status: "Aceptado", to: "/ventas/presupuestos" },
-  { type: "Recibo", code: "RC-000107", date: "10 sep 2026", summary: "Pago recibido · $ 86.400", status: "Registrado", to: "/ventas/recibos" },
+  { type: "Comprobante", code: "FC-000381", date: "18 sep 2026", summary: "Venta a $ 86.400", status: "Emitido", to: "/ventas/comprobantes" },
+  { type: "Presupuesto", code: "PR-000064", date: "12 sep 2026", summary: "Pedido semanal a 8 productos", status: "Aceptado", to: "/ventas/presupuestos" },
+  { type: "Recibo", code: "RC-000107", date: "10 sep 2026", summary: "Pago recibido a $ 86.400", status: "Registrado", to: "/ventas/recibos" },
   { type: "Devolución", code: "DV-000012", date: "03 sep 2026", summary: "1 caja de sorrentinos", status: "Resuelta", to: "/ventas/devoluciones" },
+];
+
+export type Product = {
+  id: string;
+  name: string;
+  price: number;
+  stock: string;
+};
+
+export const SAMPLE_PRODUCTS: Product[] = [
+  { id: "p-1", name: "Tallarines 500g", price: 2000, stock: "Disponible" },
+  { id: "p-2", name: "Ravioles verdura", price: 3500, stock: "A producir" },
+  { id: "p-3", name: "Spaghetti 500g", price: 2200, stock: "Disponible" },
+  { id: "p-4", name: "Ñoquis papa", price: 2800, stock: "Disponible" },
+  { id: "p-5", name: "Sorrentinos jamón y queso", price: 4200, stock: "A producir" },
+  { id: "p-6", name: "Fettuccine 500g", price: 2100, stock: "Disponible" },
+];
+
+export const ORDER_STATUSES = ["Pendiente", "En preparación", "Listo para remito", "Facturado", "Cancelado"] as const;
+export type OrderStatus = (typeof ORDER_STATUSES)[number];
+
+export type OrderItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
+
+export type Order = {
+  id: string;
+  number: string;
+  clientId: string;
+  employeeId?: string;
+  date: string;
+  deliveryDate: string;
+  deliveryAddressType?: "client" | "custom";
+  customDeliveryAddress?: string;
+  items: OrderItem[];
+  subtotal: number;
+  discount: number;
+  total: number;
+  status: OrderStatus;
+  observations: string;
+};
+
+export const SAMPLE_ORDERS: Order[] = [
+  {
+    id: "o-148",
+    number: "PC-000148",
+    clientId: "c-148",
+    employeeId: "emp-2", date: "2026-09-24", deliveryAddressType: "client",
+    deliveryDate: "2026-09-25",
+    items: [
+      { id: "oi-1", productId: "p-1", productName: "Tallarines 500g", quantity: 40, unitPrice: 2000, subtotal: 80000 },
+      { id: "oi-2", productId: "p-2", productName: "Ravioles verdura", quantity: 18, unitPrice: 3500, subtotal: 63000 },
+    ],
+    subtotal: 143000,
+    discount: 14600,
+    total: 128400,
+    status: "En preparación",
+    observations: "Entrega por la mañana, verificar stock de ravioles."
+  },
+  {
+    id: "o-147",
+    number: "PC-000147",
+    clientId: "c-147",
+    employeeId: "emp-2", date: "2026-09-24", deliveryAddressType: "client",
+    deliveryDate: "2026-09-26",
+    items: [
+      { id: "oi-3", productId: "p-3", productName: "Spaghetti 500g", quantity: 30, unitPrice: 2200, subtotal: 66000 },
+    ],
+    subtotal: 66000,
+    discount: 0,
+    total: 66000,
+    status: "Pendiente",
+    observations: ""
+  },
+  {
+    id: "o-146",
+    number: "PC-000146",
+    clientId: "c-146",
+    employeeId: "emp-3",
+    date: "2026-09-23", 
+    deliveryDate: "2026-09-24",
+    deliveryAddressType: "custom", 
+    customDeliveryAddress: "Av. Corrientes 1234, CABA",
+    items: [
+      { id: "oi-4", productId: "p-4", productName: "Ñoquis papa", quantity: 10, unitPrice: 2800, subtotal: 28000 },
+      { id: "oi-5", productId: "p-5", productName: "Sorrentinos jamón y queso", quantity: 5, unitPrice: 4200, subtotal: 21000 },
+    ],
+    subtotal: 49000,
+    discount: 0,
+    total: 49000,
+    status: "Listo para remito",
+    observations: "Llamar antes de enviar."
+  }
 ];

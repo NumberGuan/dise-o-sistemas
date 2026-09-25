@@ -90,7 +90,7 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
               <input value={values.province} onChange={(event) => update("province", event.target.value)} className={inputClass} />
             </label>
             <label className={`${labelClass} sm:col-span-2`}>Observaciones
-              <textarea rows={3} value={values.notes} onChange={(event) => update("notes", event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
+              <textarea rows={3} value={values.notes} onChange={(event) => update("notes", event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
             </label>
           </div>
           <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
@@ -193,18 +193,26 @@ export default function Clientes() {
           <div><h2 className="font-semibold text-gray-900">Listado de clientes</h2><p className="mt-1 text-sm text-gray-500">{filteredClients.length} {filteredClients.length === 1 ? "cliente" : "clientes"} encontrados</p></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:flex">
             <label className="sr-only" htmlFor="client-search">Buscar por nombre, código, tipo de documento o CUIT/CUIL</label>
-            <input id="client-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar cliente…" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:w-64" />
+            <input id="client-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar cliente…" className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:w-64" />
             <label className="sr-only" htmlFor="client-status">Filtrar por estado</label>
-            <select id="client-status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"><option>Todos los estados</option><option>Activo</option><option>Inactivo</option></select>
+            <select id="client-status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"><option>Todos los estados</option><option>Activo</option><option>Inactivo</option></select>
             <label className="sr-only" htmlFor="client-locality">Filtrar por localidad</label>
-            <select id="client-locality" value={localityFilter} onChange={(event) => setLocalityFilter(event.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"><option>Todas las localidades</option>{localities.map((locality) => <option key={locality}>{locality}</option>)}</select>
+            <select id="client-locality" value={localityFilter} onChange={(event) => setLocalityFilter(event.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"><option>Todas las localidades</option>{localities.map((locality) => <option key={locality}>{locality}</option>)}</select>
           </div>
         </div>
 
         {filteredClients.length === 0 ? (
           <div className="px-5 py-14 text-center"><div aria-hidden="true" className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500">⌕</div><h3 className="mt-4 font-semibold text-gray-900">No encontramos clientes</h3><p className="mt-1 text-sm text-gray-500">Prueba con otro término o cambia los filtros.</p><button type="button" onClick={() => { setSearch(""); setStatusFilter("Todos los estados"); setLocalityFilter("Todas las localidades"); }} className="mt-4 text-sm font-semibold text-amber-700 hover:text-amber-800">Limpiar filtros</button></div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <>
+            <div className="hidden lg:grid grid-cols-[minmax(12rem,1.5fr)_minmax(9rem,1fr)_minmax(7rem,1fr)_auto_auto] gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+              <div>Nombre/Razón Social</div>
+              <div>CUIT/CUIL</div>
+              <div>Localidad</div>
+              <div className="text-center">Estado</div>
+              <div className="text-right"><span className="sr-only">Acciones</span></div>
+            </div>
+            <div className="divide-y divide-gray-100">
             {filteredClients.map((client) => <article key={client.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[minmax(12rem,1.5fr)_minmax(9rem,1fr)_minmax(7rem,1fr)_auto_auto] lg:gap-5 lg:px-5">
               <div className="col-span-2 min-w-0 lg:col-span-1">
                 <p className="mb-1 text-xs font-medium text-gray-500">{client.code} · {client.type}</p>
@@ -212,11 +220,11 @@ export default function Clientes() {
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-gray-500">CUIT/CUIL</p>
-                <p className="mt-1 break-words text-sm text-gray-700">{client.cuitCuil || "Sin dato"}</p>
+                <p className="mt-1 break-words text-sm text-gray-900">{client.cuitCuil || "Sin dato"}</p>
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-medium text-gray-500">Localidad</p>
-                <p className="mt-1 break-words text-sm text-gray-700">{client.locality}</p>
+                <p className="mt-1 break-words text-sm text-gray-900">{client.locality}</p>
               </div>
               <div className="flex items-center justify-start lg:justify-center">
                 <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${client.status === "Activo" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>{client.status}</span>
@@ -227,6 +235,7 @@ export default function Clientes() {
               </div>
             </article>)}
           </div>
+          </>
         )}
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Datos de muestra para la maqueta de Ventas.</div>
       </section>
