@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "~/components/PlaceholderPage";
+import { SalesPlaceholder } from "~/components/SalesPlaceholder";
 
 export default function RecibosDePago() {
-  return <PlaceholderPage title="Recibos de Pago de Cliente" />;
+  return <SalesPlaceholder title="Recibos de Pago de Clientes" description="Consulta los recibos asociados a pagos de clientes." />;
 }

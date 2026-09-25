@@ -4,7 +4,8 @@ export default [
   layout("components/Layout.tsx", [
     index("routes/home.tsx"),
 
-    route("ventas", "routes/ventas.tsx", [
+    route("ventas", "routes/ventas/layout.tsx", [
+      index("routes/ventas/index.tsx"),
       route("clientes", "routes/ventas/clientes.tsx"),
       route("pedidos", "routes/ventas/pedidos.tsx"),
       route("comprobantes", "routes/ventas/comprobantes.tsx"),
