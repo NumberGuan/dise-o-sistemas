@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 
 import { SalesPageHeader } from "~/components/SalesLayout";
-import { SAMPLE_CLIENT_ACTIVITY, SAMPLE_CLIENTS, type Client, type ClientStatus } from "~/data/sales";
+import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, SAMPLE_CLIENT_ACTIVITY, SAMPLE_CLIENTS, type Client, type ClientStatus } from "~/data/sales";
 
 type ClientFormProps = {
   client: Client | null;
@@ -11,7 +11,7 @@ type ClientFormProps = {
 };
 
 const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
-  type: "Comercio", name: "", taxId: "", phone: "", email: "", address: "", locality: "", province: "Buenos Aires", terms: "Contado", status: "Activo", notes: "",
+  type: "Comercio", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
 };
 
 function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
@@ -60,8 +60,19 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
             <label className={`${labelClass} sm:col-span-2`}>Razón social o nombre <span className="text-rose-600">*</span>
               <input required maxLength={100} value={values.name} onChange={(event) => update("name", event.target.value)} autoFocus className={inputClass} placeholder="Nombre del cliente" />
             </label>
-            <label className={labelClass}>Identificación fiscal
-              <input value={values.taxId} onChange={(event) => update("taxId", event.target.value)} className={inputClass} placeholder="Dato de referencia" />
+            <label className={labelClass}>Tipo de documento
+              <select value={values.documentType} onChange={(event) => update("documentType", event.target.value as Client["documentType"])} className={inputClass}>
+                {CLIENT_DOCUMENT_TYPES.map((documentType) => <option key={documentType}>{documentType}</option>)}
+              </select>
+            </label>
+            <label className={labelClass}>CUIT/CUIL
+              <input value={values.cuitCuil} onChange={(event) => update("cuitCuil", event.target.value)} className={inputClass} placeholder="Número de documento" />
+            </label>
+            <label className={labelClass}>Tipo IVA
+              <select value={values.ivaType} onChange={(event) => update("ivaType", event.target.value as Client["ivaType"])} className={inputClass}>
+                <option value="">Seleccionar</option>
+                {CLIENT_IVA_TYPES.map((ivaType) => <option key={ivaType}>{ivaType}</option>)}
+              </select>
             </label>
             <label className={labelClass}>Teléfono
               <input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} className={inputClass} placeholder="Código de área y número" />
@@ -77,9 +88,6 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
             </label>
             <label className={labelClass}>Provincia
               <input value={values.province} onChange={(event) => update("province", event.target.value)} className={inputClass} />
-            </label>
-            <label className={`${labelClass} sm:col-span-2`}>Condición comercial
-              <input value={values.terms} onChange={(event) => update("terms", event.target.value)} className={inputClass} placeholder="Ej.: contado o cuenta corriente" />
             </label>
             <label className={`${labelClass} sm:col-span-2`}>Observaciones
               <textarea rows={3} value={values.notes} onChange={(event) => update("notes", event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
@@ -107,7 +115,7 @@ function ClientDetails({ client, onClose, onEdit }: { client: Client; onClose: (
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Información del cliente</h3>
             <dl className="mt-3 space-y-3 text-sm">
-              {[ ["Identificación fiscal", client.taxId], ["Teléfono", client.phone], ["Correo", client.email], ["Domicilio", [client.address, client.locality, client.province].filter(Boolean).join(", ")], ["Condición comercial", client.terms], ["Estado", client.status] ].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Domicilio", [client.address, client.locality, client.province].filter(Boolean).join(", ")], ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
             </dl>
             {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 text-sm text-amber-900">{client.notes}</p></div>}
           </div>
@@ -143,7 +151,7 @@ export default function Clientes() {
   const filteredClients = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("es");
     return clients.filter((client) => {
-      const matchesSearch = !query || [client.name, client.code, client.taxId].some((value) => value.toLocaleLowerCase("es").includes(query));
+      const matchesSearch = !query || [client.name, client.code, client.documentType, client.cuitCuil].some((value) => value.toLocaleLowerCase("es").includes(query));
       const matchesStatus = statusFilter === "Todos los estados" || client.status === statusFilter;
       const matchesLocality = localityFilter === "Todas las localidades" || client.locality === localityFilter;
       return matchesSearch && matchesStatus && matchesLocality;
@@ -184,7 +192,7 @@ export default function Clientes() {
         <div className="flex flex-col gap-4 border-b border-gray-200 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
           <div><h2 className="font-semibold text-gray-900">Listado de clientes</h2><p className="mt-1 text-sm text-gray-500">{filteredClients.length} {filteredClients.length === 1 ? "cliente" : "clientes"} encontrados</p></div>
           <div className="grid gap-3 sm:grid-cols-2 lg:flex">
-            <label className="sr-only" htmlFor="client-search">Buscar por nombre, código o identificación fiscal</label>
+            <label className="sr-only" htmlFor="client-search">Buscar por nombre, código, tipo de documento o CUIT/CUIL</label>
             <input id="client-search" type="search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar cliente…" className="h-10 w-full rounded-lg border border-gray-300 px-3 text-sm outline-none placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:w-64" />
             <label className="sr-only" htmlFor="client-status">Filtrar por estado</label>
             <select id="client-status" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-700 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100"><option>Todos los estados</option><option>Activo</option><option>Inactivo</option></select>
@@ -196,21 +204,28 @@ export default function Clientes() {
         {filteredClients.length === 0 ? (
           <div className="px-5 py-14 text-center"><div aria-hidden="true" className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500">⌕</div><h3 className="mt-4 font-semibold text-gray-900">No encontramos clientes</h3><p className="mt-1 text-sm text-gray-500">Prueba con otro término o cambia los filtros.</p><button type="button" onClick={() => { setSearch(""); setStatusFilter("Todos los estados"); setLocalityFilter("Todas las localidades"); }} className="mt-4 text-sm font-semibold text-amber-700 hover:text-amber-800">Limpiar filtros</button></div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[900px] text-left text-sm">
-              <thead><tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500"><th scope="col" className="px-5 py-3 font-medium">Código</th><th scope="col" className="px-5 py-3 font-medium">Cliente</th><th scope="col" className="px-5 py-3 font-medium">Identificación fiscal</th><th scope="col" className="px-5 py-3 font-medium">Localidad</th><th scope="col" className="px-5 py-3 font-medium">Contacto</th><th scope="col" className="px-5 py-3 font-medium">Estado</th><th scope="col" className="px-5 py-3 text-right font-medium">Acciones</th></tr></thead>
-              <tbody className="divide-y divide-gray-100">
-                {filteredClients.map((client) => <tr key={client.id} className="hover:bg-amber-50/30">
-                  <td className="whitespace-nowrap px-5 py-4 text-xs font-medium text-gray-500">{client.code}</td>
-                  <td className="px-5 py-4"><button type="button" onClick={() => setSelectedClient(client)} className="text-left font-semibold text-gray-900 hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-amber-600">{client.name}</button><p className="mt-0.5 text-xs text-gray-500">{client.type}</p></td>
-                  <td className="whitespace-nowrap px-5 py-4 text-gray-600">{client.taxId || "—"}</td>
-                  <td className="whitespace-nowrap px-5 py-4 text-gray-600">{client.locality}</td>
-                  <td className="px-5 py-4"><p className="whitespace-nowrap text-gray-700">{client.phone || "—"}</p><p className="mt-0.5 max-w-48 truncate text-xs text-gray-500">{client.email || "—"}</p></td>
-                  <td className="px-5 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${client.status === "Activo" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>{client.status}</span></td>
-                  <td className="whitespace-nowrap px-5 py-4 text-right"><button type="button" onClick={() => setSelectedClient(client)} className="rounded px-2 py-1 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver</button><button type="button" onClick={() => setEditingClient(client)} className="ml-1 rounded px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button></td>
-                </tr>)}
-              </tbody>
-            </table>
+          <div className="divide-y divide-gray-100">
+            {filteredClients.map((client) => <article key={client.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[minmax(12rem,1.5fr)_minmax(9rem,1fr)_minmax(7rem,1fr)_auto_auto] lg:gap-5 lg:px-5">
+              <div className="col-span-2 min-w-0 lg:col-span-1">
+                <p className="mb-1 text-xs font-medium text-gray-500">{client.code} · {client.type}</p>
+                <h3 className="break-words font-semibold leading-5 text-gray-900">{client.name}</h3>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">CUIT/CUIL</p>
+                <p className="mt-1 break-words text-sm text-gray-700">{client.cuitCuil || "Sin dato"}</p>
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-medium text-gray-500">Localidad</p>
+                <p className="mt-1 break-words text-sm text-gray-700">{client.locality}</p>
+              </div>
+              <div className="flex items-center justify-start lg:justify-center">
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${client.status === "Activo" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>{client.status}</span>
+              </div>
+              <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0">
+                <button type="button" onClick={() => setSelectedClient(client)} aria-label={`Ver detalle de ${client.name}`} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                <button type="button" onClick={() => setEditingClient(client)} aria-label={`Editar ${client.name}`} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+              </div>
+            </article>)}
           </div>
         )}
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Datos de muestra para la maqueta de Ventas.</div>
