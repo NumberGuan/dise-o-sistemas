@@ -13,7 +13,7 @@ export const SALES_PAGES = [
 
 export type ClientStatus = "Activo" | "Inactivo";
 
-// Opciones de referencia para la maqueta; no representan un catálago fiscal oficial.
+// Opciones de referencia para la maqueta; no representan un catálogo fiscal oficial.
 export const CLIENT_DOCUMENT_TYPES = ["DNI", "CUIT", "CUIL", "Pasaporte", "Otro"] as const;
 export type ClientDocumentType = (typeof CLIENT_DOCUMENT_TYPES)[number];
 
@@ -330,3 +330,62 @@ export const SAMPLE_REMITS: Remit[] = [
   }
 ];
 
+export const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Cheque", "Tarjeta de Crédito", "Tarjeta de Débito"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const RECEIPT_STATUSES = ["Borrador", "Registrado", "Anulado"] as const;
+export type ReceiptStatus = (typeof RECEIPT_STATUSES)[number];
+
+export type ReceiptPaymentDetail = {
+  id: string;
+  method: PaymentMethod;
+  amount: number;
+  reference?: string;
+};
+
+export type ReceiptInvoiceDetail = {
+  invoiceId: string;
+  invoiceNumber: string;
+  amountApplied: number;
+};
+
+export type Receipt = {
+  id: string;
+  number: string;
+  date: string;
+  clientId: string;
+  invoices: ReceiptInvoiceDetail[];
+  payments: ReceiptPaymentDetail[];
+  total: number;
+  status: ReceiptStatus;
+  observations: string;
+};
+
+export const SAMPLE_RECEIPTS: Receipt[] = [
+  {
+    id: "rec-1",
+    number: "RC-0001-00000107",
+    date: "2026-09-21",
+    clientId: "c-144",
+    invoices: [
+      { invoiceId: "inv-2", invoiceNumber: "FC-0001-00000382", amountApplied: 4400 }
+    ],
+    payments: [
+      { id: "pay-1", method: "Transferencia", amount: 4400, reference: "TR-998822" }
+    ],
+    total: 4400,
+    status: "Registrado",
+    observations: "Pago completo de la factura."
+  }
+];
+
+// Solo los recibos registrados afectan el saldo. Un borrador no representa un cobro.
+export function getInvoicePaymentSummary(invoice: Invoice, excludingReceiptId?: string) {
+  const paid = SAMPLE_RECEIPTS
+    .filter(receipt => receipt.status === "Registrado" && receipt.id !== excludingReceiptId && receipt.clientId === invoice.clientId)
+    .flatMap(receipt => receipt.invoices)
+    .filter(detail => detail.invoiceId === invoice.id)
+    .reduce((sum, detail) => sum + detail.amountApplied, 0);
+  const balance = Math.max(0, Math.round((invoice.total - paid) * 100) / 100);
+  return { paid: Math.round(paid * 100) / 100, balance };
+}

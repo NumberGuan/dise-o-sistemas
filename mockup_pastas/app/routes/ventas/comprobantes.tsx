@@ -6,6 +6,7 @@ import {
   SAMPLE_INVOICES,
   INVOICE_STATUSES,
   INVOICE_TYPES,
+  getInvoicePaymentSummary,
   type Invoice,
   type InvoiceStatus,
   type InvoiceItem,
@@ -23,6 +24,11 @@ function getStatusClass(status: InvoiceStatus) {
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
+}
+
+function getPaymentStatus(invoice: Invoice) {
+  const { paid, balance } = getInvoicePaymentSummary(invoice);
+  return balance === 0 ? "Pagado" : paid > 0 ? "Pago parcial" : "Pendiente";
 }
 
 type InvoiceFormProps = {
@@ -101,7 +107,7 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
   }
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">{isNew ? "Nueva Factura" : `Editar Factura ${invoice.number}`}</h1>
         <button type="button" onClick={onCancel} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver</button>
@@ -123,13 +129,14 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
           <div className="p-5">
             <div className="grid gap-6 sm:grid-cols-2">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Cliente *</label>
+                <label htmlFor="invoice-client" className="block text-sm font-medium text-gray-700">Cliente *</label>
                 <select
+                  id="invoice-client"
                   required
                   value={clientId}
                   onChange={e => setClientId(e.target.value)}
                   disabled={!!orderId && isNew}
-                  className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50 disabled:text-gray-500"
+                  className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50 disabled:text-gray-700"
                 >
                   <option value="">Seleccionar cliente...</option>
                   {SAMPLE_CLIENTS.map(c => (
@@ -144,12 +151,13 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Pedido asociado</label>
+                <label htmlFor="invoice-order" className="block text-sm font-medium text-gray-700">Pedido asociado</label>
                 <select
+                  id="invoice-order"
                   value={orderId}
                   onChange={e => setOrderId(e.target.value)}
                   disabled={!isNew}
-                  className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50 disabled:text-gray-500"
+                  className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50 disabled:text-gray-700"
                 >
                   <option value="">Ninguno</option>
                   {orderId && !availableOrders.some(o => o.id === orderId) && (
@@ -162,8 +170,9 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Tipo de comprobante</label>
+                <label htmlFor="invoice-type" className="block text-sm font-medium text-gray-700">Tipo de comprobante</label>
                 <select
+                  id="invoice-type"
                   value={type}
                   onChange={e => setType(e.target.value as InvoiceType)}
                   className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
@@ -177,8 +186,9 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
               
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Fecha de emisión *</label>
+                <label htmlFor="invoice-date" className="block text-sm font-medium text-gray-700">Fecha de emisión *</label>
                 <input
+                  id="invoice-date"
                   type="date"
                   required
                   value={date}
@@ -188,8 +198,9 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700">Vencimiento *</label>
+                <label htmlFor="invoice-due-date" className="block text-sm font-medium text-gray-700">Vencimiento *</label>
                 <input
+                  id="invoice-due-date"
                   type="date"
                   required
                   value={dueDate}
@@ -209,9 +220,9 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
             {items.length === 0 ? (
               <p className="text-sm text-gray-500">No hay renglones en la factura. Selecciona un pedido para cargarlos automáticamente.</p>
             ) : (
-              <div className="overflow-hidden rounded-lg border border-gray-200">
-                <table className="w-full text-left text-sm text-gray-900">
-                  <thead className="bg-gray-50 text-gray-500">
+              <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="w-full min-w-[500px] text-left text-sm text-gray-900">
+                  <thead className="bg-gray-50 text-gray-700">
                     <tr>
                       <th className="px-4 py-2 font-medium">Producto</th>
                       <th className="px-4 py-2 text-right font-medium">Cant.</th>
@@ -254,7 +265,7 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
                         step="0.01" 
                         value={tax} 
                         onChange={e => setTax(Number(e.target.value))} 
-                        className="w-24 rounded-md border border-gray-300 px-2 py-1 text-right text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                        className="w-24 rounded-md border border-gray-300 bg-white px-2 py-1 text-right text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
                       />
                     </div>
                   </div>
@@ -266,21 +277,22 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
             </div>
 
             <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700">Observaciones</label>
+              <label htmlFor="invoice-observations" className="block text-sm font-medium text-gray-700">Observaciones</label>
               <textarea
+                id="invoice-observations"
                 rows={2}
                 value={observations}
                 onChange={e => setObservations(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
               />
             </div>
           </div>
         </div>
 
-        <div className="flex justify-end gap-3">
+        <div className="flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">Cancelar</button>
           <button type="button" onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar como borrador</button>
-          <button type="button" onClick={() => handleSubmit("Emitido")} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700">Emitir Factura (simulada)</button>
+          <button type="button" onClick={() => handleSubmit("Emitido")} className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir Factura (simulada)</button>
         </div>
       </form>
     </div>
@@ -297,9 +309,10 @@ type InvoiceDetailProps = {
 function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDetailProps) {
   const client = SAMPLE_CLIENTS.find(c => c.id === invoice.clientId);
   const order = SAMPLE_ORDERS.find(o => o.id === invoice.orderId);
+  const payment = getInvoicePaymentSummary(invoice);
 
   return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <h1 className="text-2xl font-bold text-gray-900">{invoice.type} {invoice.number}</h1>
@@ -314,9 +327,9 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
         <div className="lg:col-span-2 space-y-6">
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Detalle de conceptos</h2>
-            <div className="overflow-hidden rounded-lg border border-gray-200">
-              <table className="w-full text-left text-sm text-gray-900">
-                <thead className="bg-gray-50 text-gray-500">
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="w-full min-w-[500px] text-left text-sm text-gray-900">
+                <thead className="bg-gray-50 text-gray-700">
                   <tr>
                     <th className="px-4 py-2 font-medium">Producto</th>
                     <th className="px-4 py-2 text-right font-medium">Cant.</th>
@@ -357,6 +370,12 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
                   <span>Total</span>
                   <span>{formatCurrency(invoice.total)}</span>
                 </div>
+                {invoice.status === "Emitido" && (
+                  <>
+                    <div className="flex justify-between text-sm text-gray-700"><span>Pagado</span><span>{formatCurrency(payment.paid)}</span></div>
+                    <div className="flex justify-between text-sm font-semibold text-gray-900"><span>Saldo pendiente</span><span>{formatCurrency(payment.balance)}</span></div>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -366,7 +385,13 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Información</h2>
             <dl className="space-y-3 text-sm">
-              <div>
+              {invoice.status === "Emitido" && (
+                <div>
+                  <dt className="text-gray-600">Estado de pago</dt>
+                  <dd className="font-medium text-gray-900">{getPaymentStatus(invoice)}</dd>
+                </div>
+              )}
+              <div className={invoice.status === "Emitido" ? "border-t border-gray-100 pt-3" : undefined}>
                 <dt className="text-gray-500">Cliente</dt>
                 <dd className="font-medium text-gray-900">{client?.name || "Desconocido"}</dd>
                 <dd className="text-gray-600">{client?.documentType}: {client?.cuitCuil}</dd>
@@ -402,12 +427,13 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
               {invoice.status === "Borrador" && (
                 <>
                   <button type="button" onClick={onEdit} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Editar borrador</button>
-                  <button type="button" onClick={() => onStatusChange("Emitido")} className="w-full rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-700">Emitir (simulada)</button>
+                  <button type="button" onClick={() => onStatusChange("Emitido")} className="w-full rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir (simulada)</button>
                 </>
               )}
-              {invoice.status === "Emitido" && (
+              {invoice.status === "Emitido" && payment.paid === 0 && (
                 <button type="button" onClick={() => { if(confirm("¿Estás seguro de anular esta factura simulada?")) onStatusChange("Anulado"); }} className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50">Anular factura</button>
               )}
+              {invoice.status === "Emitido" && payment.paid > 0 && <p className="text-xs leading-5 text-gray-700">Para anular esta factura, primero anulá los recibos registrados.</p>}
               <p className="text-xs leading-5 text-gray-500">La descarga e impresión todavía no están disponibles.</p>
             </div>
           </div>
@@ -459,11 +485,11 @@ export default function Comprobantes() {
     const isNew = !SAMPLE_INVOICES.some(i => i.id === inv.id);
     if (isNew) {
       SAMPLE_INVOICES.unshift(inv);
-      setNotice("Factura simulada guardada en memoria.");
+      setNotice("Factura simulada guardada en memoria hasta recargar la aplicación.");
     } else {
       const invoiceIndex = SAMPLE_INVOICES.findIndex(i => i.id === inv.id);
       if (invoiceIndex >= 0) SAMPLE_INVOICES[invoiceIndex] = inv;
-      setNotice("Factura simulada actualizada en memoria.");
+      setNotice("Factura simulada actualizada en memoria hasta recargar la aplicación.");
     }
     setInvoices([...SAMPLE_INVOICES]);
     if (inv.orderId && inv.status === "Emitido") {
@@ -481,6 +507,10 @@ export default function Comprobantes() {
 
   function changeInvoiceStatus(status: InvoiceStatus) {
     if (!selectedInvoice) return;
+    if (status === "Anulado" && getInvoicePaymentSummary(selectedInvoice).paid > 0) {
+      setNotice("Anulá los recibos registrados antes de anular la factura.");
+      return;
+    }
     const updated = { ...selectedInvoice, status };
     saveInvoice(updated);
   }
@@ -494,7 +524,7 @@ export default function Comprobantes() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <SalesPageHeader
         title="Facturación de Ventas"
         description="Gestión simulada de comprobantes vinculados a pedidos de clientes."
@@ -502,7 +532,7 @@ export default function Comprobantes() {
           <button
             type="button"
             onClick={() => setEditingInvoice(null)}
-            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700"
+            className="rounded-lg bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800"
           >+ Nueva Factura</button>
         }
       />
@@ -525,7 +555,7 @@ export default function Comprobantes() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Buscar número o cliente..."
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 lg:w-64"
+              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 lg:w-64"
             />
             <select
               value={typeFilter}
@@ -555,7 +585,7 @@ export default function Comprobantes() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
               <div className="min-w-0 text-center">Número / Fecha</div>
               <div className="min-w-0 text-center">Cliente</div>
               <div className="min-w-0 text-center">Pedido</div>
@@ -585,12 +615,14 @@ export default function Comprobantes() {
                   <div className="min-w-0 lg:text-center text-left">
                     <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
                     <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(invoice.total)}</p>
+                    {invoice.status === "Emitido" && <p className="mt-1 text-xs font-medium text-gray-700">Saldo: {formatCurrency(getInvoicePaymentSummary(invoice).balance)}</p>}
                   </div>
                   <div className="flex flex-col items-start gap-1 lg:items-center">
                     <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(invoice.status)}`}>
                       {invoice.status}
                     </span>
+                    {invoice.status === "Emitido" && <span className="text-xs font-medium text-gray-700">{getPaymentStatus(invoice)}</span>}
                   </div>
                   <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
                     <button type="button" onClick={() => setSelectedInvoice(invoice)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
