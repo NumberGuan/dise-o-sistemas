@@ -48,4 +48,5 @@ Modificar los atributos para que tengan sentido y poder llevarlo a las pantallas
 
 ## Nuevos cambios
 1. __Cambios en los atributos de una clase__
-   *Persona: Se elimino "Apellido"
+   *Persona: Se elimino "Apellido"; Se agrego "Estado"; 
+   *ComprobanteVentaCliente: Se agrego "Vencimiento" -> Algunos comercios pagan a fin de mes; Agregue "Tipo factura" (a,b,c). 
