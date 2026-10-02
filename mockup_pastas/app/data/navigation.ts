@@ -13,11 +13,14 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Ventas",
     to: "/ventas",
-    items: [
+        items: [
       { label: "Clientes", to: "/ventas/clientes" },
-      { label: "Productos", to: "/ventas/productos" },
+      { label: "Presupuesto Cliente", to: "/ventas/presupuestos" },
       { label: "Pedidos de Clientes", to: "/ventas/pedidos" },
       { label: "Comprobantes de Venta", to: "/ventas/comprobantes" },
+      { label: "Recibos de Pago de Cliente", to: "/ventas/recibos" },
+      { label: "Remito Cliente", to: "/ventas/remitos" },
+      { label: "Devoluciones", to: "/ventas/devoluciones" },
     ],
   },
   {
@@ -25,14 +28,17 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/compras",
     items: [
       { label: "Proveedores", to: "/compras/proveedores" },
-      { label: "Materias Primas", to: "/compras/materias-primas" },
       { label: "Órdenes a Proveedores", to: "/compras/ordenes" },
+      { label: "Presupuesto Proveedor", to: "/compras/presupuestos" },
+      { label: "Remitos Proveedor", to: "/compras/remitos" },
     ],
   },
   {
     label: "Producción",
     to: "/produccion",
     items: [
+      { label: "Productos", to: "/produccion/productos" },
+      { label: "Materia Prima", to: "/produccion/materias-primas" },
       { label: "Órdenes de Producción", to: "/produccion/ordenes" },
       { label: "Recetas", to: "/produccion/recetas" },
       { label: "Máquinas", to: "/produccion/maquinas" },
