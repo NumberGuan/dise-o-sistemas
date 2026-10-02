@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router";
 import { SalesPageHeader } from "~/components/SalesLayout";
 import {
   SAMPLE_CLIENTS,
@@ -68,7 +69,14 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
   const selectedClient = SAMPLE_CLIENTS.find(c => c.id === clientId);
 
   const subtotal = useMemo(() => items.reduce((acc, item) => acc + item.subtotal, 0), [items]);
-  const total = subtotal - discount + tax;
+  const taxableBase = Math.max(0, subtotal - discount);
+  const total = taxableBase + tax;
+  const usesAutomaticTax = isNew || invoice?.status === "Borrador";
+
+  useEffect(() => {
+    if (!usesAutomaticTax) return;
+    setTax(Math.round(taxableBase * 21) / 100);
+  }, [taxableBase, usesAutomaticTax]);
 
   const availableOrders = useMemo(() => {
     const invoicedOrderIds = new Set(invoices.filter(i => i.id !== invoice?.id && i.status !== "Anulado").map(i => i.orderId));
@@ -254,8 +262,12 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
                   <span>Descuento</span>
                   <span>- {formatCurrency(discount)}</span>
                 </div>
+                <div className="flex justify-between border-t border-gray-200 pt-3 text-sm font-medium text-gray-700">
+                  <span>Base imponible</span>
+                  <span>{formatCurrency(taxableBase)}</span>
+                </div>
                 <div className="flex items-center justify-between text-sm text-gray-600">
-                    <label htmlFor="taxInput" className="font-medium">Importe IVA</label>
+                    <label htmlFor="taxInput" className="font-medium">Importe IVA (21 %)</label>
                     <div className="flex items-center gap-1">
                       <span>$</span>
                       <input 
@@ -264,11 +276,13 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
                         min="0" 
                         step="0.01" 
                         value={tax} 
-                        onChange={e => setTax(Number(e.target.value))} 
-                        className="w-24 rounded-md border border-gray-300 bg-white px-2 py-1 text-right text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                        readOnly
+                        aria-readonly="true"
+                        className="w-28 rounded-md border border-gray-300 bg-gray-100 px-2 py-1 text-right text-sm font-semibold text-gray-900 outline-none"
                       />
                     </div>
                   </div>
+                <p className="text-right text-xs text-gray-500">Calculado automáticamente como el 21 % de la base imponible.</p>
                 <div className="flex justify-between border-t border-gray-200 pt-3 text-base font-semibold text-gray-900">
                   <span>Total</span>
                   <span>{formatCurrency(total)}</span>
@@ -363,7 +377,11 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
                   </div>
                 )}
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Importe IVA</span>
+                  <span>Base imponible</span>
+                  <span>{formatCurrency(Math.max(0, invoice.subtotal - invoice.discount))}</span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Importe IVA (21 %)</span>
                   <span>{formatCurrency(invoice.tax)}</span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-semibold text-gray-900">
@@ -444,6 +462,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
 }
 
 export default function Comprobantes() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [invoices, setInvoices] = useState<Invoice[]>(() => [...SAMPLE_INVOICES]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos los estados");
@@ -452,6 +471,21 @@ export default function Comprobantes() {
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null | undefined>(undefined);
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [notice, setNotice] = useState("");
+  const requestedInvoiceId = searchParams.get("comprobante") || "";
+
+  useEffect(() => {
+    if (!requestedInvoiceId) return;
+    const requested = SAMPLE_INVOICES.find(invoice => invoice.id === requestedInvoiceId);
+    if (requested) setSelectedInvoice(requested);
+  }, [requestedInvoiceId]);
+
+  function closeDetail() {
+    setSelectedInvoice(null);
+    if (!requestedInvoiceId) return;
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.delete("comprobante");
+    setSearchParams(nextParams, { replace: true });
+  }
 
   const filteredInvoices = useMemo(() => {
     return invoices.filter(inv => {
@@ -520,7 +554,7 @@ export default function Comprobantes() {
   }
 
   if (selectedInvoice) {
-    return <InvoiceDetail invoice={selectedInvoice} onClose={() => setSelectedInvoice(null)} onEdit={() => setEditingInvoice(selectedInvoice)} onStatusChange={changeInvoiceStatus} />;
+    return <InvoiceDetail invoice={selectedInvoice} onClose={closeDetail} onEdit={() => setEditingInvoice(selectedInvoice)} onStatusChange={changeInvoiceStatus} />;
   }
 
   return (

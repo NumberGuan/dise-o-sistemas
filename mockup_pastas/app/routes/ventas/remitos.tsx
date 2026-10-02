@@ -3,8 +3,11 @@ import { Link, useSearchParams } from "react-router";
 import { SalesPageHeader } from "~/components/SalesLayout";
 import {
   SAMPLE_CLIENTS,
+  SAMPLE_CUSTOMER_RETURNS,
   SAMPLE_ORDERS,
   SAMPLE_REMITS,
+  getRemitAvailableQuantity,
+  formatClientAddress,
   REMIT_STATUSES,
   type Remit,
   type RemitStatus,
@@ -143,7 +146,7 @@ function RemitForm({ remit, remits, initialOrderId, onCancel, onSave }: RemitFor
                 <div className="sm:col-span-2 rounded-lg bg-gray-50 p-3 text-sm text-gray-700 border border-gray-100">
                   <p><span className="font-medium">Cliente:</span> {selectedClient.name}</p>
                   <p><span className="font-medium">{selectedClient.documentType}:</span> {selectedClient.cuitCuil || "N/A"}</p>
-                  <p><span className="font-medium">Dirección del cliente:</span> {[selectedClient.address, selectedClient.locality].filter(Boolean).join(", ") || "N/A"}</p>
+                  <p><span className="font-medium">Dirección del cliente:</span> {formatClientAddress(selectedClient) || "N/A"}</p>
                   {orderId && SAMPLE_ORDERS.find(o => o.id === orderId)?.deliveryAddressType === "custom" && <p className="mt-2 text-purple-700 font-medium">Entrega en domicilio alternativo: {SAMPLE_ORDERS.find(o => o.id === orderId)?.customDeliveryAddress}</p>}
                 </div>
               )}
@@ -174,7 +177,7 @@ function RemitForm({ remit, remits, initialOrderId, onCancel, onSave }: RemitFor
                         step="1"
                         value={item.quantity}
                         onChange={e => handleQuantityChange(item.id, Number(e.target.value))}
-                        className="w-20 rounded-md border border-gray-300 px-2 py-1 text-right text-sm outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500"
+                        className="w-20 rounded-md border border-gray-400 bg-white px-2 py-1 text-right text-sm font-semibold text-gray-950 shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
                       />
                     </label>
                   </div>
@@ -222,6 +225,8 @@ type RemitDetailProps = {
 function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDetailProps) {
   const client = SAMPLE_CLIENTS.find(c => c.id === remit.clientId);
   const order = SAMPLE_ORDERS.find(o => o.id === remit.orderId);
+  const customerReturns = SAMPLE_CUSTOMER_RETURNS.filter(customerReturn => customerReturn.remitId === remit.id);
+  const hasAvailableReturns = remit.items.some(item => getRemitAvailableQuantity(remit, item.productId) > 0);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
@@ -262,6 +267,20 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
               <p className="mt-2 text-sm text-amber-800 whitespace-pre-wrap">{remit.observations}</p>
             </div>
           )}
+
+          {customerReturns.length > 0 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+              <h3 className="text-sm font-semibold text-gray-900">Devoluciones asociadas</h3>
+              <div className="mt-3 space-y-2">
+                {customerReturns.map(customerReturn => (
+                  <Link key={customerReturn.id} to={`/ventas/devoluciones?devolucion=${encodeURIComponent(customerReturn.id)}`} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 text-sm hover:border-amber-300 hover:bg-amber-50">
+                    <span className="font-medium text-amber-800">{customerReturn.number}</span>
+                    <span className="text-gray-600">{customerReturn.status} · {customerReturn.items.reduce((total, item) => total + item.quantity, 0)} u.</span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="space-y-6">
@@ -291,7 +310,7 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
               {order?.deliveryAddressType === "client" && (
                 <div className="border-t border-gray-100 pt-3">
                   <dt className="text-gray-500">Dirección de entrega del cliente</dt>
-                  <dd className="break-words font-medium text-gray-900">{client ? [client.address, client.locality, client.province].filter(Boolean).join(", ") : "No disponible"}</dd>
+                  <dd className="break-words font-medium text-gray-900">{client ? formatClientAddress(client) : "No disponible"}</dd>
                 </div>
               )}
               {order?.deliveryAddressType === "custom" && (
@@ -304,6 +323,18 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
           </div>
 
           <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-3">
+            {remit.status === "Entregado" && hasAvailableReturns && (
+              <Link to={`/ventas/devoluciones?remito=${encodeURIComponent(remit.id)}`} className="block w-full rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800">
+                Generar devolución
+              </Link>
+            )}
+
+            {remit.status === "Entregado" && customerReturns.length > 0 && (
+              <Link to={`/ventas/devoluciones?devolucion=${encodeURIComponent(customerReturns[0].id)}`} className="block w-full rounded-lg border border-amber-300 bg-white px-4 py-2 text-center text-sm font-medium text-amber-800 shadow-sm hover:bg-amber-50">
+                Consultar devoluciones
+              </Link>
+            )}
+
             {remit.status === "Borrador" && (
               <button type="button" onClick={() => onChangeStatus("Despachado")} className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-sky-700 transition">
                 Marcar como Despachado

@@ -7,6 +7,7 @@ import {
   SAMPLE_ORDERS, 
   SAMPLE_REMITS,
   SAMPLE_PRODUCTS, 
+  formatClientAddress,
   ORDER_STATUSES, 
   type Client, 
   type Order, 
@@ -207,7 +208,7 @@ function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dirección de entrega</label>
                   <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <p className="text-sm text-gray-700">
-                      Predeterminada: <span className="font-medium text-gray-900">{selectedClient ? [selectedClient.address, selectedClient.locality, selectedClient.province].filter(Boolean).join(", ") || "No disponible" : "Seleccione un cliente"}</span>
+                      Predeterminada: <span className="font-medium text-gray-900">{selectedClient ? formatClientAddress(selectedClient) || "No disponible" : "Seleccione un cliente"}</span>
                     </p>
                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-900 cursor-pointer select-none">
                       <input
@@ -442,7 +443,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
               <p className="text-sm font-medium text-gray-800">
                 {order.deliveryAddressType === "custom" 
                   ? order.customDeliveryAddress 
-                  : (client ? [client.address, client.locality, client.province].filter(Boolean).join(", ") : "Dirección del cliente no disponible")}
+                  : (client ? formatClientAddress(client) : "Dirección del cliente no disponible")}
                 <span className="ml-2 text-xs font-normal text-gray-500">
                   ({order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
                 </span>

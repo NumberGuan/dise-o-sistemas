@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 
 import { SalesPageHeader } from "~/components/SalesLayout";
-import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, SAMPLE_CLIENT_ACTIVITY, SAMPLE_CLIENTS, type Client, type ClientStatus } from "~/data/sales";
+import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, SAMPLE_CLIENT_ACTIVITY, SAMPLE_CLIENTS, formatClientAddress, type Client, type ClientStatus } from "~/data/sales";
 
 type ClientFormProps = {
   client: Client | null;
@@ -11,7 +11,7 @@ type ClientFormProps = {
 };
 
 const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
-  type: "Comercio", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
+  type: "Comercio", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
 };
 
 function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
@@ -28,7 +28,13 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
       setError("Completa el nombre o razón social y la localidad.");
       return;
     }
-    onSave({ ...values, name: values.name.trim(), locality: values.locality.trim() });
+    onSave({
+      ...values,
+      name: values.name.trim(),
+      floor: values.floor?.trim() || undefined,
+      apartment: values.apartment?.trim() || undefined,
+      locality: values.locality.trim(),
+    });
   }
 
   const inputClass = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
@@ -83,6 +89,12 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
             <label className={labelClass}>Domicilio
               <input value={values.address} onChange={(event) => update("address", event.target.value)} className={inputClass} placeholder="Calle y altura" />
             </label>
+            <label className={labelClass}>Piso
+              <input value={values.floor || ""} onChange={(event) => update("floor", event.target.value)} className={inputClass} placeholder="Ej.: 2" />
+            </label>
+            <label className={labelClass}>Departamento
+              <input value={values.apartment || ""} onChange={(event) => update("apartment", event.target.value)} className={inputClass} placeholder="Ej.: B" />
+            </label>
             <label className={labelClass}>Localidad <span className="text-rose-600">*</span>
               <input required value={values.locality} onChange={(event) => update("locality", event.target.value)} className={inputClass} placeholder="Localidad" />
             </label>
@@ -115,7 +127,7 @@ function ClientDetails({ client, onClose, onEdit }: { client: Client; onClose: (
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Información del cliente</h3>
             <dl className="mt-3 space-y-3 text-sm">
-              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Domicilio", [client.address, client.locality, client.province].filter(Boolean).join(", ")], ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Domicilio", formatClientAddress(client)], ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
             </dl>
             {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 text-sm text-amber-900">{client.notes}</p></div>}
           </div>

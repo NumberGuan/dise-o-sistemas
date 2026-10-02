@@ -32,19 +32,31 @@ export type Client = {
   phone: string;
   email: string;
   address: string;
+  floor?: string;
+  apartment?: string;
   locality: string;
   province: string;
   status: ClientStatus;
   notes: string;
 };
 
+export function formatClientAddress(client: Pick<Client, "address" | "floor" | "apartment" | "locality" | "province">) {
+  return [
+    client.address,
+    client.floor && `Piso ${client.floor}`,
+    client.apartment && `Depto. ${client.apartment}`,
+    client.locality,
+    client.province,
+  ].filter(Boolean).join(", ");
+}
+
 export const SAMPLE_CLIENTS: Client[] = [
-  { id: "c-148", code: "CLI-00148", type: "Distribuidor", name: "Distribuidora El Sol", documentType: "CUIT", cuitCuil: "30-71234567-8", ivaType: "Responsable inscripto", phone: "11 4567-2300", email: "compras@distribuidoraelsol.com.ar", address: "Av. Rivadavia 2840", locality: "Morón", province: "Buenos Aires", status: "Activo", notes: "Entrega por la mañana. Contactar a Laura." },
-  { id: "c-147", code: "CLI-00147", type: "Comercio", name: "Supermercados Andes", documentType: "CUIT", cuitCuil: "30-69876543-2", ivaType: "Responsable inscripto", phone: "11 4788-1200", email: "pedidos@andes.com.ar", address: "Belgrano 145", locality: "San Martín", province: "Buenos Aires", status: "Activo", notes: "" },
-  { id: "c-146", code: "CLI-00146", type: "Comercio", name: "Almacén Don Pedro", documentType: "CUIT", cuitCuil: "20-24567891-3", ivaType: "Monotributista", phone: "11 4455-7701", email: "donpedro@correo.com", address: "Italia 820", locality: "Haedo", province: "Buenos Aires", status: "Activo", notes: "Recibe pedidos los lunes y jueves." },
-  { id: "c-145", code: "CLI-00145", type: "Comercio", name: "Mini Market Norte", documentType: "CUIT", cuitCuil: "30-73456789-1", ivaType: "Responsable inscripto", phone: "11 4766-0092", email: "administracion@mininorte.com.ar", address: "San Lorenzo 560", locality: "Villa Ballester", province: "Buenos Aires", status: "Activo", notes: "" },
-  { id: "c-144", code: "CLI-00144", type: "Particular", name: "María Fernanda López", documentType: "CUIL", cuitCuil: "27-28345678-4", ivaType: "Consumidor final", phone: "11 6098-3321", email: "maria.lopez@email.com", address: "Las Heras 112", locality: "Castelar", province: "Buenos Aires", status: "Inactivo", notes: "Cliente sin actividad reciente." },
-  { id: "c-143", code: "CLI-00143", type: "Distribuidor", name: "Alimentos La Estación", documentType: "CUIT", cuitCuil: "30-72345678-9", ivaType: "Responsable inscripto", phone: "11 4621-8800", email: "ventas@laestacion.com.ar", address: "Calle 25 de Mayo 1010", locality: "Ituzaingó", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-148", code: "CLI-00148", type: "Distribuidor", name: "Distribuidora El Sol", documentType: "CUIT", cuitCuil: "30-71234567-8", ivaType: "Responsable inscripto", phone: "11 4567-2300", email: "compras@distribuidoraelsol.com.ar", address: "Av. Rivadavia 2840", floor: "", apartment: "", locality: "Morón", province: "Buenos Aires", status: "Activo", notes: "Entrega por la mañana. Contactar a Laura." },
+  { id: "c-147", code: "CLI-00147", type: "Comercio", name: "Supermercados Andes", documentType: "CUIT", cuitCuil: "30-69876543-2", ivaType: "Responsable inscripto", phone: "11 4788-1200", email: "pedidos@andes.com.ar", address: "Belgrano 145", floor: "", apartment: "", locality: "San Martín", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-146", code: "CLI-00146", type: "Comercio", name: "Almacén Don Pedro", documentType: "CUIT", cuitCuil: "20-24567891-3", ivaType: "Monotributista", phone: "11 4455-7701", email: "donpedro@correo.com", address: "Italia 820", floor: "", apartment: "", locality: "Haedo", province: "Buenos Aires", status: "Activo", notes: "Recibe pedidos los lunes y jueves." },
+  { id: "c-145", code: "CLI-00145", type: "Comercio", name: "Mini Market Norte", documentType: "CUIT", cuitCuil: "30-73456789-1", ivaType: "Responsable inscripto", phone: "11 4766-0092", email: "administracion@mininorte.com.ar", address: "San Lorenzo 560", floor: "", apartment: "", locality: "Villa Ballester", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-144", code: "CLI-00144", type: "Particular", name: "María Fernanda López", documentType: "CUIL", cuitCuil: "27-28345678-4", ivaType: "Consumidor final", phone: "11 6098-3321", email: "maria.lopez@email.com", address: "Las Heras 112", floor: "2", apartment: "B", locality: "Castelar", province: "Buenos Aires", status: "Inactivo", notes: "Cliente sin actividad reciente." },
+  { id: "c-143", code: "CLI-00143", type: "Distribuidor", name: "Alimentos La Estación", documentType: "CUIT", cuitCuil: "30-72345678-9", ivaType: "Responsable inscripto", phone: "11 4621-8800", email: "ventas@laestacion.com.ar", address: "Calle 25 de Mayo 1010", floor: "", apartment: "", locality: "Ituzaingó", province: "Buenos Aires", status: "Activo", notes: "" },
 ];
 
 export type ClientActivity = { type: string; code: string; date: string; summary: string; status: string; to: string };
@@ -204,8 +216,8 @@ export const SAMPLE_INVOICES: Invoice[] = [
     ],
     subtotal: 143000,
     discount: 14600,
-    tax: 0,
-    total: 128400,
+    tax: 26964,
+    total: 155364,
     status: "Emitido",
     observations: "Pago a 30 días.",
 
@@ -222,8 +234,8 @@ export const SAMPLE_INVOICES: Invoice[] = [
     ],
     subtotal: 4400,
     discount: 0,
-    tax: 0,
-    total: 4400,
+    tax: 924,
+    total: 5324,
     status: "Emitido",
     observations: "",
 
@@ -330,6 +342,81 @@ export const SAMPLE_REMITS: Remit[] = [
   }
 ];
 
+// El modelo del repositorio nombra DevolucionCliente y DetalleDevolucionCliente,
+// pero todavía no define sus estados. Este ciclo es provisional para la maqueta.
+export const CUSTOMER_RETURN_STATUSES = ["Borrador", "Registrada", "Anulada"] as const;
+export type CustomerReturnStatus = (typeof CUSTOMER_RETURN_STATUSES)[number];
+
+export type CustomerReturnItem = {
+  id: string;
+  productId: string;
+  productName: string;
+  deliveredQuantity: number;
+  previouslyReturnedQuantity: number;
+  availableQuantity: number;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+};
+
+export type CustomerReturn = {
+  id: string;
+  number: string;
+  date: string;
+  clientId: string;
+  remitId: string;
+  orderId: string;
+  invoiceId?: string;
+  items: CustomerReturnItem[];
+  reason: string;
+  observations: string;
+  estimatedRefundTotal: number;
+  status: CustomerReturnStatus;
+};
+
+export const SAMPLE_CUSTOMER_RETURNS: CustomerReturn[] = [
+  {
+    id: "ret-12",
+    number: "DV-0001-00000012",
+    date: "2026-09-20",
+    clientId: "c-148",
+    remitId: "rem-1",
+    orderId: "o-148",
+    invoiceId: "inv-1",
+    items: [
+      {
+        id: "rdi-1",
+        productId: "p-2",
+        productName: "Ravioles verdura",
+        deliveredQuantity: 18,
+        previouslyReturnedQuantity: 0,
+        availableQuantity: 18,
+        quantity: 1,
+        unitPrice: 3500,
+        subtotal: 3500,
+      },
+    ],
+    reason: "Producto dañado",
+    observations: "Se recibió una unidad con el envase abierto.",
+    estimatedRefundTotal: 3500,
+    status: "Registrada",
+  },
+];
+
+export function getRegisteredReturnedQuantity(remitId: string, productId: string, excludingReturnId?: string) {
+  return SAMPLE_CUSTOMER_RETURNS
+    .filter(customerReturn => customerReturn.status === "Registrada" && customerReturn.remitId === remitId && customerReturn.id !== excludingReturnId)
+    .flatMap(customerReturn => customerReturn.items)
+    .filter(item => item.productId === productId)
+    .reduce((total, item) => total + item.quantity, 0);
+}
+
+export function getRemitAvailableQuantity(remit: Remit, productId: string, excludingReturnId?: string) {
+  const remitItem = remit.items.find(item => item.productId === productId);
+  if (!remitItem) return 0;
+  return Math.max(0, remitItem.quantity - getRegisteredReturnedQuantity(remit.id, productId, excludingReturnId));
+}
+
 export const PAYMENT_METHODS = ["Efectivo", "Transferencia", "Cheque", "Tarjeta de Crédito", "Tarjeta de Débito"] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
@@ -368,12 +455,12 @@ export const SAMPLE_RECEIPTS: Receipt[] = [
     date: "2026-09-21",
     clientId: "c-144",
     invoices: [
-      { invoiceId: "inv-2", invoiceNumber: "FC-0001-00000382", amountApplied: 4400 }
+      { invoiceId: "inv-2", invoiceNumber: "FC-0001-00000382", amountApplied: 5324 }
     ],
     payments: [
-      { id: "pay-1", method: "Transferencia", amount: 4400, reference: "TR-998822" }
+      { id: "pay-1", method: "Transferencia", amount: 5324, reference: "TR-998822" }
     ],
-    total: 4400,
+    total: 5324,
     status: "Registrado",
     observations: "Pago completo de la factura."
   }

@@ -62,7 +62,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   const [errorMsg, setErrorMsg] = useState("");
 
   const [payMethod, setPayMethod] = useState<PaymentMethod>("Efectivo");
-  const [payAmount, setPayAmount] = useState<number | "">("");
+  const [payAmount, setPayAmount] = useState<number | "">(0);
   const [payRef, setPayRef] = useState("");
 
   // Comprobantes del cliente seleccionado que tienen saldo > 0 (o que ya están en este recibo)
@@ -78,6 +78,12 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
 
   const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
   const totalApplied = invoicesState.reduce((sum, i) => sum + i.amountApplied, 0);
+  const pendingDifference = Math.round((totalApplied - totalPayments) * 100) / 100;
+
+  function suggestPaymentAmount(appliedTotal: number, paymentTotal: number) {
+    const pending = Math.round(Math.max(0, appliedTotal - paymentTotal) * 100) / 100;
+    setPayAmount(pending);
+  }
 
   function handleAddPayment() {
     if (payAmount === "" || !Number.isFinite(payAmount) || payAmount <= 0) return setErrorMsg("El importe del pago debe ser positivo.");
@@ -87,14 +93,17 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
       amount: Number(payAmount),
       reference: payRef
     };
-    setPayments([...payments, newPay]);
-    setPayAmount("");
+    const nextPayments = [...payments, newPay];
+    setPayments(nextPayments);
+    suggestPaymentAmount(totalApplied, nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
     setPayRef("");
     setErrorMsg("");
   }
 
   function handleRemovePayment(id: string) {
-    setPayments(payments.filter(p => p.id !== id));
+    const nextPayments = payments.filter(p => p.id !== id);
+    setPayments(nextPayments);
+    suggestPaymentAmount(totalApplied, nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
     setErrorMsg("");
   }
 
@@ -108,6 +117,8 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
       if (idx >= 0) updated.splice(idx, 1);
     }
     setInvoicesState(updated);
+    const nextAppliedTotal = updated.reduce((sum, detail) => sum + detail.amountApplied, 0);
+    suggestPaymentAmount(nextAppliedTotal, totalPayments);
     setErrorMsg("");
   }
 
@@ -159,6 +170,8 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                 onChange={e => {
                   setClientId(e.target.value);
                   setInvoicesState([]);
+                  setPayments([]);
+                  setPayAmount(0);
                   setErrorMsg("");
                 }}
                 disabled={!isNew}
@@ -218,7 +231,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                 />
               </div>
               <div className="w-32">
-                <label htmlFor="receipt-amount" className="block text-xs font-medium text-gray-700 mb-1">Importe</label>
+                <label htmlFor="receipt-amount" className="block text-xs font-medium text-gray-700 mb-1">Importe sugerido</label>
                 <input
                   id="receipt-amount"
                   type="number"
@@ -229,6 +242,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                   placeholder="$ 0.00"
                   className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-right text-gray-900 outline-none placeholder:text-gray-500 focus:border-amber-500"
                 />
+                <p className="mt-1 text-xs text-gray-500">Se calcula desde lo aplicado y puede modificarse.</p>
               </div>
               <button
                 type="button"
@@ -326,6 +340,11 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                 </table>
               </div>
             )}
+            <div className="mt-4 grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-3">
+              <div><p className="text-gray-500">Total imputado</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalApplied)}</p></div>
+              <div><p className="text-gray-500">Total en medios de pago</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalPayments)}</p></div>
+              <div><p className="text-gray-500">Diferencia pendiente</p><p className={`mt-1 font-bold ${pendingDifference === 0 ? "text-emerald-700" : "text-red-700"}`}>{formatCurrency(pendingDifference)}</p></div>
+            </div>
             {Math.abs(totalPayments - totalApplied) > 0.01 && totalPayments > 0 && (
               <div className="mt-3 text-right text-xs text-red-600 font-medium">
                 La aplicación difiere de los pagos por {formatCurrency(Math.abs(totalPayments - totalApplied))}.
