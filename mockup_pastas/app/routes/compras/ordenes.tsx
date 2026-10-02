@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "~/components/PlaceholderPage";
+import OrdenesListPage from "~/components/OrdenesListPage";
 
 export default function Ordenes() {
-  return <PlaceholderPage title="Órdenes a Proveedores" />;
+  return <OrdenesListPage />;
 }

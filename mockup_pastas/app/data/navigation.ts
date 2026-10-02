@@ -29,8 +29,8 @@ export const NAV_SECTIONS: NavSection[] = [
     items: [
       { label: "Proveedores", to: "/compras/proveedores" },
       { label: "Órdenes a Proveedores", to: "/compras/ordenes" },
-      { label: "Presupuesto Proveedor", to: "/compras/presupuestos" },
-      { label: "Remitos Proveedor", to: "/compras/remitos" },
+      { label: "Presupuesto Proveedor", to: "/compras/presupuesto-proveedor" },
+      { label: "Remitos Proveedor", to: "/compras/remito-proveedor" },
     ],
   },
   {

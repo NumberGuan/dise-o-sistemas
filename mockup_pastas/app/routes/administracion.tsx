@@ -1,7 +1,5 @@
-import { PlaceholderPage } from "~/components/PlaceholderPage";
-import { NAV_SECTIONS } from "~/data/navigation";
+import ModulePage from "~/components/ModulePage";
 
 export default function Administracion() {
-  const section = NAV_SECTIONS.find((s) => s.to === "/administracion");
-  return <PlaceholderPage title="Administración" links={section?.items ?? []} />;
+  return <ModulePage sectionTo="/administracion" />;
 }

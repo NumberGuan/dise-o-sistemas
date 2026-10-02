@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "~/components/PlaceholderPage";
+import ProveedoresListPage from "~/components/ProveedoresListPage";
 
 export default function Proveedores() {
-  return <PlaceholderPage title="Proveedores" />;
+  return <ProveedoresListPage />;
 }

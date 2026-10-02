@@ -1,7 +1,5 @@
-import { PlaceholderPage } from "~/components/PlaceholderPage";
-import { NAV_SECTIONS } from "~/data/navigation";
+import ModulePage from "~/components/ModulePage";
 
 export default function Compras() {
-  const section = NAV_SECTIONS.find((s) => s.to === "/compras");
-  return <PlaceholderPage title="Compras" links={section?.items ?? []} />;
+  return <ModulePage sectionTo="/compras" />;
 }
