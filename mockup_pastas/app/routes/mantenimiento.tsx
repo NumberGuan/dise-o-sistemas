@@ -1,38 +1,41 @@
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { NavLink, Outlet, useLocation } from "react-router";
 
+import ModuleDashboard from "~/components/ModuleDashboard";
+import { MAINTENANCE_TYPES, SAMPLE_MAINTENANCES } from "~/data/maintenance";
 const pages = [
   { label: "Resumen", to: "/mantenimiento" },
   { label: "Máquinas", to: "/mantenimiento/maquinas" },
   { label: "Mantenimiento de Máquinas", to: "/mantenimiento/mantenimientos" },
 ] as const;
 
-const PAGE_DETAILS: Record<string, string> = {
-  "Máquinas": "Gestiona el inventario y estado de las máquinas de producción.",
-  "Mantenimiento de Máquinas": "Registra y consulta las intervenciones de mantenimiento.",
-};
+function MaintenanceDashboard() {
+  const scheduled = SAMPLE_MAINTENANCES.filter((order) => order.status === "Programado").length;
+  const inProgress = SAMPLE_MAINTENANCES.filter((order) => order.status === "En curso").length;
+  const completed = SAMPLE_MAINTENANCES.filter((order) => order.status === "Finalizado").length;
+  const items = SAMPLE_MAINTENANCES.flatMap((order) => order.items);
+  const ordersByType = MAINTENANCE_TYPES.map((type) => ({
+    label: type,
+    value: items.filter((item) => item.type === type).length,
+  }));
 
-function Dashboard() {
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm font-medium text-amber-700">Mantenimiento</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Mantenimiento</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Administración de máquinas y seguimiento de sus intervenciones.</p>
-        </div>
-      </header>
-      <section className="mt-7 grid gap-4 sm:grid-cols-2 xl:grid-cols-3" aria-label="Módulos de Mantenimiento">
-        {pages.slice(1).map((page) => (
-          <Link key={page.to} to={page.to} className="group rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:border-amber-300 hover:shadow-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600">
-            <span className="flex items-center justify-between gap-3">
-              <span className="font-semibold text-gray-900">{page.label}</span>
-              <span aria-hidden="true" className="text-lg text-amber-700 transition group-hover:translate-x-1">→</span>
-            </span>
-            <span className="mt-2 block text-sm leading-6 text-gray-500">{PAGE_DETAILS[page.label]}</span>
-          </Link>
-        ))}
-      </section>
-    </div>
+    <ModuleDashboard
+      moduleLabel="Mantenimiento"
+      title="Mantenimiento"
+      description="Administra las máquinas y realiza el seguimiento de sus intervenciones."
+      summaryTitle="Resumen de mantenimiento"
+      summaryDescription="Información calculada desde las órdenes de mantenimiento registradas."
+      action={{ label: "Gestionar mantenimientos", to: "/mantenimiento/mantenimientos" }}
+      metrics={[
+        { label: "Órdenes totales", value: SAMPLE_MAINTENANCES.length },
+        { label: "Programadas", value: scheduled, tone: "warning" },
+        { label: "En curso", value: inProgress, tone: "info" },
+        { label: "Finalizadas", value: completed, tone: "success" },
+      ]}
+      distributionTitle="Intervenciones por tipo"
+      distributionDescription="Clasificación de las tareas incluidas en las órdenes actuales."
+      distribution={ordersByType}
+    />
   );
 }
 
@@ -61,7 +64,7 @@ export default function Mantenimiento() {
           ))}
         </div>
       </nav>
-      {root ? <Dashboard /> : <div className="text-gray-900"><Outlet /></div>}
+      {root ? <MaintenanceDashboard /> : <div className="text-gray-900"><Outlet /></div>}
     </>
   );
 }

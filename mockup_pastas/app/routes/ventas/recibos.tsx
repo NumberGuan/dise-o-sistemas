@@ -392,13 +392,13 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
+        <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
         <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
       </div>
       {notice && <div role="alert" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{notice}</div>}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
 
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Medios de Pago</h2>
@@ -457,7 +457,7 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
           )}
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Información general</h2>
             <dl className="space-y-3 text-sm">

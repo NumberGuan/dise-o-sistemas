@@ -328,8 +328,8 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-gray-900">{invoice.type} {invoice.number}</h1>
+        <div className="flex min-w-0 items-center gap-3">
+          <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">{invoice.type} {invoice.number}</h1>
           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(invoice.status)}`}>
             {invoice.status}
           </span>
@@ -338,7 +338,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Detalle de conceptos</h2>
             <div className="overflow-x-auto rounded-lg border border-gray-200">
@@ -399,7 +399,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6">
           <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
             <h2 className="font-semibold text-gray-900 mb-4">Información</h2>
             <dl className="space-y-3 text-sm">

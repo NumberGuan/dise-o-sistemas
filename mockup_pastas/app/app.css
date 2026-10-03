@@ -3,13 +3,162 @@
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
+  /* Identidad cromatica: terracota, ladrillo, azul pizarra y superficies suaves. */
+  --color-brand-50: #fff5f0;
+  --color-brand-100: #fde6dc;
+  --color-brand-200: #f8c9b7;
+  --color-brand-300: #efa184;
+  --color-brand-400: #df7655;
+  --color-brand-500: #c25b3e;
+  --color-brand-600: #ad452b;
+  --color-brand-700: #8f3522;
+  --color-brand-800: #742d22;
+  --color-brand-900: #60281f;
+  --color-brand-950: #35130f;
+
+  --color-tertiary-50: #fff6f1;
+  --color-tertiary-100: #fee9dc;
+  --color-tertiary-200: #fbd0ba;
+  --color-tertiary-300: #f4ad8a;
+  --color-tertiary-400: #eb875f;
+  --color-tertiary-500: #e06d44;
+  --color-tertiary-600: #c85330;
+  --color-tertiary-700: #a64128;
+  --color-tertiary-800: #863625;
+  --color-tertiary-900: #6d3023;
+
+  --color-slateblue-50: #f5f8fc;
+  --color-slateblue-100: #e9eff7;
+  --color-slateblue-200: #d6e0ed;
+  --color-slateblue-300: #b7c5d6;
+  --color-slateblue-400: #8a9bb0;
+  --color-slateblue-500: #64748b;
+  --color-slateblue-600: #4a5b70;
+  --color-slateblue-700: #34445a;
+  --color-slateblue-800: #223148;
+  --color-slateblue-900: #0f172a;
+  --color-slateblue-950: #090f1d;
+
+  /* Las utilidades ya usadas en todas las pantallas consumen los tokens nuevos. */
+  --color-white: #fffdfa;
+  --color-black: #090f1d;
+
+  --color-gray-50: var(--color-slateblue-50);
+  --color-gray-100: var(--color-slateblue-100);
+  --color-gray-200: var(--color-slateblue-200);
+  --color-gray-300: var(--color-slateblue-300);
+  --color-gray-400: var(--color-slateblue-400);
+  --color-gray-500: var(--color-slateblue-500);
+  --color-gray-600: var(--color-slateblue-600);
+  --color-gray-700: var(--color-slateblue-700);
+  --color-gray-800: var(--color-slateblue-800);
+  --color-gray-900: var(--color-slateblue-900);
+  --color-gray-950: var(--color-slateblue-950);
+
+  --color-amber-50: var(--color-brand-50);
+  --color-amber-100: var(--color-brand-100);
+  --color-amber-200: var(--color-brand-200);
+  --color-amber-300: var(--color-brand-300);
+  --color-amber-400: var(--color-brand-400);
+  --color-amber-500: var(--color-brand-500);
+  --color-amber-600: var(--color-brand-600);
+  --color-amber-700: var(--color-brand-700);
+  --color-amber-800: var(--color-brand-800);
+  --color-amber-900: var(--color-brand-900);
+  --color-amber-950: var(--color-brand-950);
+
+  --color-orange-50: var(--color-tertiary-50);
+  --color-orange-100: var(--color-tertiary-100);
+  --color-orange-200: var(--color-tertiary-200);
+  --color-orange-300: var(--color-tertiary-300);
+  --color-orange-400: var(--color-tertiary-400);
+  --color-orange-500: var(--color-tertiary-500);
+  --color-orange-600: var(--color-tertiary-600);
+  --color-orange-700: var(--color-tertiary-700);
+  --color-orange-800: var(--color-tertiary-800);
+  --color-orange-900: var(--color-tertiary-900);
+
+  /* Estados: matices armonizados, pero distinguibles por tono y luminosidad. */
+  --color-emerald-50: #eef9f5;
+  --color-emerald-100: #d6f1e7;
+  --color-emerald-200: #afe2d2;
+  --color-emerald-500: #2e8b70;
+  --color-emerald-600: #21765e;
+  --color-emerald-700: #1c5f4e;
+  --color-emerald-800: #194c40;
+  --color-emerald-900: #163f36;
+  --color-emerald-950: #09241f;
+
+  --color-sky-50: #f0f7fb;
+  --color-sky-100: #dcecf5;
+  --color-sky-200: #badbea;
+  --color-sky-600: #356f91;
+  --color-sky-700: #295b78;
+  --color-sky-800: #274d63;
+  --color-sky-900: #233f51;
+
+  --color-blue-500: #4f7893;
+  --color-blue-700: #344f68;
+  --color-purple-100: #e5ebf2;
+  --color-purple-600: #4a6078;
+  --color-purple-700: #344a62;
+  --color-purple-800: #273c53;
+  --color-violet-100: #e7ebf1;
+  --color-violet-700: #3f5068;
+
+  --color-red-50: #fff2f0;
+  --color-red-100: #ffe1dc;
+  --color-red-200: #ffc8be;
+  --color-red-300: #f89f90;
+  --color-red-500: #d95443;
+  --color-red-600: #bd3f31;
+  --color-red-700: #9d3027;
+  --color-red-800: #822a24;
+  --color-red-900: #6d2823;
+  --color-rose-50: var(--color-red-50);
+  --color-rose-100: var(--color-red-100);
+  --color-rose-200: var(--color-red-200);
+  --color-rose-600: var(--color-red-600);
+  --color-rose-700: var(--color-red-700);
+  --color-rose-800: var(--color-red-800);
+
+  --color-yellow-50: #fff9e8;
+  --color-yellow-100: #fcefc4;
+
+  --shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.07);
+  --shadow-md: 0 4px 8px -2px rgb(15 23 42 / 0.09),
+    0 2px 4px -2px rgb(15 23 42 / 0.06);
+  --shadow-lg: 0 10px 18px -5px rgb(15 23 42 / 0.1),
+    0 4px 7px -4px rgb(15 23 42 / 0.06);
+  --shadow-xl: 0 18px 28px -8px rgb(15 23 42 / 0.13),
+    0 8px 12px -8px rgb(15 23 42 / 0.08);
 }
 
 html,
 body {
-  @apply bg-white dark:bg-gray-950;
+  @apply bg-gray-50 text-gray-900;
+  color-scheme: light;
+}
 
-  @media (prefers-color-scheme: dark) {
-    color-scheme: dark;
+::selection {
+  background: var(--color-brand-200);
+  color: var(--color-slateblue-950);
+}
+
+/* Conserva la identidad en comprobantes impresos y exportaciones del navegador. */
+@media print {
+  :root {
+    --color-white: #ffffff;
+    --color-gray-50: #ffffff;
+    --color-gray-100: #f3f6fa;
+  }
+
+  html,
+  body {
+    background: #ffffff !important;
+    color: var(--color-slateblue-900);
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
   }
 }

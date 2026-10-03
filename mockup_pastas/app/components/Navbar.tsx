@@ -1,6 +1,4 @@
-import { NavLink } from "react-router";
-
-import { CloseIcon, Logo, MenuIcon } from "~/components/icons";
+import { CloseIcon, MenuIcon } from "~/components/icons";
 
 type NavbarProps = {
   sidebarOpen: boolean;
@@ -19,18 +17,6 @@ export default function Navbar({ sidebarOpen, onToggleSidebar }: NavbarProps) {
       >
         {sidebarOpen ? <CloseIcon /> : <MenuIcon />}
       </button>
-
-      <NavLink to="/" className="flex min-w-0 items-center gap-2.5">
-        <Logo />
-        <div className="min-w-0">
-          <p className="truncate text-base font-bold text-gray-900 sm:text-lg">
-            Fábrica de Pastas
-          </p>
-          <p className="-mt-0.5 hidden text-xs font-medium text-amber-700 sm:block">
-            Sistema de Gestión
-          </p>
-        </div>
-      </NavLink>
 
       <div className="ml-auto flex items-center">
         <span className="flex items-center gap-2 rounded-full border border-gray-300 px-3 py-1.5 text-sm text-gray-700">

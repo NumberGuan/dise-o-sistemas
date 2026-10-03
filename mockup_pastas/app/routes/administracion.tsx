@@ -1,5 +1,6 @@
-import { Link, NavLink, Outlet, useLocation } from "react-router";
+import { NavLink, Outlet, useLocation } from "react-router";
 
+import ModuleDashboard from "~/components/ModuleDashboard";
 import { EMPLOYEE_ROLES, SAMPLE_EMPLOYEES } from "~/data/employees";
 
 const ADMINISTRATION_PAGES = [
@@ -9,61 +10,27 @@ const ADMINISTRATION_PAGES = [
 function AdministrationDashboard() {
   const activeEmployees = SAMPLE_EMPLOYEES.filter((employee) => employee.status === "Activo").length;
   const inactiveEmployees = SAMPLE_EMPLOYEES.length - activeEmployees;
+  const employeesByRole = EMPLOYEE_ROLES.map((role) => ({
+    label: role,
+    value: SAMPLE_EMPLOYEES.filter((employee) => employee.role === role).length,
+  }));
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header>
-        <p className="text-sm font-medium text-amber-700">Administración</p>
-        <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Administración</h1>
-        <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">
-          Consulta y actualiza el equipo de trabajo desde una única fuente compartida.
-        </p>
-      </header>
-
-      <section aria-labelledby="employee-summary-title" className="mt-8">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 id="employee-summary-title" className="text-lg font-semibold text-gray-900">Resumen de empleados</h2>
-            <p className="mt-1 text-sm text-gray-500">Información disponible durante esta sesión.</p>
-          </div>
-          <Link
-            to="/administracion/empleados"
-            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-          >
-            Gestionar empleados
-          </Link>
-        </div>
-
-        <div className="mt-5 grid gap-4 sm:grid-cols-3">
-          <article className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <p className="text-sm font-medium text-gray-500">Total</p>
-            <p className="mt-2 text-3xl font-bold text-gray-900">{SAMPLE_EMPLOYEES.length}</p>
-          </article>
-          <article className="rounded-xl border border-emerald-200 bg-emerald-50 p-5 shadow-sm">
-            <p className="text-sm font-medium text-emerald-700">Activos</p>
-            <p className="mt-2 text-3xl font-bold text-emerald-900">{activeEmployees}</p>
-          </article>
-          <article className="rounded-xl border border-gray-200 bg-gray-100 p-5 shadow-sm">
-            <p className="text-sm font-medium text-gray-600">Inactivos</p>
-            <p className="mt-2 text-3xl font-bold text-gray-900">{inactiveEmployees}</p>
-          </article>
-        </div>
-
-        <div className="mt-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h3 className="font-semibold text-gray-900">Distribución por cargo</h3>
-          <dl className="mt-4 grid gap-3 sm:grid-cols-3">
-            {EMPLOYEE_ROLES.map((role) => (
-              <div key={role} className="flex items-center justify-between rounded-lg bg-gray-50 px-4 py-3">
-                <dt className="text-sm text-gray-600">{role}</dt>
-                <dd className="font-semibold text-gray-900">
-                  {SAMPLE_EMPLOYEES.filter((employee) => employee.role === role).length}
-                </dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </section>
-    </div>
+    <ModuleDashboard
+      moduleLabel="Administración"
+      title="Administración"
+      description="Consulta y actualiza el equipo de trabajo desde una única fuente compartida."
+      summaryTitle="Resumen de empleados"
+      summaryDescription="Información calculada desde el registro de empleados disponible durante esta sesión."
+      action={{ label: "Gestionar empleados", to: "/administracion/empleados" }}
+      metrics={[
+        { label: "Total", value: SAMPLE_EMPLOYEES.length },
+        { label: "Activos", value: activeEmployees, tone: "success" },
+        { label: "Inactivos", value: inactiveEmployees, tone: "info" },
+      ]}
+      distributionTitle="Distribución por cargo"
+      distribution={employeesByRole}
+    />
   );
 }
 
