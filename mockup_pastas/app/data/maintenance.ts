@@ -16,20 +16,29 @@ export type Machine = {
   observations: string;
 };
 
-export type MachineMaintenance = {
+export type MaintenanceOrderItem = {
   id: string;
-  number: string;
   machineId: string;
   type: MaintenanceType;
-  scheduledDate: string;
-  startDate?: string;
-  endDate?: string;
-  responsibleEmployeeId?: string;
   description: string;
   workPerformed: string;
+  cost?: number;
+};
+
+export type MaintenanceOrder = {
+  id: string;
+  number: string;
+  issueDate: string;
+  estimatedDate: string;
+  responsibleType: "Empleado" | "Externo";
+  responsibleEmployeeId?: string;
+  externalResponsibleName?: string;
   status: MaintenanceStatus;
+  startDate?: string;
+  endDate?: string;
   observations: string;
-  previousMachineStatus?: Extract<MachineStatus, "Activa" | "Fuera de servicio">;
+  items: MaintenanceOrderItem[];
+  previousMachineStatuses?: Record<string, Extract<MachineStatus, "Activa" | "Fuera de servicio">>;
 };
 
 export const MACHINE_STATUSES: MachineStatus[] = ["Activa", "En mantenimiento", "Fuera de servicio", "Inactiva"];
@@ -43,8 +52,26 @@ export const SAMPLE_MACHINES: Machine[] = [
   { id: "maq-4", code: "MAQ-004", name: "Secadero", type: "Secadero", brand: "DryPasta", model: "DP-800", serialNumber: "DP800-2208", location: "Sector secado", acquisitionDate: "2019-11-22", status: "Inactiva", observations: "Equipo conservado como respaldo." },
 ];
 
-export const SAMPLE_MAINTENANCES: MachineMaintenance[] = [
-  { id: "mant-1", number: "MAN-0001", machineId: "maq-1", type: "Preventivo", scheduledDate: "2026-10-08", responsibleEmployeeId: "emp-1", description: "Lubricación y control general.", workPerformed: "", status: "Programado", observations: "" },
-  { id: "mant-2", number: "MAN-0002", machineId: "maq-2", type: "Preventivo", scheduledDate: "2026-09-15", startDate: "2026-09-15", endDate: "2026-09-15", responsibleEmployeeId: "emp-2", description: "Control de rodillos.", workPerformed: "Se ajustaron rodillos y correas.", status: "Finalizado", observations: "Sin novedades." },
-  { id: "mant-3", number: "MAN-0003", machineId: "maq-3", type: "Correctivo", scheduledDate: "2026-09-29", responsibleEmployeeId: "emp-1", description: "Diagnosticar falla eléctrica.", workPerformed: "", status: "Programado", observations: "Máquina fuera de servicio hasta revisión." },
+export const SAMPLE_MAINTENANCES: MaintenanceOrder[] = [
+  {
+    id: "mant-1", number: "MAN-0001", issueDate: "2026-10-01", estimatedDate: "2026-10-08", responsibleType: "Empleado", responsibleEmployeeId: "emp-1",
+    status: "Programado", observations: "",
+    items: [
+      { id: "item-1", machineId: "maq-1", type: "Preventivo", description: "Lubricación y control general.", workPerformed: "" }
+    ]
+  },
+  {
+    id: "mant-2", number: "MAN-0002", issueDate: "2026-09-10", estimatedDate: "2026-09-15", startDate: "2026-09-15", endDate: "2026-09-15", responsibleType: "Externo", externalResponsibleName: "Técnica Mantenimientos S.A.",
+    status: "Finalizado", observations: "Servicio tercerizado.",
+    items: [
+      { id: "item-2", machineId: "maq-2", type: "Preventivo", description: "Control de rodillos.", workPerformed: "Se ajustaron rodillos y correas.", cost: 45000 }
+    ]
+  },
+  {
+    id: "mant-3", number: "MAN-0003", issueDate: "2026-09-25", estimatedDate: "2026-09-29", responsibleType: "Empleado", responsibleEmployeeId: "emp-1",
+    status: "Programado", observations: "Máquina fuera de servicio hasta revisión.",
+    items: [
+      { id: "item-3", machineId: "maq-3", type: "Correctivo", description: "Diagnosticar falla eléctrica.", workPerformed: "" }
+    ]
+  },
 ];

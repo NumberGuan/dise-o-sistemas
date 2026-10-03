@@ -85,7 +85,7 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
 }
 
 function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine: Machine; onClose: () => void; onEdit: () => void; onToggleStatus: () => void; }) {
-  const history = SAMPLE_MAINTENANCES.filter((x) => x.machineId === machine.id).sort((a, b) => b.scheduledDate.localeCompare(a.scheduledDate));
+  const history = SAMPLE_MAINTENANCES.filter((x) => x.items.some(i => i.machineId === machine.id)).sort((a, b) => b.estimatedDate.localeCompare(a.estimatedDate));
   const last = history.find((x) => x.status === "Finalizado");
   const next = [...history].reverse().find((x) => x.status === "Programado");
 
@@ -117,7 +117,7 @@ function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine:
                 ["Fecha de adquisición", machine.acquisitionDate],
                 ["Mantenimientos", String(history.length)],
                 ["Último mantenimiento", last?.endDate ?? "Sin registros"],
-                ["Próximo mantenimiento", next?.scheduledDate ?? "Sin programar"]
+                ["Próximo mantenimiento", next?.estimatedDate ?? "Sin programar"]
               ].map(([label, value]) => (
                 <div key={label}>
                   <dt className="text-xs text-gray-500">{label}</dt>
@@ -146,20 +146,23 @@ function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine:
             <ol className="mt-4 divide-y divide-gray-100">
               {history.length === 0 ? (
                  <p className="text-sm text-gray-500">No hay mantenimientos registrados.</p>
-              ) : history.map((x) => (
-                <li key={x.id} className="py-3 first:pt-0">
-                  <Link to={`/mantenimiento/mantenimientos?mantenimiento=${x.id}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
-                    <span>
-                      <span className="text-xs font-medium text-gray-500">{x.number}</span>
-                      <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{x.type}</span>
-                      <span className="mt-1 block text-xs text-gray-500">
-                        {x.status === "Programado" ? `Para el ${x.scheduledDate}` : x.status === "Finalizado" ? `Completado el ${x.endDate}` : `Iniciado el ${x.startDate}`}
+              ) : history.map((x) => {
+                const itemData = x.items.find(i => i.machineId === machine.id);
+                return (
+                  <li key={x.id} className="py-3 first:pt-0">
+                    <Link to={`/mantenimiento/mantenimientos?mantenimiento=${x.id}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
+                      <span>
+                        <span className="text-xs font-medium text-gray-500">{x.number}</span>
+                        <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{itemData?.type}</span>
+                        <span className="mt-1 block text-xs text-gray-500">
+                          {x.status === "Programado" ? `Para el ${x.estimatedDate}` : x.status === "Finalizado" ? `Completado el ${x.endDate}` : `Iniciado el ${x.startDate}`}
+                        </span>
                       </span>
-                    </span>
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${x.status === "Programado" ? "bg-amber-100 text-amber-800" : x.status === "En curso" ? "bg-sky-100 text-sky-800" : x.status === "Finalizado" ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>{x.status}</span>
-                  </Link>
-                </li>
-              ))}
+                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${x.status === "Programado" ? "bg-amber-100 text-amber-800" : x.status === "En curso" ? "bg-sky-100 text-sky-800" : x.status === "Finalizado" ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>{x.status}</span>
+                    </Link>
+                  </li>
+                );
+              })}
             </ol>
           </div>
         </div>
