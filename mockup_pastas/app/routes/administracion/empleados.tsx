@@ -27,6 +27,14 @@ function formatDate(date: string) {
   }).format(new Date(`${date}T00:00:00Z`));
 }
 
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("es-AR", {
+    style: "currency",
+    currency: "ARS",
+    minimumFractionDigits: 2,
+  }).format(amount);
+}
+
 function isValidIsoDate(date: string) {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
   if (!match) return false;
@@ -59,19 +67,37 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
   const isNew = employee === null;
   const [code] = useState(() => employee?.code ?? nextEmployeeCode(employees));
   const [name, setName] = useState(employee?.name ?? "");
+  const [email, setEmail] = useState(employee?.email ?? "");
+  const [dni, setDni] = useState(employee?.dni ?? "");
   const [role, setRole] = useState<EmployeeRole | "">(employee?.role ?? "");
   const [hireDate, setHireDate] = useState(employee?.hireDate ?? new Date().toISOString().slice(0, 10));
   const [hoursWorked, setHoursWorked] = useState(employee ? String(employee.hoursWorked) : "0");
+  const [salary, setSalary] = useState(employee ? String(employee.salary) : "0");
   const [status, setStatus] = useState<EmployeeStatus>(employee?.status ?? "Activo");
   const [error, setError] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const normalizedName = name.trim().replace(/\s+/g, " ");
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedDni = dni.replace(/\D/g, "");
     const parsedHours = Number(hoursWorked);
+    const parsedSalary = Number(salary);
 
     if (!normalizedName) {
       setError("El nombre completo es obligatorio.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setError("Ingresá un email válido.");
+      return;
+    }
+    if (!/^\d{7,8}$/.test(normalizedDni)) {
+      setError("El DNI debe contener 7 u 8 dígitos.");
+      return;
+    }
+    if (employees.some((candidate) => candidate.dni === normalizedDni && candidate.id !== employee?.id)) {
+      setError(`El DNI ${normalizedDni} ya pertenece a otro empleado.`);
       return;
     }
     if (!role) {
@@ -86,6 +112,10 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
       setError("Las horas trabajadas deben ser un número igual o mayor que cero.");
       return;
     }
+    if (salary.trim() === "" || !Number.isFinite(parsedSalary) || parsedSalary < 0) {
+      setError("El sueldo debe ser un número igual o mayor que cero.");
+      return;
+    }
     if (employees.some((candidate) => candidate.code.toLowerCase() === code.toLowerCase() && candidate.id !== employee?.id)) {
       setError(`El código ${code} ya pertenece a otro empleado.`);
       return;
@@ -95,9 +125,12 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
       id: employee?.id ?? `emp-${Date.now()}`,
       code,
       name: normalizedName,
+      email: normalizedEmail,
+      dni: normalizedDni,
       role,
       hireDate,
       hoursWorked: parsedHours,
+      salary: parsedSalary,
       status,
     });
   }
@@ -128,6 +161,14 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
             <input id="employee-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Nombre y apellido" className={inputClassName} />
           </div>
           <div>
+            <label htmlFor="employee-email" className="block text-sm font-medium text-gray-700">Email *</label>
+            <input id="employee-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="empleado@ejemplo.com" className={inputClassName} />
+          </div>
+          <div>
+            <label htmlFor="employee-dni" className="block text-sm font-medium text-gray-700">DNI *</label>
+            <input id="employee-dni" inputMode="numeric" value={dni} onChange={(event) => setDni(event.target.value)} autoComplete="off" placeholder="12345678" className={inputClassName} />
+          </div>
+          <div>
             <label htmlFor="employee-role" className="block text-sm font-medium text-gray-700">Cargo *</label>
             <select id="employee-role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole | "")} className={inputClassName}>
               <option value="">Seleccionar cargo...</option>
@@ -141,6 +182,10 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
           <div>
             <label htmlFor="employee-hours" className="block text-sm font-medium text-gray-700">Horas trabajadas *</label>
             <input id="employee-hours" type="number" min="0" step="0.5" value={hoursWorked} onChange={(event) => setHoursWorked(event.target.value)} className={inputClassName} />
+          </div>
+          <div>
+            <label htmlFor="employee-salary" className="block text-sm font-medium text-gray-700">Sueldo *</label>
+            <input id="employee-salary" type="number" min="0" step="0.01" value={salary} onChange={(event) => setSalary(event.target.value)} className={inputClassName} />
           </div>
           <div>
             <label htmlFor="employee-status" className="block text-sm font-medium text-gray-700">Estado *</label>
@@ -185,9 +230,12 @@ function EmployeeDetail({ employee, onBack, onEdit, onToggleStatus }: EmployeeDe
         <dl className="mt-5 grid gap-x-8 gap-y-5 sm:grid-cols-2">
           <div><dt className="text-sm text-gray-500">Código</dt><dd className="mt-1 font-medium text-gray-900">{employee.code}</dd></div>
           <div><dt className="text-sm text-gray-500">Nombre completo</dt><dd className="mt-1 font-medium text-gray-900">{employee.name}</dd></div>
+          <div><dt className="text-sm text-gray-500">Email</dt><dd className="mt-1 break-all font-medium text-gray-900">{employee.email}</dd></div>
+          <div><dt className="text-sm text-gray-500">DNI</dt><dd className="mt-1 font-medium text-gray-900">{employee.dni}</dd></div>
           <div><dt className="text-sm text-gray-500">Cargo</dt><dd className="mt-1 font-medium text-gray-900">{employee.role}</dd></div>
           <div><dt className="text-sm text-gray-500">Fecha de ingreso</dt><dd className="mt-1 font-medium text-gray-900">{formatDate(employee.hireDate)}</dd></div>
           <div><dt className="text-sm text-gray-500">Horas trabajadas</dt><dd className="mt-1 font-medium text-gray-900">{employee.hoursWorked.toLocaleString("es-AR")}</dd></div>
+          <div><dt className="text-sm text-gray-500">Sueldo</dt><dd className="mt-1 font-medium text-gray-900">{formatCurrency(employee.salary)}</dd></div>
           <div><dt className="text-sm text-gray-500">Estado</dt><dd className="mt-1 font-medium text-gray-900">{employee.status}</dd></div>
         </dl>
       </section>
