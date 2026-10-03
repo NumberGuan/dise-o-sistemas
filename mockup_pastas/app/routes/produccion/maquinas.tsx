@@ -1,5 +1,5 @@
-import { PlaceholderPage } from "~/components/PlaceholderPage";
+import { Navigate } from "react-router";
 
-export default function Maquinas() {
-  return <PlaceholderPage title="Máquinas" />;
+export default function MaquinasProduccionRedirect() {
+  return <Navigate to="/mantenimiento/maquinas" replace />;
 }

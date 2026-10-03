@@ -44,6 +44,7 @@ export default [
 
     route("mantenimiento", "routes/mantenimiento.tsx", [
       route("maquinas", "routes/mantenimiento/maquinas.tsx"),
+      route("mantenimientos", "routes/mantenimiento/mantenimientos.tsx"),
     ]),
   ]),
 ] satisfies RouteConfig;

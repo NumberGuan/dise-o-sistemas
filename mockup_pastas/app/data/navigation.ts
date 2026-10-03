@@ -41,7 +41,6 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Materia Prima", to: "/produccion/materias-primas" },
       { label: "Órdenes de Producción", to: "/produccion/ordenes" },
       { label: "Recetas", to: "/produccion/recetas" },
-      { label: "Máquinas", to: "/produccion/maquinas" },
     ],
   },
   {
@@ -55,6 +54,9 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     label: "Mantenimiento",
     to: "/mantenimiento",
-    items: [{ label: "Mantenimiento de Máquinas", to: "/mantenimiento/maquinas" }],
+    items: [
+      { label: "Máquinas", to: "/mantenimiento/maquinas" },
+      { label: "Mantenimiento de Máquinas", to: "/mantenimiento/mantenimientos" },
+    ],
   },
 ];
