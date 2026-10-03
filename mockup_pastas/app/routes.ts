@@ -39,7 +39,6 @@ export default [
 
     route("administracion", "routes/administracion.tsx", [
       route("empleados", "routes/administracion/empleados.tsx"),
-      route("recibos-pagos", "routes/administracion/recibos-pagos.tsx"),
     ]),
 
     route("mantenimiento", "routes/mantenimiento.tsx", [

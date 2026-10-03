@@ -48,7 +48,6 @@ export const NAV_SECTIONS: NavSection[] = [
     to: "/administracion",
     items: [
       { label: "Empleados", to: "/administracion/empleados" },
-      { label: "Recibos y Pagos", to: "/administracion/recibos-pagos" },
     ],
   },
   {
