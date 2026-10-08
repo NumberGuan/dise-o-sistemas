@@ -3,13 +3,13 @@ import { useNavigate } from "react-router";
 
 import {
   MATERIAS_PRIMAS,
-  ORDENES,
   PRESUPUESTOS,
-  PROVEEDORES,
+  createOrden,
   formatMoney,
   getMarcaPorId,
   getOrdenPorId,
   getProveedorPorId,
+  useProveedores,
 } from "~/data/ordenes";
 
 type OrdenItem = {
@@ -51,6 +51,8 @@ export default function OrdenCompraPage({
   const orden =
     ordenId && ordenId !== "nueva" ? getOrdenPorId(Number(ordenId)) : undefined;
   const esNueva = !orden;
+
+  const proveedores = useProveedores();
 
   const [idProveedor, setIdProveedor] = useState(
     orden ? String(orden.idProveedor) : "",
@@ -193,25 +195,26 @@ export default function OrdenCompraPage({
       return;
     }
 
-    const ordenGuardada = {
-      id: orden?.id,
-      numero: orden?.numero ?? `OC-2024-${String(ORDENES.length + 1).padStart(4, "0")}`,
+    const detalle = itemsValidos.map((item) => ({
+      idMateriaPrima: item.idMateriaPrima as number,
+      idMarca: item.idMarca as number,
+      cantidad: item.cantidad,
+      subtotal: item.subtotal,
+    }));
+
+    createOrden({
       idProveedor: Number(idProveedor),
       idPresupuestoProveedor: idPresupuestoProveedor
         ? Number(idPresupuestoProveedor)
         : null,
       fechaEmision,
-      montoTotal,
-      detalle: itemsValidos.map((item) => ({
-        idMateriaPrima: item.idMateriaPrima,
-        idMarca: item.idMarca,
-        cantidad: item.cantidad,
-        subtotal: item.subtotal,
-      })),
-    };
+      detalle,
+    });
 
-    console.log("Orden de compra guardada:", ordenGuardada);
     setSaved(true);
+    if (onClose) {
+      onClose();
+    }
   };
 
   if (ordenId && ordenId !== "nueva" && !orden) {
@@ -265,7 +268,7 @@ export default function OrdenCompraPage({
                 className={`${selectClasses} mt-1`}
               >
                 <option value="">Seleccionar proveedor</option>
-                {PROVEEDORES.map((proveedor) => (
+                {proveedores.map((proveedor) => (
                   <option key={proveedor.idPersona} value={proveedor.idPersona}>
                     {proveedor.nombre}
                   </option>

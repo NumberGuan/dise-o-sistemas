@@ -7,7 +7,7 @@ import {
   getRemitoPorId,
   REMITOS,
 } from "~/data/remitos";
-import { formatFecha, ORDENES, getProveedorPorId } from "~/data/ordenes";
+import { formatFecha, getOrdenes, getProveedorPorId } from "~/data/ordenes";
 
 export default function RemitosProveedorListPage() {
   const [detalleId, setDetalleId] = useState<number | null>(null);
@@ -47,7 +47,7 @@ export default function RemitosProveedorListPage() {
               {REMITOS.map((remito) => {
                 const proveedor = getProveedorPorId(remito.idProveedor);
                 const ordenVinculada = remito.idOrdenCompraProveedor
-                  ? ORDENES.find(
+                  ? getOrdenes().find(
                       (orden) => orden.id === remito.idOrdenCompraProveedor,
                     )?.numero
                   : undefined;

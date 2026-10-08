@@ -1,6 +1,7 @@
-import { PROVEEDORES, getProveedorPorId } from "./proveedores";
+import { getProveedorPorId, useProveedores } from "./proveedores";
+import { createStore, useStore } from "./store";
 
-export { PROVEEDORES, getProveedorPorId };
+export { getProveedorPorId, useProveedores };
 
 export type Marca = {
   id: number;
@@ -29,6 +30,8 @@ export type OrdenCompra = {
   fechaEmision: string;
   detalle: DetalleOrden[];
 };
+
+export type OrdenCompraInput = Omit<OrdenCompra, "id" | "numero">;
 
 export const PRESUPUESTOS = [
   { id: 101, numero: "PP-2024-001", idProveedor: 1, total: 120000 },
@@ -76,7 +79,7 @@ export const MATERIAS_PRIMAS: MateriaPrima[] = [
   },
 ];
 
-export const ORDENES: OrdenCompra[] = [
+const INITIAL_ORDENES: OrdenCompra[] = [
   {
     id: 1,
     numero: "OC-2024-0001",
@@ -121,8 +124,14 @@ export const ORDENES: OrdenCompra[] = [
   },
 ];
 
+const store = createStore<OrdenCompra[]>(INITIAL_ORDENES);
+
+export const useOrdenes = () => useStore(store);
+
+export const getOrdenes = () => store.get();
+
 export const getOrdenPorId = (id: number) =>
-  ORDENES.find((orden) => orden.id === id);
+  store.get().find((orden) => orden.id === id);
 
 export const getMateriaPrimaPorId = (id: number) =>
   MATERIAS_PRIMAS.find((materiaPrima) => materiaPrima.id === id);
@@ -144,6 +153,34 @@ export const getMontoTotal = (detalle: DetalleOrden[]) =>
     (total, item) => total + (Number.isFinite(item.subtotal) ? item.subtotal : 0),
     0,
   );
+
+export const getProximoNumeroOrden = () => {
+  const ordenes = store.get();
+  const maxId = ordenes.length
+    ? Math.max(...ordenes.map((orden) => orden.id))
+    : 0;
+  return `OC-2024-${String(maxId + 1).padStart(4, "0")}`;
+};
+
+export const createOrden = (input: OrdenCompraInput): OrdenCompra => {
+  const ordenes = store.get();
+  const id = ordenes.length
+    ? Math.max(...ordenes.map((orden) => orden.id)) + 1
+    : 1;
+  const nueva: OrdenCompra = { ...input, id, numero: getProximoNumeroOrden() };
+  store.set([...ordenes, nueva]);
+  return nueva;
+};
+
+export const deleteOrden = (id: number): boolean => {
+  const ordenes = store.get();
+  const existe = ordenes.some((orden) => orden.id === id);
+  if (!existe) {
+    return false;
+  }
+  store.set(ordenes.filter((orden) => orden.id !== id));
+  return true;
+};
 
 export const formatMoney = (value: number) =>
   value.toLocaleString("es-AR", {
