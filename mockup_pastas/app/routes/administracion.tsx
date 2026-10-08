@@ -1,4 +1,10 @@
 import { NavLink, Outlet, useLocation } from "react-router";
+import { requireUserAndRole } from "~/utils/session.server";
+import type { Route } from "./+types/administracion";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  return await requireUserAndRole(request, ["Administrador"]);
+};
 
 import ModuleDashboard from "~/components/ModuleDashboard";
 import { EMPLOYEE_ROLES, SAMPLE_EMPLOYEES } from "~/data/employees";

@@ -1,4 +1,10 @@
 import { Outlet, useLocation } from "react-router";
+import { requireUserAndRole } from "~/utils/session.server";
+import type { Route } from "./+types/produccion";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  return await requireUserAndRole(request, ["Producción"]);
+};
 
 import ModuleDashboard from "~/components/ModuleDashboard";
 import { MATERIAS_PRIMAS } from "~/data/ordenes";

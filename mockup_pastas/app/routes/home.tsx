@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 
 const CENTER_CARDS = [
   {
@@ -47,14 +46,52 @@ const RECENT_ORDERS = [
   { client: "Comercio La Casa", product: "Tallarines 500g", quantity: "60 cajas" },
 ];
 
+import { Link, useLoaderData, redirect } from "react-router";
+import { getUser } from "~/utils/session.server";
+import type { Route } from "./+types/home";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  const user = await getUser(request);
+  if (!user) {
+    throw redirect("/login");
+  }
+
+  // Redirect based on role
+  const url = new URL(request.url);
+  if (url.pathname === "/") {
+    if (user.role === "Ventas") {
+      return redirect("/ventas");
+    }
+    if (user.role === "Producción") {
+      return redirect("/produccion");
+    }
+  }
+
+  return { user };
+};
+
 export default function Home() {
+  const { user } = useLoaderData<typeof loader>();
+  
+  if (user.role === "Cliente") {
+    return (
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 text-center">
+        <h1 className="text-3xl font-bold text-gray-900">Bienvenido, {user.name}</h1>
+        <p className="mt-4 text-lg text-gray-500">
+          En este momento, el portal para clientes está en desarrollo.
+          Pronto podrás ver y gestionar tus pedidos aquí.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Panel principal</h1>
           <p className="mt-1 text-sm text-gray-500">
-            Resumen de la operación de la fábrica de pastas.
+            Bienvenido {user.name} ({user.role}). Resumen de la operación de la fábrica de pastas.
           </p>
         </div>
         <Link
