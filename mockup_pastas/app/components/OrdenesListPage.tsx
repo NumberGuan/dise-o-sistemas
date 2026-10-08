@@ -4,12 +4,13 @@ import Modal from "~/components/Modal";
 import OrdenCompraPage from "~/components/OrdenCompraPage";
 import OrdenDetallePage from "~/components/OrdenDetallePage";
 import {
-  ORDENES,
+  deleteOrden,
   formatFecha,
   formatMoney,
   getMontoTotal,
   getOrdenPorId,
   getProveedorPorId,
+  useOrdenes,
 } from "~/data/ordenes";
 
 type ModalState =
@@ -20,11 +21,23 @@ type ModalState =
 export default function OrdenesListPage() {
   const [modal, setModal] = useState<ModalState>(null);
 
+  const ordenes = useOrdenes();
+
   const ordenSeleccionada =
     modal?.tipo === "detalle" ? getOrdenPorId(modal.id) : undefined;
   const proveedorSeleccionado = ordenSeleccionada
     ? getProveedorPorId(ordenSeleccionada.idProveedor)
     : undefined;
+
+  const confirmarEliminar = (id: number, numero: string) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de eliminar la orden "${numero}"? Esta acción no se puede deshacer.`,
+      )
+    ) {
+      deleteOrden(id);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -60,7 +73,7 @@ export default function OrdenesListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {ORDENES.map((orden) => {
+              {ordenes.map((orden) => {
                 const proveedor = getProveedorPorId(orden.idProveedor);
                 return (
                   <tr key={orden.id} className="hover:bg-gray-50">

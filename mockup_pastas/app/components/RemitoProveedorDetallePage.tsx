@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router";
 
-import { ORDENES, formatFecha, getProveedorPorId } from "~/data/ordenes";
+import { formatFecha, getOrdenes, getProveedorPorId } from "~/data/ordenes";
 import {
   getCantidadTotalRemito,
   getRemitoPorId,
@@ -41,7 +41,7 @@ export default function RemitoProveedorDetallePage({
 
   const proveedor = getProveedorPorId(remito.idProveedor);
   const orden = remito.idOrdenCompraProveedor
-    ? ORDENES.find((o) => o.id === remito.idOrdenCompraProveedor)
+    ? getOrdenes().find((o) => o.id === remito.idOrdenCompraProveedor)
     : undefined;
   const cantidadTotal = getCantidadTotalRemito(remito.detalle);
 

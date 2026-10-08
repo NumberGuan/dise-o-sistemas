@@ -2,11 +2,14 @@ import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 
 import {
-  PROVEEDORES,
-  TIPOS_DOCUMENTO,
+  createProveedor,
   getDomicilioPorId,
+  getProximoIdPersona,
   getProveedorPorId,
-  type Domicilio,
+  TIPOS_DOCUMENTO,
+  updateProveedor,
+  type DomicilioInput,
+  type ProveedorInput,
 } from "~/data/proveedores";
 
 const ESTADOS = ["Activo", "Inactivo"];
@@ -39,7 +42,7 @@ export default function ProveedorFormPage({
     ? getDomicilioPorId(proveedor.idDomicilio)
     : undefined;
 
-  const idPersona = proveedor ? proveedor.idPersona : PROVEEDORES.length + 1;
+  const idPersona = proveedor ? proveedor.idPersona : getProximoIdPersona();
 
   const [nombre, setNombre] = useState(proveedor?.nombre ?? "");
   const [idTipoDocumento, setIdTipoDocumento] = useState(
@@ -118,8 +121,7 @@ export default function ProveedorFormPage({
       return;
     }
 
-    const domicilio: Domicilio = {
-      id: proveedor ? proveedor.idDomicilio : PROVEEDORES.length + 1,
+    const domicilio: DomicilioInput = {
       calle: calle.trim(),
       localidad: localidad.trim(),
       provincia: provincia.trim(),
@@ -127,24 +129,26 @@ export default function ProveedorFormPage({
       departamento: departamento.trim() || undefined,
     };
 
-    const proveedorGuardado = {
-      idPersona,
-      estado,
-      idDomicilio: domicilio.id,
+    const input: ProveedorInput = {
       idTipoDocumento: Number(idTipoDocumento),
       nroDocumento: Number(nroDocumento),
       nombre: nombre.trim(),
       apellido: "",
       email: email.trim(),
       telefono: telefono.trim(),
+      estado,
     };
 
-    console.log("Domicilio guardado:", domicilio);
-    console.log(
-      esModificacion ? "Proveedor modificado:" : "Proveedor guardado:",
-      proveedorGuardado,
-    );
+    if (esModificacion && proveedor) {
+      updateProveedor(proveedor.idPersona, input, domicilio);
+    } else {
+      createProveedor(input, domicilio);
+    }
+
     setSaved(true);
+    if (onClose) {
+      onClose();
+    }
   };
 
   const contenido = (

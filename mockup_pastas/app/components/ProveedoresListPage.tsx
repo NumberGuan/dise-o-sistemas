@@ -4,11 +4,12 @@ import Modal from "~/components/Modal";
 import ProveedorDetallePage from "~/components/ProveedorDetallePage";
 import ProveedorFormPage from "~/components/ProveedorFormPage";
 import {
-  PROVEEDORES,
+  deleteProveedor,
   getDomicilioPorId,
   getNombreCompletoProveedor,
   getProveedorPorId,
   getTipoDocumentoPorId,
+  useProveedores,
 } from "~/data/proveedores";
 
 const formatDocumento = (nro: number) =>
@@ -23,8 +24,20 @@ type ModalState =
 export default function ProveedoresListPage() {
   const [modal, setModal] = useState<ModalState>(null);
 
+  const proveedores = useProveedores();
+
   const proveedorSeleccionado =
     modal && modal.tipo !== "nueva" ? getProveedorPorId(modal.id) : undefined;
+
+  const confirmarEliminar = (idPersona: number, nombre: string) => {
+    if (
+      window.confirm(
+        `¿Estás seguro de eliminar al proveedor "${nombre}"? Esta acción no se puede deshacer.`,
+      )
+    ) {
+      deleteProveedor(idPersona);
+    }
+  };
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -46,7 +59,7 @@ export default function ProveedoresListPage() {
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[1060px] text-left text-sm">
+          <table className="w-full text-left text-sm">
             <thead>
               <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400">
                 <th className="px-5 py-3 font-medium">Nombre / Razón Social</th>
@@ -59,7 +72,7 @@ export default function ProveedoresListPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {PROVEEDORES.map((proveedor) => {
+              {proveedores.map((proveedor) => {
                 const tipoDocumento = getTipoDocumentoPorId(
                   proveedor.idTipoDocumento,
                 );
@@ -73,7 +86,7 @@ export default function ProveedoresListPage() {
                       {tipoDocumento?.nombre ?? "—"}{" "}
                       {formatDocumento(proveedor.nroDocumento)}
                     </td>
-                    <td className="px-5 py-4 text-gray-600">
+                    <td className="px-5 py-4 text-gray-600 break-all">
                       {proveedor.email}
                     </td>
                     <td className="px-5 py-4 text-gray-600">
@@ -146,6 +159,32 @@ export default function ProveedoresListPage() {
                             <path d="m9 18 6-6-6-6" />
                           </svg>
                         </button>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            confirmarEliminar(
+                              proveedor.idPersona,
+                              proveedor.nombre,
+                            )
+                          }
+                          className="inline-flex items-center gap-1 rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-700 transition hover:bg-rose-100"
+                        >
+                          <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            className="h-4 w-4"
+                            aria-hidden="true"
+                          >
+                            <path d="M3 6h18" />
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6" />
+                            <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                          </svg>
+                          Eliminar
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -155,6 +194,13 @@ export default function ProveedoresListPage() {
           </table>
         </div>
       </div>
+
+      {proveedores.length === 0 && (
+        <p className="mt-6 rounded-lg border border-dashed border-gray-300 bg-white px-6 py-10 text-center text-sm text-gray-500">
+          No hay proveedores registrados. Usá "+ Nuevo Proveedor" para
+          cargar uno.
+        </p>
+      )}
 
       {modal?.tipo === "nueva" && (
         <Modal
