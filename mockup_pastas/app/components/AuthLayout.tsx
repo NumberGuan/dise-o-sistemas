@@ -1,7 +1,5 @@
 import { Link, useLocation } from "react-router";
 import { Logo } from "~/components/icons";
-import { ORDENES } from "~/data/ordenes";
-import { PROVEEDORES } from "~/data/proveedores";
 
 type AuthLayoutProps = {
   children: React.ReactNode;
@@ -24,11 +22,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
             </span>
             <div className="flex items-baseline gap-2">
               <span className="text-xl font-bold text-gray-900 tracking-tight">Fábrica de Pastas</span>
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-semibold text-gray-600 border border-gray-200">PRO</span>
             </div>
-          </div>
-          <div className="mt-1 text-sm font-medium text-gray-500">
-            ERP Industrial & Gestión Fabril
           </div>
         </div>
 
@@ -39,30 +33,15 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           
           <div className="mt-6 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-gray-200 shadow-sm">
             <img 
-              src="/logo-pasta.png" 
+              src="/hero-pastas.jpg" 
               alt="Fábrica de Pastas" 
-              className="h-full w-full object-cover opacity-90 mix-blend-multiply"
+              className="h-full w-full object-cover"
             />
           </div>
 
           <p className="mt-6 text-lg text-gray-600">
             Gestión integral de producción, recetas tradicionales, balance de masas y trazabilidad en planta en tiempo real.
           </p>
-
-          <div className="mt-10 flex gap-4">
-            <div className="flex-1 rounded-2xl bg-white p-5 shadow-sm border border-gray-100 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-amber-500"></div>
-              <p className="text-xs font-bold text-gray-500 tracking-wider uppercase">Abastecimiento</p>
-              <p className="mt-1 text-2xl font-bold text-gray-900">{ORDENES.length} Órdenes</p>
-              <p className="mt-1 text-sm text-amber-700 font-medium">De compra emitidas</p>
-            </div>
-            <div className="flex-1 rounded-2xl bg-white p-5 shadow-sm border border-gray-100 relative overflow-hidden">
-              <div className="absolute top-0 left-0 w-1 h-full bg-rose-500"></div>
-              <p className="text-xs font-bold text-gray-500 tracking-wider uppercase">Proveedores</p>
-              <p className="mt-1 text-xl font-bold text-gray-900">{PROVEEDORES.filter((p) => p.estado === "Activo").length} Activos</p>
-              <p className="mt-1 text-sm text-rose-700 font-medium">En el sistema</p>
-            </div>
-          </div>
         </div>
 
         <div className="flex items-center justify-between text-xs font-medium text-gray-500">
