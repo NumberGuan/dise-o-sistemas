@@ -26,5 +26,19 @@
     "email": "produccion@a.com",
     "passwordHash": "01b40061d8aee90236e647123ea7373e:f78d6fcd717965574ce2e76630a84cc2c42a941135449221f6afcc450d36ce8b9f28b24265b3c36aa7d16254c61854f9b2c6647cca115947df2561bb38ccec27",
     "role": "Producción"
+  },
+  {
+    "id": "92fcfc09-a60f-442b-97d5-931956a065fc",
+    "name": "Aministrador",
+    "email": "administrador@a.com",
+    "passwordHash": "f80e624b3bb799a0f735c24fb42a91ce:c43950966cc2d3c25bad49554ad6603a02db91fd0b695ed3cee4f85340d6957b2ebe68348b5bcaa8f47f02363adb69445e7c51cca71795ae79eea672c30a5b65",
+    "role": "Administrador"
+  },
+  {
+    "id": "b2866c0b-18d2-4cc9-bfdf-231af991dfd7",
+    "name": "Cliente",
+    "email": "cliente@a.com",
+    "passwordHash": "db98d7065baa3fe17cefea65fb37232f:6e497e38c5f6eb84d0251bc2e88b1d48588f33c3daff7c20757c9650821d32590722d04195bf69687d8697b09c8ad5f97cf547b88c07bcf2d3856d309aa8877e",
+    "role": "Cliente"
   }
 ]
