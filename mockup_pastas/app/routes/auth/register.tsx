@@ -10,12 +10,24 @@ export const meta: Route.MetaFunction = () => {
   ];
 };
 
+import { getUser } from "~/utils/session.server";
+import { redirect } from "react-router";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  const user = await getUser(request);
+  if (user) {
+    return redirect("/");
+  }
+  return null;
+};
+
 export const action = async ({ request }: Route.ActionArgs) => {
   const formData = await request.formData();
   const name = formData.get("name");
   const email = formData.get("email");
   const password = formData.get("password");
   const role = formData.get("role") as Role;
+  const adminCode = formData.get("adminCode");
 
   if (
     typeof name !== "string" || name.length < 3 ||
@@ -26,13 +38,17 @@ export const action = async ({ request }: Route.ActionArgs) => {
     return { error: "Formulario inválido. Revisa los datos ingresados." };
   }
 
-  // Prevent self-elevation to Administrador
-  if (role === "Administrador") {
-    return { error: "No puedes registrar una cuenta de Administrador públicamente." };
+  if (!["Cliente", "Ventas", "Producción", "Administrador"].includes(role)) {
+    return { error: "Perfil seleccionado no válido." };
   }
 
-  if (!["Cliente", "Ventas", "Producción"].includes(role)) {
-    return { error: "Perfil seleccionado no válido." };
+  // Prevent self-elevation to Administrador
+  if (role === "Administrador") {
+    // Basic hardcoded check for the mockup
+    const secretCode = process.env.ADMIN_REGISTRATION_CODE || "ADMIN123";
+    if (adminCode !== secretCode) {
+      return { error: "Código de autorización administrativo incorrecto." };
+    }
   }
 
   const existingUser = await getUserByEmail(email);
@@ -53,10 +69,13 @@ export const action = async ({ request }: Route.ActionArgs) => {
   return createUserSession(user.id, "/");
 };
 
+import { useState } from "react";
+
 export default function Register() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
+  const [selectedRole, setSelectedRole] = useState("Cliente");
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -126,13 +145,32 @@ export default function Register() {
                 id="role"
                 name="role"
                 required
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
               >
-                <option value="Cliente">Cliente</option>
+                <option value="Administrador">Administrador</option>
                 <option value="Ventas">Ventas</option>
                 <option value="Producción">Producción</option>
+                <option value="Cliente">Cliente</option>
               </select>
             </div>
+            
+            {selectedRole === "Administrador" && (
+              <div>
+                <label htmlFor="adminCode" className="block text-sm font-medium text-gray-700">
+                  Código de autorización
+                </label>
+                <input
+                  id="adminCode"
+                  name="adminCode"
+                  type="password"
+                  required
+                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
+                  placeholder="Requerido para Administradores"
+                />
+              </div>
+            )}
           </div>
 
           {actionData?.error && (

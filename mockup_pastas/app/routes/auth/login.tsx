@@ -9,6 +9,17 @@ export const meta: Route.MetaFunction = () => {
   ];
 };
 
+import { getUser } from "~/utils/session.server";
+import { redirect } from "react-router";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  const user = await getUser(request);
+  if (user) {
+    return redirect("/");
+  }
+  return null;
+};
+
 export const action = async ({ request }: Route.ActionArgs) => {
   const formData = await request.formData();
   const email = formData.get("email");

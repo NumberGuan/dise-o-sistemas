@@ -81,7 +81,9 @@ export async function requireUserAndRole(request: Request, allowedRoles: Role[])
   
   // Administrador has access to everything by default in our business logic
   if (!allowedRoles.includes(user.role) && user.role !== "Administrador") {
-    throw new Response("No tienes permisos para acceder a esta sección.", { status: 403, statusText: "Forbidden" });
+    // Instead of throwing a 403 ErrorBoundary, redirect them to the root
+    // The root loader in home.tsx will route them to their permitted screen
+    throw redirect("/");
   }
   return user;
 }

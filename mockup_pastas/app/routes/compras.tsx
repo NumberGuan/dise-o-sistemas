@@ -1,4 +1,4 @@
-import { Outlet, useLocation, useOutletContext } from "react-router";
+import { Outlet, useLocation, useOutletContext, redirect } from "react-router";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/compras";
 import type { User } from "~/utils/db.server";
@@ -7,7 +7,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   const user = await requireUserAndRole(request, ["Cliente"]);
   const url = new URL(request.url);
   if (user.role === "Cliente" && url.pathname !== "/compras" && url.pathname !== "/compras/") {
-    throw new Response("No autorizado para ver operaciones de fábrica.", { status: 403 });
+    throw redirect("/compras");
   }
   return user;
 };
