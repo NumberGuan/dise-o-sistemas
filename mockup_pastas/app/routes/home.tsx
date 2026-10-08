@@ -65,6 +65,9 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     if (user.role === "Producción") {
       return redirect("/produccion");
     }
+    if (user.role === "Cliente") {
+      return redirect("/compras");
+    }
   }
 
   return { user };
@@ -73,18 +76,6 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 export default function Home() {
   const { user } = useLoaderData<typeof loader>();
   
-  if (user.role === "Cliente") {
-    return (
-      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 text-center">
-        <h1 className="text-3xl font-bold text-gray-900">Bienvenido, {user.name}</h1>
-        <p className="mt-4 text-lg text-gray-500">
-          En este momento, el portal para clientes está en desarrollo.
-          Pronto podrás ver y gestionar tus pedidos aquí.
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-center justify-between gap-3">

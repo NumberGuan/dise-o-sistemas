@@ -90,8 +90,15 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
   const filteredSections = NAV_SECTIONS.filter((section) => {
     if (user.role === "Administrador") return true;
     if (user.role === "Ventas" && section.label === "Ventas") return true;
-    if (user.role === "Producción" && (section.label === "Producción" || section.label === "Compras" || section.label === "Mantenimiento")) return true;
+    if (user.role === "Producción" && section.label === "Producción") return true;
+    if (user.role === "Cliente" && section.label === "Compras") return true;
     return false;
+  }).map(section => {
+    // If it's a Cliente accessing Compras, remove the internal sub-items
+    if (user.role === "Cliente" && section.label === "Compras") {
+      return { ...section, items: [] };
+    }
+    return section;
   });
 
   const activeSection = filteredSections.find(
