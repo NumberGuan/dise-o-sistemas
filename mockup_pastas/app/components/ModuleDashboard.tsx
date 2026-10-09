@@ -19,7 +19,7 @@ type ModuleDashboardProps = {
   description: string;
   summaryTitle: string;
   summaryDescription: string;
-  action: {
+  action?: {
     label: string;
     to: string;
   };
@@ -84,12 +84,14 @@ export default function ModuleDashboard({
             </h2>
             <p className="mt-1 text-sm text-gray-500">{summaryDescription}</p>
           </div>
-          <Link
-            to={action.to}
-            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-          >
-            {action.label}
-          </Link>
+          {action && (
+            <Link
+              to={action.to}
+              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+            >
+              {action.label}
+            </Link>
+          )}
         </div>
 
         {metrics.length > 0 ? (

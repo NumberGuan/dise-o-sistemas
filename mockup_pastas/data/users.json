@@ -1,0 +1,44 @@
+[
+  {
+    "id": "3bef1509-be97-47b5-ab90-414c1d0f9146",
+    "email": "admin@admin.com",
+    "passwordHash": "a44a654d3834fbd9e1ba6646dc519bc8:8420b6821599a82588ffba229cbc850d4956d5af8db7f54210c6d75b676547571abb638dd763e126bbb2b3e804cb16814519c7a9189c8d281cbe45464b508fb1",
+    "role": "Administrador",
+    "name": "Administrador Inicial"
+  },
+  {
+    "id": "b35da0a2-7296-47c5-b02a-362faa4fd1df",
+    "name": "carli",
+    "email": "aa@aaaa.com",
+    "passwordHash": "1811d360416a62fa0d014669358035bf:064c5d584507a4d01e66e7926c73941bfecb23f1115618ffcccdca504f21505ca073fc638425800be51c11e3d50e98f01e379f2cdaa057611a3f8c563560f9eb",
+    "role": "Cliente"
+  },
+  {
+    "id": "92493f18-74da-4302-8653-6b44b1d2cf91",
+    "name": "carli",
+    "email": "ventas@a.com",
+    "passwordHash": "d689a0a094b7002eac1bc1a06dc2e297:011bc668f0960ad422c6380fc2aabb3ba7fa8f5aa759d316a4a814afb428ee942f83386c348832facaecbae7a3de11b74b7f3822dd63c250649fa704b361fdbe",
+    "role": "Ventas"
+  },
+  {
+    "id": "8df12f9b-938a-49e2-ae41-7c1feac3e042",
+    "name": "produccion",
+    "email": "produccion@a.com",
+    "passwordHash": "01b40061d8aee90236e647123ea7373e:f78d6fcd717965574ce2e76630a84cc2c42a941135449221f6afcc450d36ce8b9f28b24265b3c36aa7d16254c61854f9b2c6647cca115947df2561bb38ccec27",
+    "role": "Producción"
+  },
+  {
+    "id": "92fcfc09-a60f-442b-97d5-931956a065fc",
+    "name": "Aministrador",
+    "email": "administrador@a.com",
+    "passwordHash": "f80e624b3bb799a0f735c24fb42a91ce:c43950966cc2d3c25bad49554ad6603a02db91fd0b695ed3cee4f85340d6957b2ebe68348b5bcaa8f47f02363adb69445e7c51cca71795ae79eea672c30a5b65",
+    "role": "Administrador"
+  },
+  {
+    "id": "b2866c0b-18d2-4cc9-bfdf-231af991dfd7",
+    "name": "Cliente",
+    "email": "cliente@a.com",
+    "passwordHash": "db98d7065baa3fe17cefea65fb37232f:6e497e38c5f6eb84d0251bc2e88b1d48588f33c3daff7c20757c9650821d32590722d04195bf69687d8697b09c8ad5f97cf547b88c07bcf2d3856d309aa8877e",
+    "role": "Cliente"
+  }
+]

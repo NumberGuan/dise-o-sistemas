@@ -4,9 +4,12 @@ import { NavLink, useLocation } from "react-router";
 import { ChevronIcon, CloseIcon, Logo } from "~/components/icons";
 import { NAV_SECTIONS } from "~/data/navigation";
 
+import type { User } from "~/utils/db.server";
+
 type SidebarProps = {
   open: boolean;
   onClose: () => void;
+  user: User;
 };
 
 type IconProps = {
@@ -81,9 +84,24 @@ function LogoutIcon({ className = "" }: IconProps) {
   );
 }
 
-export default function Sidebar({ open, onClose }: SidebarProps) {
+export default function Sidebar({ open, onClose, user }: SidebarProps) {
   const { pathname } = useLocation();
-  const activeSection = NAV_SECTIONS.find(
+
+  const filteredSections = NAV_SECTIONS.filter((section) => {
+    if (user.role === "Administrador") return true;
+    if (user.role === "Ventas" && section.label === "Ventas") return true;
+    if (user.role === "Producción" && section.label === "Producción") return true;
+    if (user.role === "Cliente" && section.label === "Compras") return true;
+    return false;
+  }).map(section => {
+    // If it's a Cliente accessing Compras, remove the internal sub-items
+    if (user.role === "Cliente" && section.label === "Compras") {
+      return { ...section, items: [] };
+    }
+    return section;
+  });
+
+  const activeSection = filteredSections.find(
     (section) => pathname === section.to || pathname.startsWith(`${section.to}/`),
   );
   const [expandedSection, setExpandedSection] = useState<string | null>(
@@ -146,7 +164,7 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Navegación principal">
           <ul className="space-y-1.5">
-            {NAV_SECTIONS.map((section) => {
+            {filteredSections.map((section) => {
               const expanded = expandedSection === section.label;
               const active = activeSection?.label === section.label;
 
@@ -220,16 +238,18 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
 
         <div className="shrink-0 px-3 pb-4">
           <div className="border-t border-gray-200 pt-3">
-            <button
-              type="button"
-              title="Cerrar sesión"
-              className={`flex min-h-10 w-full items-center rounded-lg py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
-                open ? "gap-3 px-3" : "justify-center px-2"
-              }`}
-            >
-              <LogoutIcon />
-              {open && <span className="text-sm font-medium">Cerrar sesión</span>}
-            </button>
+            <form action="/logout" method="post">
+              <button
+                type="submit"
+                title="Cerrar sesión"
+                className={`flex min-h-10 w-full items-center rounded-lg py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
+                  open ? "gap-3 px-3" : "justify-center px-2"
+                }`}
+              >
+                <LogoutIcon />
+                {open && <span className="text-sm font-medium">Cerrar sesión</span>}
+              </button>
+            </form>
           </div>
         </div>
       </aside>
