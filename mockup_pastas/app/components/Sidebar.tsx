@@ -94,9 +94,18 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
     if (user.role === "Cliente" && section.label === "Compras") return true;
     return false;
   }).map(section => {
-    // If it's a Cliente accessing Compras, remove the internal sub-items
+    // If it's a Cliente accessing Compras, replace internal sub-items with client sub-items
     if (user.role === "Cliente" && section.label === "Compras") {
-      return { ...section, items: [] };
+      return { 
+        ...section, 
+        items: [
+          { label: "Catálogo", to: "/compras/catalogo" },
+          { label: "Mi Carrito", to: "/compras/carrito" },
+          { label: "Mis Favoritos", to: "/compras/favoritos" },
+          { label: "Mis Pedidos", to: "/compras/pedidos" },
+          { label: "Mi Perfil", to: "/compras/perfil" },
+        ] 
+      };
     }
     return section;
   });

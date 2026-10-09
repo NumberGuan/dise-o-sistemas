@@ -6,8 +6,15 @@ import type { User } from "~/utils/db.server";
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const user = await requireUserAndRole(request, ["Cliente"]);
   const url = new URL(request.url);
-  if (user.role === "Cliente" && url.pathname !== "/compras" && url.pathname !== "/compras/") {
-    throw redirect("/compras");
+  
+  const allowedClientPaths = ["/compras", "/compras/", "/compras/catalogo", "/compras/carrito", "/compras/favoritos", "/compras/perfil", "/compras/pedidos"];
+  if (user.role === "Cliente") {
+    if (url.pathname === "/compras" || url.pathname === "/compras/") {
+      throw redirect("/compras/catalogo");
+    }
+    if (!allowedClientPaths.includes(url.pathname)) {
+      throw redirect("/compras/catalogo");
+    }
   }
   return user;
 };

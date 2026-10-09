@@ -10,6 +10,10 @@ export interface User {
   passwordHash: string;
   role: Role;
   name: string;
+  phone?: string;
+  address?: string;
+  favorites?: string[];
+  cart?: { productId: string; quantity: number }[];
 }
 
 const DB_PATH = path.join(process.cwd(), 'data', 'users.json');
@@ -59,6 +63,16 @@ export async function getUserByEmail(email: string) {
 export async function getUserById(id: string) {
   const users = await getUsers();
   return users.find(u => u.id === id);
+}
+
+export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 'email' | 'role' | 'passwordHash'>> & { passwordHash?: string }) {
+  const users = await getUsers();
+  const index = users.findIndex(u => u.id === id);
+  if (index === -1) throw new Error("User not found");
+  
+  users[index] = { ...users[index], ...updates };
+  await fs.writeFile(DB_PATH, JSON.stringify(users, null, 2));
+  return users[index];
 }
 
 export function hashPassword(password: string): string {

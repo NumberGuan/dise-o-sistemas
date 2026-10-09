@@ -21,6 +21,7 @@ export default [
       ]),
 
       route("compras", "routes/compras.tsx", [
+        // Rutas internas de Compras (Administrador, Compras)
         route("proveedores", "routes/compras/proveedores.tsx"),
         route("proveedores/nueva", "routes/compras/proveedores-nuevo.tsx"),
         route("proveedores/:id", "routes/compras/proveedores-detalle.tsx"),
@@ -32,6 +33,13 @@ export default [
         route("presupuesto-proveedor/:id", "routes/compras/presupuesto-proveedor-detalle.tsx"),
         route("remito-proveedor", "routes/compras/remito-proveedor.tsx"),
         route("remitos", "routes/compras/remitos.tsx"),
+        
+        // Rutas de Cliente
+        route("catalogo", "routes/compras/cliente-catalogo.tsx"),
+        route("carrito", "routes/compras/cliente-carrito.tsx"),
+        route("favoritos", "routes/compras/cliente-favoritos.tsx"),
+        route("perfil", "routes/compras/cliente-perfil.tsx"),
+        route("pedidos", "routes/compras/cliente-pedidos.tsx"),
       ]),
 
       route("produccion", "routes/produccion.tsx", [
