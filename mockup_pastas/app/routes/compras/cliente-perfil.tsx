@@ -21,7 +21,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 export const action = async ({ request }: Route.ActionArgs) => {
   const user = await requireUserAndRole(request, ["Cliente"]);
   const data = await request.formData();
-  const fields = ["name", "phone", "address", "type", "documentType", "cuitCuil", "ivaType", "floor", "apartment", "locality", "province", "notes"] as const;
+  const fields = ["name", "phone", "address", "documentType", "cuitCuil", "ivaType", "floor", "apartment", "locality", "province", "notes"] as const;
   const values = Object.fromEntries(fields.map((field) => [field, data.get(field)]));
   if (fields.some((field) => typeof values[field] !== "string")) return { error: "Revisá los datos del formulario e intentá nuevamente." };
   const value = (field: typeof fields[number]) => (values[field] as string).trim();
@@ -32,16 +32,15 @@ export const action = async ({ request }: Route.ActionArgs) => {
   if (fields.some((field) => value(field).length > 180)) return { error: "Uno de los datos supera el máximo permitido." };
   const documentType = value("documentType");
   const ivaType = value("ivaType");
-  const type = value("type");
-  if (!(CLIENT_DOCUMENT_TYPES as readonly string[]).includes(documentType) || !(CLIENT_IVA_TYPES as readonly string[]).includes(ivaType) && ivaType !== "" || !["Comercio", "Distribuidor", "Particular"].includes(type)) {
-    return { error: "Seleccioná un tipo de cliente, documento y condición IVA válidos." };
+  if (!(CLIENT_DOCUMENT_TYPES as readonly string[]).includes(documentType) || !(CLIENT_IVA_TYPES as readonly string[]).includes(ivaType) && ivaType !== "") {
+    return { error: "Seleccioná un tipo de documento y condición IVA válidos." };
   }
   try {
     await mutateUser(user.id, (current) => {
       current.name = name;
       current.phone = value("phone");
       current.address = value("address");
-      current.customerData = { type: type as "Comercio" | "Distribuidor" | "Particular", documentType: documentType as typeof CLIENT_DOCUMENT_TYPES[number], cuitCuil: value("cuitCuil"), ivaType: ivaType as typeof CLIENT_IVA_TYPES[number] | "", floor: value("floor"), apartment: value("apartment"), locality: value("locality"), province: value("province"), notes: value("notes") };
+      current.customerData = { type: current.customerData?.type ?? "Particular", documentType: documentType as typeof CLIENT_DOCUMENT_TYPES[number], cuitCuil: value("cuitCuil"), ivaType: ivaType as typeof CLIENT_IVA_TYPES[number] | "", floor: value("floor"), apartment: value("apartment"), locality: value("locality"), province: value("province"), notes: value("notes") };
     });
     return { success: true };
   } catch {
@@ -63,7 +62,7 @@ export default function ClientePerfil() {
       {actionData?.error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionData.error}</p>}
       {actionData?.success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Los datos del cliente se guardaron correctamente.</p>}
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className={labelClass}>Tipo de cliente<select name="type" defaultValue={profile.type} className={inputClass}><option>Particular</option><option>Comercio</option><option>Distribuidor</option></select></label>
+        <div className={labelClass}><span>Categoría de cliente</span><p className={`${inputClass} flex items-center bg-gray-50 text-gray-700`} aria-readonly="true">{profile.type}</p><span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar esta categoría.</span></div>
         <label className={labelClass}>Nombre o razón social<input name="name" required minLength={2} maxLength={100} defaultValue={profile.name} className={inputClass} /></label>
         <label className={labelClass}>Tipo de documento<select name="documentType" defaultValue={profile.documentType} className={inputClass}>{CLIENT_DOCUMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
         <label className={labelClass}>CUIT/CUIL<input name="cuitCuil" maxLength={30} defaultValue={profile.cuitCuil} className={inputClass} /></label>

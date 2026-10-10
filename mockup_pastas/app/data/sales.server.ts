@@ -16,7 +16,7 @@ import {
 } from "~/data/sales";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import { customerAsClient } from "~/data/customer.server";
-import { getUsers, mutateUser } from "~/utils/db.server";
+import { getUsers, mutateUser, type Role } from "~/utils/db.server";
 
 type SalesData = { clients: Client[]; orders: Order[] };
 const SALES_PATH = path.join(process.cwd(), "data", "sales.json");
@@ -97,14 +97,19 @@ function validateClient(value: unknown): Omit<Client, "id" | "code"> | null {
   return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, address, floor, apartment, locality, province, status: row.status, notes };
 }
 
-export async function saveSalesClient(input: unknown, id?: string) {
+export async function saveSalesClient(input: unknown, id: string | undefined, actorRole: Role) {
+  if (actorRole !== "Administrador" && actorRole !== "Ventas") throw new Error("No tenés permiso para guardar clientes.");
   const client = validateClient(input);
   if (!client) throw new Error("Revisá los datos ingresados del cliente.");
+  if (!id) client.type = "Particular";
   if (id?.startsWith("customer-")) {
     const userId = id.slice("customer-".length);
     const user = (await getUsers()).find((candidate) => candidate.id === userId && candidate.role === "Cliente");
     if (!user) throw new Error("La cuenta de cliente ya no existe.");
     await mutateUser(user.id, (current) => {
+      if (current.role !== "Cliente") throw new Error("La cuenta de cliente ya no existe.");
+      const previousType = current.customerData?.type ?? "Particular";
+      if (client.type !== previousType && actorRole !== "Administrador") throw new Error("Solo un administrador puede cambiar la condición del cliente.");
       current.name = client.name;
       current.phone = client.phone;
       current.address = client.address;
@@ -118,6 +123,7 @@ export async function saveSalesClient(input: unknown, id?: string) {
     if (id) {
       const index = data.clients.findIndex((entry) => entry.id === id);
       if (index < 0) throw new Error("El cliente ya no existe.");
+      if (client.type !== data.clients[index].type && actorRole !== "Administrador") throw new Error("Solo un administrador puede cambiar la condición del cliente.");
       data.clients[index] = { ...client, id, code: data.clients[index].code };
     } else {
       const next = Math.max(0, ...data.clients.map((entry) => Number(entry.code.match(/\d+$/)?.[0] ?? 0))) + 1;

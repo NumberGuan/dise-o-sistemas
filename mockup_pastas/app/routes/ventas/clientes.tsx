@@ -8,12 +8,12 @@ import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/clientes";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
-  return getSalesData();
+  const user = await requireUserAndRole(request, ["Ventas"]);
+  return { ...await getSalesData(), canChangeClientType: user.role === "Administrador" };
 };
 
 export const action = async ({ request }: Route.ActionArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
+  const user = await requireUserAndRole(request, ["Ventas"]);
   const formData = await request.formData();
   if (formData.get("intent") !== "save-client") return { error: "La acción solicitada no está disponible." };
   try {
@@ -21,7 +21,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
     if (typeof raw !== "string") throw new Error("Los datos del cliente no son válidos.");
     const idValue = formData.get("id");
     if (idValue !== null && (typeof idValue !== "string" || idValue.length > 120)) throw new Error("El identificador del cliente no es válido.");
-    await saveSalesClient(JSON.parse(raw), idValue || undefined);
+    await saveSalesClient(JSON.parse(raw), idValue || undefined, user.role);
     return { success: true, intent: "save-client" };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "No se pudo guardar el cliente." };
@@ -34,13 +34,14 @@ type ClientFormProps = {
   onSave: (client: Client) => void;
   pending: boolean;
   serverError: string;
+  canChangeClientType: boolean;
 };
 
 const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
-  type: "Comercio", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
+  type: "Particular", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
 };
 
-function ClientForm({ client, onCancel, onSave, pending, serverError }: ClientFormProps) {
+function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeClientType }: ClientFormProps) {
   const [values, setValues] = useState(client ?? { ...EMPTY_CLIENT, id: "", code: "" });
   const [error, setError] = useState("");
 
@@ -80,9 +81,11 @@ function ClientForm({ client, onCancel, onSave, pending, serverError }: ClientFo
           {(error || serverError) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error || serverError}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Tipo de cliente
-              <select value={values.type} onChange={(event) => update("type", event.target.value as Client["type"])} className={inputClass}>
+              <select value={client ? values.type : "Particular"} disabled={!client || !canChangeClientType} onChange={(event) => update("type", event.target.value as Client["type"])} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}>
                 <option>Comercio</option><option>Distribuidor</option><option>Particular</option>
               </select>
+              {client && !canChangeClientType && <span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar la condición del cliente.</span>}
+              {!client && <span className="mt-1 block text-xs font-normal text-gray-500">Los clientes nuevos se registran como Particular.</span>}
             </label>
             <label className={labelClass}>Estado
               <select value={values.status} onChange={(event) => update("status", event.target.value as ClientStatus)} className={inputClass}>
@@ -170,7 +173,7 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
 }
 
 export default function Clientes() {
-  const { clients, orders } = useLoaderData<typeof loader>();
+  const { clients, orders, canChangeClientType } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos los estados");
@@ -275,7 +278,7 @@ export default function Clientes() {
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Incluye cuentas registradas en Compras y clientes de muestra de Ventas.</div>
       </section>
 
-      {editingClient !== undefined && <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} pending={fetcher.state !== "idle"} serverError={serverError || ""} />}
+      {editingClient !== undefined && <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} pending={fetcher.state !== "idle"} serverError={serverError || ""} canChangeClientType={canChangeClientType} />}
       {selectedClient && <ClientDetails client={selectedClient} orders={orders} canEdit onClose={() => setSelectedClient(null)} onEdit={() => { setEditingClient(selectedClient); setSelectedClient(null); }} />}
     </div>
   );
