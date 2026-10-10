@@ -86,6 +86,7 @@ function LogoutIcon({ className = "" }: IconProps) {
 
 export default function Sidebar({ open, onClose, user }: SidebarProps) {
   const { pathname } = useLocation();
+  const canLogout = ["Administrador", "Ventas", "Producción"].includes(user.role);
 
   const filteredSections = NAV_SECTIONS.filter((section) => {
     if (user.role === "Administrador") return true;
@@ -245,22 +246,26 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
           </ul>
         </nav>
 
-        <div className="shrink-0 px-3 pb-4">
-          <div className="border-t border-gray-200 pt-3">
-            <form action="/logout" method="post">
-              <button
-                type="submit"
-                title="Cerrar sesión"
-                className={`flex min-h-10 w-full items-center rounded-lg py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
-                  open ? "gap-3 px-3" : "justify-center px-2"
-                }`}
-              >
-                <LogoutIcon />
-                {open && <span className="text-sm font-medium">Cerrar sesión</span>}
-              </button>
-            </form>
+        {canLogout && (
+          <div className="shrink-0 px-3 pb-4">
+            <div className="border-t border-gray-200 pt-3">
+              <form action="/logout" method="post">
+                <button
+                  type="submit"
+                  title="Cerrar sesión"
+                  className={`flex min-h-10 w-full items-center rounded-lg py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
+                    open ? "gap-3 px-3" : "flex-col justify-center gap-1 px-1"
+                  }`}
+                >
+                  <LogoutIcon />
+                  <span className={open ? "text-sm font-medium" : "text-[9px] text-center font-medium leading-tight"}>
+                    Cerrar sesión
+                  </span>
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );
