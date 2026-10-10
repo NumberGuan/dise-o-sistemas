@@ -14,7 +14,8 @@ const customerLinks = [
 
 export default function CustomerLayout({ user, children }: { user: PublicUser; children: React.ReactNode }) {
   const location = useLocation();
-  const [query, setQuery] = useState(() => location.pathname === "/compras/catalogo" ? new URLSearchParams(location.search).get("q") ?? "" : "");
+  const isCatalogPath = location.pathname.replace(/\/+$/, "") === "/compras/catalogo";
+  const [query, setQuery] = useState(() => isCatalogPath ? new URLSearchParams(location.search).get("q") ?? "" : "");
   const [menuOpen, setMenuOpen] = useState(false);
   const wasMenuOpenRef = useRef(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
@@ -22,7 +23,7 @@ export default function CustomerLayout({ user, children }: { user: PublicUser; c
   const cartCount = (user.cart ?? []).reduce((total, item) => total + item.quantity, 0);
 
   useEffect(() => {
-    setQuery(location.pathname === "/compras/catalogo" ? new URLSearchParams(location.search).get("q") ?? "" : "");
+    setQuery(location.pathname.replace(/\/+$/, "") === "/compras/catalogo" ? new URLSearchParams(location.search).get("q") ?? "" : "");
     setMenuOpen(false);
   }, [location.pathname, location.search]);
 
@@ -160,12 +161,12 @@ export default function CustomerLayout({ user, children }: { user: PublicUser; c
             </span>
           </Link>
 
-          <Form action="/compras/catalogo" method="get" role="search" className="order-3 flex w-full items-center gap-2 rounded-xl border border-[#e8ddd0] bg-white px-3 py-2 focus-within:border-amber-600 focus-within:ring-2 focus-within:ring-amber-100 lg:order-none lg:mx-5 lg:flex-1 lg:max-w-xl">
+          {isCatalogPath && <Form action="/compras/catalogo" method="get" role="search" className="order-3 flex w-full items-center gap-2 rounded-xl border border-[#e8ddd0] bg-white px-3 py-2 focus-within:border-amber-600 focus-within:ring-2 focus-within:ring-amber-100 lg:order-none lg:mx-5 lg:flex-1 lg:max-w-xl">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
             <label htmlFor="customer-search" className="sr-only">Buscar productos</label>
             <input id="customer-search" type="search" name="q" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar en el catálogo" className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-gray-400 focus:ring-0" />
             <button type="submit" className="hidden rounded-lg px-2.5 py-1 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 sm:inline-flex">Buscar</button>
-          </Form>
+          </Form>}
 
           <div className="ml-auto flex shrink-0 items-center gap-2 sm:gap-3">
             <Link to="/compras/carrito" aria-label={`Ver carrito, ${cartCount} ${cartCount === 1 ? "producto" : "productos"}`} className="relative inline-flex h-10 items-center gap-2 rounded-xl border border-[#e8ddd0] bg-white px-3 text-sm font-semibold text-gray-800 transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">
