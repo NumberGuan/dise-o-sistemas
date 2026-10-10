@@ -1,10 +1,10 @@
 import { CloseIcon, MenuIcon } from "~/components/icons";
-import type { User } from "~/utils/db.server";
+import type { PublicUser } from "~/utils/db.server";
 
 type NavbarProps = {
   sidebarOpen: boolean;
   onToggleSidebar: () => void;
-  user: User;
+  user: PublicUser;
 };
 
 export default function Navbar({ sidebarOpen, onToggleSidebar, user }: NavbarProps) {

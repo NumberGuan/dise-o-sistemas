@@ -3,7 +3,8 @@ import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/administracion";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  return await requireUserAndRole(request, ["Administrador"]);
+  await requireUserAndRole(request, ["Administrador"]);
+  return null;
 };
 
 import ModuleDashboard from "~/components/ModuleDashboard";

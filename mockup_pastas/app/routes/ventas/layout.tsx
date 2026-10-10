@@ -3,7 +3,8 @@ import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/layout";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  return await requireUserAndRole(request, ["Ventas"]);
+  await requireUserAndRole(request, ["Ventas"]);
+  return null;
 };
 
 export default function VentasLayout() {

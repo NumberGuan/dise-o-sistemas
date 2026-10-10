@@ -3,17 +3,22 @@ import { Outlet, useOutletContext } from "react-router";
 
 import Navbar from "~/components/Navbar";
 import Sidebar from "~/components/Sidebar";
-import type { User } from "~/utils/db.server";
+import CustomerLayout from "~/components/CustomerLayout";
+import type { PublicUser } from "~/utils/db.server";
 
 export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const { user } = useOutletContext<{ user: User }>();
+  const { user } = useOutletContext<{ user: PublicUser }>();
 
   useEffect(() => {
     if (typeof window !== "undefined" && window.innerWidth < 1024) {
       setSidebarOpen(false);
     }
   }, []);
+
+  if (user.role === "Cliente") {
+    return <CustomerLayout user={user}><Outlet context={{ user }} /></CustomerLayout>;
+  }
 
   return (
     <div className="flex min-h-screen bg-gray-50">

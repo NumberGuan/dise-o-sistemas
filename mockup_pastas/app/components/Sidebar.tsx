@@ -4,12 +4,12 @@ import { NavLink, useLocation } from "react-router";
 import { ChevronIcon, CloseIcon, Logo } from "~/components/icons";
 import { NAV_SECTIONS } from "~/data/navigation";
 
-import type { User } from "~/utils/db.server";
+import type { PublicUser } from "~/utils/db.server";
 
 type SidebarProps = {
   open: boolean;
   onClose: () => void;
-  user: User;
+  user: PublicUser;
 };
 
 type IconProps = {

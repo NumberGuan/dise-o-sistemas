@@ -1,7 +1,11 @@
 import { createCookieSessionStorage, redirect } from "react-router";
 import { getUserById, type User, type Role } from "./db.server";
 
-const sessionSecret = process.env.SESSION_SECRET || "super-secret-mockup-key";
+const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
+if (!configuredSessionSecret && process.env.NODE_ENV === "production") {
+  throw new Error("SESSION_SECRET es obligatorio en producción.");
+}
+const sessionSecret = configuredSessionSecret || "super-secret-mockup-key";
 
 export const sessionStorage = createCookieSessionStorage({
   cookie: {

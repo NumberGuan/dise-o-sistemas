@@ -1,20 +1,46 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 
 import { SalesPageHeader } from "~/components/SalesLayout";
-import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, SAMPLE_CLIENT_ACTIVITY, SAMPLE_CLIENTS, formatClientAddress, type Client, type ClientStatus } from "~/data/sales";
+import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
+import { getSalesData, saveSalesClient } from "~/data/sales.server";
+import { requireUserAndRole } from "~/utils/session.server";
+import type { Route } from "./+types/clientes";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  return getSalesData();
+};
+
+export const action = async ({ request }: Route.ActionArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  const formData = await request.formData();
+  if (formData.get("intent") !== "save-client") return { error: "La acción solicitada no está disponible." };
+  try {
+    const raw = formData.get("client");
+    if (typeof raw !== "string") throw new Error("Los datos del cliente no son válidos.");
+    const idValue = formData.get("id");
+    if (idValue !== null && (typeof idValue !== "string" || idValue.length > 120)) throw new Error("El identificador del cliente no es válido.");
+    await saveSalesClient(JSON.parse(raw), idValue || undefined);
+    return { success: true, intent: "save-client" };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No se pudo guardar el cliente." };
+  }
+};
 
 type ClientFormProps = {
   client: Client | null;
   onCancel: () => void;
   onSave: (client: Client) => void;
+  pending: boolean;
+  serverError: string;
 };
 
 const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
   type: "Comercio", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
 };
 
-function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
+function ClientForm({ client, onCancel, onSave, pending, serverError }: ClientFormProps) {
   const [values, setValues] = useState(client ?? { ...EMPTY_CLIENT, id: "", code: "" });
   const [error, setError] = useState("");
 
@@ -41,17 +67,17 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
   const labelClass = "block text-sm font-medium text-gray-700";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (!pending && event.target === event.currentTarget) onCancel(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="client-form-title" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
         <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
           <div>
             <h2 id="client-form-title" className="text-lg font-semibold text-gray-900">{client ? "Editar cliente" : "Nuevo cliente"}</h2>
-            <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
+            <p className="mt-1 text-sm text-gray-500">Los cambios se guardan en el registro de Ventas.</p>
           </div>
-          <button type="button" onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
+          <button type="button" disabled={pending} onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
         </div>
         <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
-          {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+          {(error || serverError) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error || serverError}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Tipo de cliente
               <select value={values.type} onChange={(event) => update("type", event.target.value as Client["type"])} className={inputClass}>
@@ -84,7 +110,7 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
               <input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} className={inputClass} placeholder="Código de área y número" />
             </label>
             <label className={labelClass}>Correo electrónico
-              <input type="email" value={values.email} onChange={(event) => update("email", event.target.value)} className={inputClass} placeholder="nombre@comercio.com" />
+              <input type="email" value={values.email} disabled={Boolean(client?.id.startsWith("customer-"))} onChange={(event) => update("email", event.target.value)} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`} placeholder="nombre@comercio.com" />
             </label>
             <label className={labelClass}>Domicilio
               <input value={values.address} onChange={(event) => update("address", event.target.value)} className={inputClass} placeholder="Calle y altura" />
@@ -106,8 +132,8 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
             </label>
           </div>
           <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
-            <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar cliente</button>
+            <button type="button" disabled={pending} onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
+            <button type="submit" disabled={pending} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">{pending ? "Guardando…" : "Guardar cliente"}</button>
           </div>
         </form>
       </section>
@@ -115,13 +141,14 @@ function ClientForm({ client, onCancel, onSave }: ClientFormProps) {
   );
 }
 
-function ClientDetails({ client, onClose, onEdit }: { client: Client; onClose: () => void; onEdit: () => void }) {
+function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: Client; orders: Order[]; onClose: () => void; onEdit: () => void; canEdit: boolean }) {
+  const activity = orders.filter((order) => order.clientId === client.id).sort((a, b) => b.date.localeCompare(a.date));
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <section role="dialog" aria-modal="true" aria-labelledby="client-detail-title" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
           <div><p className="text-xs font-medium uppercase tracking-wide text-gray-500">{client.code} · {client.type}</p><h2 id="client-detail-title" className="mt-1 text-xl font-bold text-gray-900">{client.name}</h2></div>
-          <div className="flex gap-2"><button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button><button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button></div>
+          <div className="flex gap-2">{canEdit && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}<button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button></div>
         </div>
         <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
           <div>
@@ -133,16 +160,8 @@ function ClientDetails({ client, onClose, onEdit }: { client: Client; onClose: (
           </div>
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Actividad de Ventas</h3>
-            <p className="mt-1 text-xs text-gray-500">Movimientos ficticios de referencia para la maqueta.</p>
-            <ol className="mt-4 divide-y divide-gray-100">
-              {SAMPLE_CLIENT_ACTIVITY.map((activity) => (
-                <li key={activity.code} className="py-3 first:pt-0">
-                  <Link to={activity.to} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
-                    <span><span className="text-xs font-medium text-amber-700">{activity.type} · {activity.code}</span><span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{activity.summary}</span><span className="mt-1 block text-xs text-gray-500">{activity.date} · {activity.status}</span></span><span aria-hidden="true" className="mt-1 text-gray-400">↗</span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
+            <p className="mt-1 text-xs text-gray-500">Pedidos registrados para este cliente.</p>
+            {activity.length ? <ol className="mt-4 divide-y divide-gray-100">{activity.map((order) => <li key={order.id} className="py-3 first:pt-0"><span className="text-xs font-medium text-amber-700">Pedido · {order.number}</span><span className="mt-1 block text-sm font-medium text-gray-900">{order.items.map((item) => item.productName).join(", ")}</span><span className="mt-1 block text-xs text-gray-500">{order.date} · {order.status} · ${order.total.toLocaleString("es-AR")}</span></li>)}</ol> : <p className="mt-4 rounded-lg bg-gray-50 px-3 py-4 text-sm text-gray-500">Todavía no hay pedidos registrados.</p>}
           </div>
         </div>
       </section>
@@ -151,13 +170,23 @@ function ClientDetails({ client, onClose, onEdit }: { client: Client; onClose: (
 }
 
 export default function Clientes() {
-  const [clients, setClients] = useState<Client[]>(() => [...SAMPLE_CLIENTS]);
+  const { clients, orders } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos los estados");
   const [localityFilter, setLocalityFilter] = useState("Todas las localidades");
   const [editingClient, setEditingClient] = useState<Client | null | undefined>(undefined);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [notice, setNotice] = useState("");
+  const serverError = fetcher.data && "error" in fetcher.data ? fetcher.data.error : "";
+
+  useEffect(() => {
+    if (fetcher.data && "success" in fetcher.data && fetcher.data.success) {
+      setEditingClient(undefined);
+      setSelectedClient(null);
+      setNotice("Cliente guardado correctamente.");
+    }
+  }, [fetcher.data]);
 
   const localities = useMemo(() => [...new Set(clients.map((client) => client.locality).filter(Boolean))].sort(), [clients]);
   const filteredClients = useMemo(() => {
@@ -180,21 +209,11 @@ export default function Clientes() {
   }, [editingClient, selectedClient]);
 
   function saveClient(client: Client) {
-    const isNew = !client.id;
-    if (isNew) {
-      const nextNumber = Math.max(...clients.map((item) => Number(item.code.slice(-3))), 0) + 1;
-      const saved = { ...client, id: `c-${Date.now()}`, code: `CLI-${String(nextNumber).padStart(5, "0")}` };
-      SAMPLE_CLIENTS.unshift(saved);
-      setClients([...SAMPLE_CLIENTS]);
-      setNotice("Cliente agregado en memoria hasta recargar la aplicación.");
-    } else {
-      const clientIndex = SAMPLE_CLIENTS.findIndex((item) => item.id === client.id);
-      if (clientIndex >= 0) SAMPLE_CLIENTS[clientIndex] = client;
-      setClients([...SAMPLE_CLIENTS]);
-      setNotice("Cambios actualizados en memoria hasta recargar la aplicación.");
-    }
-    setEditingClient(undefined);
-    setSelectedClient(null);
+    const formData = new FormData();
+    formData.set("intent", "save-client");
+    formData.set("client", JSON.stringify(client));
+    if (client.id) formData.set("id", client.id);
+    fetcher.submit(formData, { method: "post" });
   }
 
   return (
@@ -253,11 +272,11 @@ export default function Clientes() {
           </div>
           </>
         )}
-        <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Datos de muestra para la maqueta de Ventas.</div>
+        <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Incluye cuentas registradas en Compras y clientes de muestra de Ventas.</div>
       </section>
 
-      {editingClient !== undefined && <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} />}
-      {selectedClient && <ClientDetails client={selectedClient} onClose={() => setSelectedClient(null)} onEdit={() => { setEditingClient(selectedClient); setSelectedClient(null); }} />}
+      {editingClient !== undefined && <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} pending={fetcher.state !== "idle"} serverError={serverError || ""} />}
+      {selectedClient && <ClientDetails client={selectedClient} orders={orders} canEdit onClose={() => setSelectedClient(null)} onEdit={() => { setEditingClient(selectedClient); setSelectedClient(null); }} />}
     </div>
   );
 }

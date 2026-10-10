@@ -3,7 +3,8 @@ import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/mantenimiento";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  return await requireUserAndRole(request, ["Producción"]);
+  await requireUserAndRole(request, ["Producción"]);
+  return null;
 };
 
 import ModuleDashboard from "~/components/ModuleDashboard";
