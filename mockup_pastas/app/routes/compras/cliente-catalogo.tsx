@@ -1,4 +1,4 @@
-import { useLoaderData, useNavigation } from "react-router";
+import { Form, useLoaderData, useNavigation } from "react-router";
 import { requireUserAndRole } from "~/utils/session.server";
 import { SAMPLE_PRODUCTS } from "~/data/sales";
 import { updateCustomerProductData } from "~/data/customer.server";
@@ -61,6 +61,19 @@ export default function ClienteCatalogo() {
       </section>
 
       <section aria-labelledby="products-heading" className="mt-8">
+        <Form action="/compras/catalogo" method="get" role="search" className="mb-5 flex flex-col gap-3 sm:flex-row">
+          <div className="flex min-h-11 flex-1 items-center gap-2 rounded-xl border border-[#e5d9cb] bg-white px-3 focus-within:border-amber-600 focus-within:ring-2 focus-within:ring-amber-100">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-5 w-5 shrink-0 text-gray-400" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 4.2 4.2" /></svg>
+            <label htmlFor="catalog-search" className="sr-only">Buscar productos</label>
+            <input key={query} id="catalog-search" type="search" name="q" defaultValue={query} maxLength={100} placeholder="Buscar productos del catálogo" className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none placeholder:text-gray-400 focus:ring-0" />
+          </div>
+          <input type="hidden" name="availability" value={availability} />
+          <input type="hidden" name="sort" value={sort} />
+          <div className="flex gap-2">
+            <button type="submit" className="min-h-11 flex-1 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white transition hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 sm:flex-none">Buscar</button>
+            {query && <a href={`/compras/catalogo?${new URLSearchParams({ availability, sort }).toString()}`} className="inline-flex min-h-11 items-center rounded-xl border border-[#e5d9cb] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Limpiar búsqueda</a>}
+          </div>
+        </Form>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <h2 id="products-heading" className="text-xl font-semibold tracking-tight text-gray-900">Productos</h2>
