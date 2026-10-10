@@ -27,7 +27,6 @@ export default function Layout() {
         <Navbar
           sidebarOpen={sidebarOpen}
           onToggleSidebar={() => setSidebarOpen((open) => !open)}
-          user={user}
         />
         <main className="flex-1">
           <Outlet context={{ user }} />

@@ -96,6 +96,25 @@ export default function CustomerLayout({ user, children }: { user: PublicUser; c
     );
   }
 
+  function renderProfile() {
+    return (
+      <div
+        className="flex min-w-0 items-center gap-3 rounded-xl border border-amber-100 bg-amber-50/70 px-3 py-3"
+        role="group"
+        aria-label={`Usuario ${user.name}, perfil ${user.role}`}
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-900">
+          {user.name.charAt(0).toUpperCase()}
+        </span>
+        <span className="min-w-0 leading-tight">
+          <span className="block text-[10px] font-semibold uppercase tracking-wider text-amber-800">Perfil activo</span>
+          <span className="mt-1 block truncate text-sm font-semibold text-gray-900">{user.name}</span>
+          <span className="mt-0.5 block truncate text-xs text-gray-600">{user.role}</span>
+        </span>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#fbf8f3] text-gray-900">
       <a href="#contenido" className="sr-only z-50 rounded bg-white p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">
@@ -108,7 +127,7 @@ export default function CustomerLayout({ user, children }: { user: PublicUser; c
         </Link>
         <nav aria-label="Navegación de compras" className="flex min-h-0 flex-1 flex-col">
           <ul className="flex-1 space-y-1 overflow-y-auto">{renderLinks()}</ul>
-          <div className="mt-4 border-t border-[#f0e7dd] pt-4">{renderLogout()}</div>
+          <div className="mt-4 space-y-3 border-t border-[#f0e7dd] pt-4">{renderProfile()}{renderLogout()}</div>
         </nav>
       </aside>
       {menuOpen && <div className="fixed inset-0 z-50 md:hidden">
@@ -118,7 +137,13 @@ export default function CustomerLayout({ user, children }: { user: PublicUser; c
             <Link to="/compras/catalogo" className="flex items-center gap-3 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-700"><Logo /><span className="leading-tight"><span className="block text-sm font-bold tracking-tight text-gray-900">Fábrica de Pastas</span><span className="block text-xs text-gray-500">Tienda</span></span></Link>
             <button type="button" aria-label="Cerrar menú" onClick={() => setMenuOpen(false)} className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-600 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-700"><span aria-hidden="true" className="text-2xl leading-none">×</span></button>
           </div>
-          <nav aria-label="Navegación de compras" className="flex min-h-0 flex-1 flex-col"><ul className="flex-1 space-y-1 overflow-y-auto">{renderLinks()}</ul><div className="mt-4 border-t border-[#f0e7dd] pt-4">{renderLogout()}</div></nav>
+          <nav aria-label="Navegación de compras" className="flex min-h-0 flex-1 flex-col">
+            <ul className="flex-1 space-y-1 overflow-y-auto">{renderLinks()}</ul>
+            <div className="mt-4 space-y-3 border-t border-[#f0e7dd] pt-4">
+              {renderProfile()}
+              {renderLogout()}
+            </div>
+          </nav>
         </aside>
       </div>}
       <div className="md:ml-64" inert={menuOpen}>

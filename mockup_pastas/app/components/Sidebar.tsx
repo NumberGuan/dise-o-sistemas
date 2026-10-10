@@ -87,6 +87,7 @@ function LogoutIcon({ className = "" }: IconProps) {
 export default function Sidebar({ open, onClose, user }: SidebarProps) {
   const { pathname } = useLocation();
   const canLogout = ["Administrador", "Ventas", "Producción"].includes(user.role);
+  const compactRole = user.role === "Administrador" ? "Admin" : user.role;
 
   const filteredSections = NAV_SECTIONS.filter((section) => {
     if (user.role === "Administrador") return true;
@@ -248,6 +249,27 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
 
         {canLogout && (
           <div className="shrink-0 px-3 pb-4">
+            <div
+              className={`mb-3 rounded-xl border border-amber-100 bg-amber-50/70 ${
+                open ? "flex items-center gap-3 px-3 py-3" : "flex flex-col items-center gap-1.5 px-1 py-2"
+              }`}
+              title={`${user.name} · ${user.role}`}
+              role="group"
+              aria-label={`Usuario ${user.name}, perfil ${user.role}`}
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-900">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
+              {open ? (
+                <span className="min-w-0 leading-tight">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-amber-800">Perfil activo</span>
+                  <span className="mt-1 block truncate text-sm font-semibold text-gray-900">{user.name}</span>
+                  <span className="mt-0.5 block truncate text-xs text-gray-600">{user.role}</span>
+                </span>
+              ) : (
+                <span className="max-w-full text-center text-[8px] font-semibold leading-tight text-amber-900">{compactRole}</span>
+              )}
+            </div>
             <div className="border-t border-gray-200 pt-3">
               <form action="/logout" method="post">
                 <button
