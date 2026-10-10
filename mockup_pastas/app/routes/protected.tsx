@@ -10,7 +10,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     throw new Response("User not found", { status: 404 });
   }
 
-  return { user };
+  const { passwordHash: _passwordHash, ...publicUser } = user;
+  return { user: publicUser };
 };
 
 export default function ProtectedLayout() {

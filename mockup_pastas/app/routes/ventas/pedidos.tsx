@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link, useFetcher, useLoaderData, useRevalidator, useSearchParams } from "react-router";
 
 import { SalesPageHeader } from "~/components/SalesLayout";
 import { 
-  SAMPLE_CLIENTS, 
-  SAMPLE_ORDERS, 
   SAMPLE_REMITS,
   SAMPLE_PRODUCTS, 
   formatClientAddress,
@@ -16,6 +14,39 @@ import {
   type Product 
 } from "~/data/sales";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
+import { changeSalesOrderStatus, getSalesData, saveSalesOrder } from "~/data/sales.server";
+import { requireUserAndRole } from "~/utils/session.server";
+import type { Route } from "./+types/pedidos";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  return getSalesData();
+};
+
+export const action = async ({ request }: Route.ActionArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  try {
+    if (intent === "save-order") {
+      const raw = formData.get("order");
+      if (typeof raw !== "string") throw new Error("Los datos del pedido no son válidos.");
+      const id = formData.get("id");
+      if (id !== null && (typeof id !== "string" || id.length > 120)) throw new Error("El identificador del pedido no es válido.");
+      await saveSalesOrder(JSON.parse(raw), id || undefined);
+      return { success: true, intent };
+    }
+    if (intent === "change-status") {
+      const id = formData.get("id");
+      if (typeof id !== "string" || id.length > 120) throw new Error("El identificador del pedido no es válido.");
+      await changeSalesOrderStatus(id, formData.get("status"));
+      return { success: true, intent };
+    }
+    return { error: "La acción solicitada no está disponible." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No se pudo guardar el pedido." };
+  }
+};
 
 function getStatusClass(status: OrderStatus) {
   switch (status) {
@@ -30,11 +61,13 @@ function getStatusClass(status: OrderStatus) {
 
 type OrderFormProps = {
   order: Order | null;
+  clients: Client[];
   onCancel: () => void;
   onSave: (order: Order) => void;
+  pending: boolean;
 };
 
-function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
+function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps) {
   const isNew = !order;
   const [clientId, setClientId] = useState(order?.clientId || "");
   const [date, setDate] = useState(order?.date || new Date().toISOString().split("T")[0]);
@@ -50,7 +83,7 @@ function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
 
-  const selectedClient = SAMPLE_CLIENTS.find(c => c.id === clientId);
+  const selectedClient = clients.find(c => c.id === clientId);
 
   const subtotal = items.reduce((acc, item) => acc + item.subtotal, 0);
   const total = Math.max(0, subtotal - discount);
@@ -152,7 +185,7 @@ function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
                     className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                   >
                     <option value="">Seleccionar cliente...</option>
-                    {SAMPLE_CLIENTS.map(c => (
+                    {clients.filter((client) => client.status === "Activo").map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -354,11 +387,11 @@ function OrderForm({ order, onCancel, onSave }: OrderFormProps) {
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
-          <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200">
+          <button type="button" disabled={pending} onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50">
             Cancelar
           </button>
-          <button type="submit" form="order-form" className="rounded-lg bg-amber-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600">
-            {isNew ? "Guardar Pedido" : "Guardar Cambios"}
+          <button type="submit" disabled={pending} form="order-form" className="rounded-lg bg-amber-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-amber-700 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600">
+            {pending ? "Guardando…" : isNew ? "Guardar Pedido" : "Guardar Cambios"}
           </button>
         </div>
       </div>
@@ -504,25 +537,41 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
 }
 
 export default function Pedidos() {
+  const initialData = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const revalidator = useRevalidator();
+  const clients = initialData.clients;
+  const orders = initialData.orders;
   const [searchParams, setSearchParams] = useSearchParams();
-  const [orders, setOrders] = useState<Order[]>(() => [...SAMPLE_ORDERS]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos los estados");
   const [notice, setNotice] = useState("");
+  const [actionError, setActionError] = useState("");
 
   const [editingOrder, setEditingOrder] = useState<Order | null | undefined>(undefined);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  useEffect(() => {
+    if (fetcher.state !== "idle" || !fetcher.data) return;
+    if ("success" in fetcher.data && fetcher.data.success) {
+      setEditingOrder(undefined);
+      setSelectedOrder(null);
+      setActionError("");
+      setNotice("Pedido guardado correctamente.");
+      revalidator.revalidate();
+    } else if ("error" in fetcher.data) setActionError(fetcher.data.error || "No se pudo guardar el pedido.");
+  }, [fetcher.data, fetcher.state, revalidator]);
+
   const filteredOrders = useMemo(() => {
     const query = search.trim().toLowerCase();
     return orders.filter(order => {
-      const client = SAMPLE_CLIENTS.find(c => c.id === order.clientId);
+      const client = clients.find(c => c.id === order.clientId);
       const clientName = client?.name.toLowerCase() || "";
       const matchesSearch = !query || order.number.toLowerCase().includes(query) || clientName.includes(query);
       const matchesStatus = statusFilter === "Todos los estados" || order.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [orders, search, statusFilter]);
+  }, [orders, search, statusFilter, clients]);
 
   useEffect(() => {
     if (editingOrder === undefined && selectedOrder === null) return;
@@ -553,28 +602,20 @@ export default function Pedidos() {
   }
 
   function saveOrder(order: Order) {
-    const isNew = !SAMPLE_ORDERS.some(o => o.id === order.id);
-    if (isNew) {
-      SAMPLE_ORDERS.unshift(order);
-      setNotice("Pedido registrado en memoria hasta recargar la aplicación.");
-    } else {
-      const orderIndex = SAMPLE_ORDERS.findIndex(o => o.id === order.id);
-      if (orderIndex >= 0) SAMPLE_ORDERS[orderIndex] = order;
-      setNotice("Pedido actualizado en memoria hasta recargar la aplicación.");
-    }
-    setOrders([...SAMPLE_ORDERS]);
-    setEditingOrder(undefined);
-    if (selectedOrder && selectedOrder.id === order.id) {
-        setSelectedOrder(order);
-    } else {
-        setSelectedOrder(null);
-    }
+    const formData = new FormData();
+    formData.set("intent", "save-order");
+    formData.set("order", JSON.stringify(order));
+    if (initialData.orders.some((candidate) => candidate.id === order.id)) formData.set("id", order.id);
+    fetcher.submit(formData, { method: "post" });
   }
 
   function changeOrderStatus(status: OrderStatus) {
-    if (!selectedOrder) return;
-    const updated = { ...selectedOrder, status };
-    saveOrder(updated);
+    if (!selectedOrder || fetcher.state !== "idle") return;
+    const formData = new FormData();
+    formData.set("intent", "change-status");
+    formData.set("id", selectedOrder.id);
+    formData.set("status", status);
+    fetcher.submit(formData, { method: "post" });
   }
 
   return (
@@ -593,10 +634,10 @@ export default function Pedidos() {
         } 
       />
 
-      {notice && (
-        <p role="status" className="mt-5 flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-          {notice}
-          <button type="button" onClick={() => setNotice("")} className="font-medium underline hover:text-emerald-900">Cerrar</button>
+      {(notice || actionError) && (
+        <p role={actionError ? "alert" : "status"} className={`mt-5 flex items-center justify-between rounded-lg border px-4 py-3 text-sm ${actionError ? "border-rose-200 bg-rose-50 text-rose-800" : "border-emerald-200 bg-emerald-50 text-emerald-800"}`}>
+          {actionError || notice}
+          <button type="button" onClick={() => { setNotice(""); setActionError(""); }} className="font-medium underline hover:text-emerald-900">Cerrar</button>
         </p>
       )}
 
@@ -642,7 +683,7 @@ export default function Pedidos() {
             </div>
             <div className="divide-y divide-gray-100">
             {filteredOrders.map(order => {
-              const client = SAMPLE_CLIENTS.find(c => c.id === order.clientId);
+              const client = clients.find(c => c.id === order.clientId);
               return (
                 <article key={order.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-5 lg:px-5">
                   <div className="min-w-0 text-left lg:text-center">
@@ -680,14 +721,16 @@ export default function Pedidos() {
       {editingOrder !== undefined && (
         <OrderForm 
           order={editingOrder} 
+          clients={clients}
           onCancel={() => setEditingOrder(undefined)} 
-          onSave={saveOrder} 
+          onSave={saveOrder}
+          pending={fetcher.state !== "idle"}
         />
       )}
       {selectedOrder && (
         <OrderDetails 
           order={selectedOrder} 
-          client={SAMPLE_CLIENTS.find(c => c.id === selectedOrder.clientId)}
+          client={clients.find(c => c.id === selectedOrder.clientId)}
           onClose={closeOrderDetails}
           onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(); }}
           onChangeStatus={changeOrderStatus}

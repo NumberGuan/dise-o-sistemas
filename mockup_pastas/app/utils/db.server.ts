@@ -3,6 +3,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 
 export type Role = 'Cliente' | 'Administrador' | 'Ventas' | 'Producción';
+export type CustomerStatus = 'Activo' | 'Inactivo';
 
 export interface User {
   id: string;
@@ -10,45 +11,86 @@ export interface User {
   passwordHash: string;
   role: Role;
   name: string;
+  phone?: string;
+  address?: string;
+  customerData?: {
+    type: 'Comercio' | 'Distribuidor' | 'Particular';
+    documentType: 'DNI' | 'CUIT' | 'CUIL' | 'Pasaporte' | 'Otro';
+    cuitCuil: string;
+    ivaType: 'Responsable inscripto' | 'Monotributista' | 'Consumidor final' | 'Exento' | '';
+    floor: string;
+    apartment: string;
+    locality: string;
+    province: string;
+    notes: string;
+  };
+  customerStatus?: CustomerStatus;
+  favorites?: string[];
+  cart?: { productId: string; quantity: number }[];
+  customerOrders?: import('~/data/sales').Order[];
 }
+
+export type PublicUser = Omit<User, "passwordHash">;
 
 const DB_PATH = path.join(process.cwd(), 'data', 'users.json');
 
 async function ensureDb() {
+  await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
   try {
-    await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
-    try {
-      await fs.access(DB_PATH);
-    } catch {
-      // Create with a default admin user for testing if empty
-      const defaultAdmin: User = {
-        id: crypto.randomUUID(),
-        email: 'admin@admin.com',
-        passwordHash: hashPassword('admin123'),
-        role: 'Administrador',
-        name: 'Administrador Inicial'
-      };
-      await fs.writeFile(DB_PATH, JSON.stringify([defaultAdmin], null, 2));
-    }
-  } catch (err) {
-    console.error("Error setting up DB:", err);
+    await fs.access(DB_PATH);
+    return;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  }
+
+  const defaultAdmin: User = {
+    id: crypto.randomUUID(),
+    email: 'admin@admin.com',
+    passwordHash: hashPassword('admin123'),
+    role: 'Administrador',
+    name: 'Administrador Inicial'
+  };
+  try {
+    await fs.writeFile(DB_PATH, JSON.stringify([defaultAdmin], null, 2), { flag: 'wx' });
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
   }
 }
 
 export async function getUsers(): Promise<User[]> {
   await ensureDb();
+  const data: unknown = JSON.parse(await fs.readFile(DB_PATH, 'utf-8'));
+  if (!Array.isArray(data)) throw new Error('User database must contain an array');
+  return data as User[];
+}
+
+let writeQueue: Promise<void> = Promise.resolve();
+
+function serialized<T>(operation: () => Promise<T>): Promise<T> {
+  const result = writeQueue.then(operation);
+  writeQueue = result.then(() => undefined, () => undefined);
+  return result;
+}
+
+async function writeUsersAtomically(users: User[]) {
+  const temporaryPath = `${DB_PATH}.${process.pid}.${crypto.randomUUID()}.tmp`;
   try {
-    const data = await fs.readFile(DB_PATH, 'utf-8');
-    return JSON.parse(data);
-  } catch {
-    return [];
+    await fs.writeFile(temporaryPath, JSON.stringify(users, null, 2), { encoding: 'utf-8', flag: 'wx' });
+    await fs.rename(temporaryPath, DB_PATH);
+  } catch (error) {
+    await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
+    throw error;
   }
 }
 
-export async function saveUser(user: User) {
-  const users = await getUsers();
-  users.push(user);
-  await fs.writeFile(DB_PATH, JSON.stringify(users, null, 2));
+export async function saveUser(user: User): Promise<void> {
+  await serialized(async () => {
+    const users = await getUsers();
+    if (users.some((existing) => existing.id === user.id || existing.email.toLowerCase() === user.email.toLowerCase())) {
+      throw new Error('User already exists');
+    }
+    await writeUsersAtomically([...users, user]);
+  });
 }
 
 export async function getUserByEmail(email: string) {
@@ -59,6 +101,27 @@ export async function getUserByEmail(email: string) {
 export async function getUserById(id: string) {
   const users = await getUsers();
   return users.find(u => u.id === id);
+}
+
+export async function mutateUser(id: string, mutate: (current: User, users: readonly User[]) => User | void): Promise<User> {
+  return serialized(async () => {
+    const users = await getUsers();
+    const index = users.findIndex((user) => user.id === id);
+    if (index === -1) throw new Error('User not found');
+    const current = users[index];
+    const original = JSON.stringify(current);
+    const replacement = mutate(current, users);
+    const updated = replacement ?? current;
+    if (updated.id !== id) throw new Error('A user mutation cannot change the user id');
+    if (JSON.stringify(updated) === original) return current;
+    users[index] = updated;
+    await writeUsersAtomically(users);
+    return updated;
+  });
+}
+
+export async function updateUser(id: string, updates: Partial<Omit<User, 'id' | 'email' | 'role' | 'passwordHash'>> & { passwordHash?: string }) {
+  return mutateUser(id, (current) => ({ ...current, ...updates }));
 }
 
 export function hashPassword(password: string): string {

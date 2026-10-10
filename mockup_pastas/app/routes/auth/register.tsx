@@ -1,7 +1,7 @@
 import { Form, Link, useActionData, useNavigation } from "react-router";
 import crypto from "node:crypto";
 import { createUserSession } from "~/utils/session.server";
-import { getUserByEmail, saveUser, hashPassword, type Role } from "~/utils/db.server";
+import { getUserByEmail, saveUser, hashPassword } from "~/utils/db.server";
 import type { Route } from "./+types/register";
 
 export const meta: Route.MetaFunction = () => {
@@ -23,37 +23,25 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 
 export const action = async ({ request }: Route.ActionArgs) => {
   const formData = await request.formData();
-  const name = formData.get("name");
-  const email = formData.get("email");
+  const nameInput = formData.get("name");
+  const emailInput = formData.get("email");
   const password = formData.get("password");
-  const role = formData.get("role") as Role;
-  const adminCode = formData.get("adminCode");
 
-  if (
-    typeof name !== "string" || name.length < 3 ||
-    typeof email !== "string" || !email.includes("@") ||
-    typeof password !== "string" || password.length < 6 ||
-    typeof role !== "string"
-  ) {
-    return { error: "Formulario inválido. Revisa los datos ingresados." };
+  if (typeof nameInput !== "string" || typeof emailInput !== "string" || typeof password !== "string") {
+    return { error: "Revisá el nombre, el correo y la contraseña." };
   }
 
-  if (!["Cliente", "Ventas", "Producción", "Administrador"].includes(role)) {
-    return { error: "Perfil seleccionado no válido." };
-  }
+  const name = nameInput.trim();
+  const email = emailInput.trim().toLocaleLowerCase("en-US");
+  if (name.length < 2 || name.length > 100) return { error: "El nombre debe tener entre 2 y 100 caracteres." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) return { error: "Ingresá un correo electrónico válido." };
+  if (password.length < 6 || password.length > 128) return { error: "La contraseña debe tener entre 6 y 128 caracteres." };
 
-  // Prevent self-elevation to Administrador
-  if (role === "Administrador") {
-    // Basic hardcoded check for the mockup
-    const secretCode = process.env.ADMIN_REGISTRATION_CODE || "ADMIN123";
-    if (adminCode !== secretCode) {
-      return { error: "Código de autorización administrativo incorrecto." };
-    }
-  }
-
-  const existingUser = await getUserByEmail(email);
-  if (existingUser) {
-    return { error: "El correo electrónico ya está registrado." };
+  try {
+    const existingUser = await getUserByEmail(email);
+    if (existingUser) return { error: "El correo electrónico ya está registrado." };
+  } catch {
+    return { error: "No pudimos consultar las cuentas ahora. Intentá nuevamente más tarde." };
   }
 
   const user = {
@@ -61,15 +49,20 @@ export const action = async ({ request }: Route.ActionArgs) => {
     name,
     email,
     passwordHash: hashPassword(password),
-    role,
+    role: "Cliente" as const,
   };
 
-  await saveUser(user);
+  try {
+    await saveUser(user);
+  } catch (error) {
+    if (error instanceof Error && error.message === "User already exists") {
+      return { error: "El correo electrónico ya está registrado." };
+    }
+    return { error: "No pudimos guardar tu cuenta. Intentá nuevamente más tarde." };
+  }
 
   return createUserSession(user.id, "/");
 };
-
-import { useState } from "react";
 
 import AuthLayout from "~/components/AuthLayout";
 
@@ -77,12 +70,11 @@ export default function Register() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
-  const [selectedRole, setSelectedRole] = useState("Cliente");
 
   return (
     <AuthLayout
-      title="Registro de Nuevo Operario"
-      subtitle="Complete los datos para generar un nuevo usuario."
+      title="Crear cuenta de cliente"
+      subtitle="Registrate para consultar el catálogo y administrar tus compras."
     >
       <Form method="post" className="space-y-6">
         <div className="space-y-4">
@@ -96,7 +88,8 @@ export default function Register() {
                 name="name"
                 type="text"
                 required
-                minLength={3}
+              minLength={2}
+              maxLength={100}
                 className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
                 placeholder="Juan Pérez"
               />
@@ -104,7 +97,7 @@ export default function Register() {
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Correo corporativo o N° de Legajo
+              Correo electrónico
             </label>
             <div className="relative mt-1 rounded-md shadow-sm">
               <input
@@ -114,7 +107,7 @@ export default function Register() {
                 autoComplete="email"
                 required
                 className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
-                placeholder="op.maccaroni@fabricadepastas.com"
+                placeholder="nombre@correo.com"
               />
             </div>
           </div>
@@ -130,49 +123,13 @@ export default function Register() {
                 autoComplete="new-password"
                 required
                 minLength={6}
+                maxLength={128}
                 className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
                 placeholder="••••••••"
               />
             </div>
           </div>
-          <div>
-            <label htmlFor="role" className="block text-sm font-medium text-gray-700">
-              Área operativa de ingreso (Perfil)
-            </label>
-            <div className="relative mt-1 rounded-md shadow-sm">
-              <select
-                id="role"
-                name="role"
-                required
-                value={selectedRole}
-                onChange={(e) => setSelectedRole(e.target.value)}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm bg-white"
-              >
-                <option value="Administrador">Administrador</option>
-                <option value="Ventas">Ventas</option>
-                <option value="Producción">Producción</option>
-                <option value="Cliente">Cliente</option>
-              </select>
-            </div>
-          </div>
-          
-          {selectedRole === "Administrador" && (
-            <div>
-              <label htmlFor="adminCode" className="block text-sm font-medium text-gray-700">
-                Código de autorización
-              </label>
-              <div className="relative mt-1 rounded-md shadow-sm">
-                <input
-                  id="adminCode"
-                  name="adminCode"
-                  type="password"
-                  required
-                  className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
-                  placeholder="Requerido para Administradores"
-                />
-              </div>
-            </div>
-          )}
+          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">Las cuentas creadas desde este formulario tienen acceso de Cliente.</p>
         </div>
 
         {actionData?.error && (
@@ -187,7 +144,7 @@ export default function Register() {
             disabled={isSubmitting}
             className="flex w-full justify-center rounded-md border border-transparent bg-amber-700 py-3 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-70"
           >
-            {isSubmitting ? "Registrando..." : "Confirmar Alta"}
+            {isSubmitting ? "Creando cuenta…" : "Crear cuenta"}
           </button>
         </div>
       </Form>

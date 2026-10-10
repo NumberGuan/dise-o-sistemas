@@ -56,21 +56,23 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     throw redirect("/login");
   }
 
-  // Redirect based on role
-  const url = new URL(request.url);
-  if (url.pathname === "/") {
-    if (user.role === "Ventas") {
-      return redirect("/ventas");
-    }
-    if (user.role === "Producción") {
-      return redirect("/produccion");
-    }
-    if (user.role === "Cliente") {
-      return redirect("/compras");
-    }
+  const requestPath = new URL(request.url).pathname;
+  const pathname = requestPath === "/_root.data"
+    ? "/"
+    : requestPath.endsWith("/_.data")
+      ? requestPath.replace(/_\.data$/, "")
+    : requestPath.endsWith(".data")
+      ? requestPath.slice(0, -".data".length)
+      : requestPath;
+
+  if (pathname === "/") {
+    if (user.role === "Ventas") throw redirect("/ventas");
+    if (user.role === "Producción") throw redirect("/produccion");
+    if (user.role === "Cliente") throw redirect("/compras/catalogo");
   }
 
-  return { user };
+  const { passwordHash: _passwordHash, ...publicUser } = user;
+  return { user: publicUser };
 };
 
 export default function Home() {

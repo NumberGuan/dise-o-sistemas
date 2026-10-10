@@ -4,12 +4,12 @@ import { NavLink, useLocation } from "react-router";
 import { ChevronIcon, CloseIcon, Logo } from "~/components/icons";
 import { NAV_SECTIONS } from "~/data/navigation";
 
-import type { User } from "~/utils/db.server";
+import type { PublicUser } from "~/utils/db.server";
 
 type SidebarProps = {
   open: boolean;
   onClose: () => void;
-  user: User;
+  user: PublicUser;
 };
 
 type IconProps = {
@@ -86,6 +86,8 @@ function LogoutIcon({ className = "" }: IconProps) {
 
 export default function Sidebar({ open, onClose, user }: SidebarProps) {
   const { pathname } = useLocation();
+  const canLogout = ["Administrador", "Ventas", "Producción"].includes(user.role);
+  const compactRole = user.role === "Administrador" ? "Admin" : user.role;
 
   const filteredSections = NAV_SECTIONS.filter((section) => {
     if (user.role === "Administrador") return true;
@@ -94,9 +96,18 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
     if (user.role === "Cliente" && section.label === "Compras") return true;
     return false;
   }).map(section => {
-    // If it's a Cliente accessing Compras, remove the internal sub-items
+    // If it's a Cliente accessing Compras, replace internal sub-items with client sub-items
     if (user.role === "Cliente" && section.label === "Compras") {
-      return { ...section, items: [] };
+      return { 
+        ...section, 
+        items: [
+          { label: "Catálogo", to: "/compras/catalogo" },
+          { label: "Mi Carrito", to: "/compras/carrito" },
+          { label: "Mis Favoritos", to: "/compras/favoritos" },
+          { label: "Mis Pedidos", to: "/compras/pedidos" },
+          { label: "Mi Perfil", to: "/compras/perfil" },
+        ] 
+      };
     }
     return section;
   });
@@ -236,22 +247,47 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
           </ul>
         </nav>
 
-        <div className="shrink-0 px-3 pb-4">
-          <div className="border-t border-gray-200 pt-3">
-            <form action="/logout" method="post">
-              <button
-                type="submit"
-                title="Cerrar sesión"
-                className={`flex min-h-10 w-full items-center rounded-lg py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
-                  open ? "gap-3 px-3" : "justify-center px-2"
-                }`}
-              >
-                <LogoutIcon />
-                {open && <span className="text-sm font-medium">Cerrar sesión</span>}
-              </button>
-            </form>
+        {canLogout && (
+          <div className="shrink-0 px-3 pb-4">
+            <div
+              className={`mb-3 rounded-xl border border-amber-100 bg-amber-50/70 ${
+                open ? "flex items-center gap-3 px-3 py-3" : "flex flex-col items-center gap-1.5 px-1 py-2"
+              }`}
+              title={`${user.name} · ${user.role}`}
+              role="group"
+              aria-label={`Usuario ${user.name}, perfil ${user.role}`}
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-900">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
+              {open ? (
+                <span className="min-w-0 leading-tight">
+                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-amber-800">Perfil activo</span>
+                  <span className="mt-1 block truncate text-sm font-semibold text-gray-900">{user.name}</span>
+                  <span className="mt-0.5 block truncate text-xs text-gray-600">{user.role}</span>
+                </span>
+              ) : (
+                <span className="max-w-full text-center text-[8px] font-semibold leading-tight text-amber-900">{compactRole}</span>
+              )}
+            </div>
+            <div className="border-t border-gray-200 pt-3">
+              <form action="/logout" method="post">
+                <button
+                  type="submit"
+                  title="Cerrar sesión"
+                  className={`flex min-h-10 w-full items-center rounded-lg py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
+                    open ? "gap-3 px-3" : "flex-col justify-center gap-1 px-1"
+                  }`}
+                >
+                  <LogoutIcon />
+                  <span className={open ? "text-sm font-medium" : "text-[9px] text-center font-medium leading-tight"}>
+                    Cerrar sesión
+                  </span>
+                </button>
+              </form>
+            </div>
           </div>
-        </div>
+        )}
       </aside>
     </>
   );
