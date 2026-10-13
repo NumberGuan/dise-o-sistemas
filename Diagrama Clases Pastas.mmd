@@ -1,0 +1,522 @@
+---
+title: Ultimo diagrama que paso carli
+config:
+  theme: dark
+  layout: elk
+  look: classic
+  themeVariables:
+    fontFamily: Arial, sans-serif
+    fontSize: 16px
+    background: "#0f172a"
+    primaryTextColor: "#e2e8f0"
+    lineColor: "#cbd5e1"
+    clusterBkg: "#111827"
+    clusterBorder: "#475569"
+    edgeLabelBackground: "#0f172a"
+  elk:
+    nodePlacementStrategy: NETWORK_SIMPLEX
+---
+classDiagram
+    direction LR
+    %% Áreas funcionales para organizar la lectura, sin modificar el modelo original.
+    %% Se conservan nombres, atributos, herencias y multiplicidades del EAP.
+
+    namespace Personas_y_domicilios ["Personas y domicilios"] {
+        class Persona {
+            -int CUIT/CUIL
+            -int TipoDocumento
+            -String E-mail
+            -String Nombre/RazonSocial
+            -boolean Estado
+        }
+
+        class Cliente {
+            -int *IdCliente
+            -String TipoCliente
+            -Float Saldo
+            -int TipoIVA
+        }
+
+        class Proveedor {
+            -int *IdProveedor
+            -String Estado
+        }
+
+        class Empleado {
+            -int *IdEmpleado
+            -float Sueldo
+            -String Cargo
+            -Date FechaIngreso
+            -int HorasTrabajadas
+        }
+
+        class Telefono {
+            -int *IdTelefono
+            -int IdPersona
+            -int Numero
+            -String Tipo
+        }
+
+        class Domicilio {
+            -int *IdDomicilio
+            -int IdPersona
+            -int IdCalle
+            -int Piso
+            -int Depto
+            -int Altura
+        }
+
+        class Calle {
+            -int *Idcalle
+            -int IdLocalidad
+            -String Calle
+        }
+
+        class Localidad {
+            -int *IdLocalidad
+            -int IdProvincia
+            -String Localidad
+        }
+
+        class Provincia {
+            -int *IdProvincia
+            -String Provincia
+        }
+
+    }
+
+    namespace Compras {
+        class PresupuestoProveedor {
+            -int *IdPresupuestoProveedor
+            -int IdProveedor
+            -float MontoTotal
+            -Date FechaEmision
+            -Date FechaVencimiento
+        }
+
+        class DetallePresupuestoProveedor {
+            -int *IdPresupuestoProveedor
+            -int *IdMateriaPrima
+            -float PrecioUnitario
+            -int Cantidad
+            -float Subtotal
+        }
+
+        class OrdenCompraProveedor {
+            -int *IdOrdenCompraProveedor
+            -int IdProveedor
+            -int IdEmpleado
+            -int IdPresupuestoProveedor
+            -Date FechaEmision
+            -float MontoTotal
+        }
+
+        class DetalleOrdenCompra {
+            -int *IdOrdenCompraProveedor
+            -int *IdMateriaPrima
+            -float PrecioUnitario
+            -int Cantidad
+            -float Subtotal
+        }
+
+        class RemitoProveedor {
+            -int *IdRemitoProveedor
+            -int IdOrdenCompraPoveedor
+            -int IdProveedor
+            -Date Fecha
+        }
+
+        class DetalleRemitoProveedor {
+            -int *IdRemitoProveedor
+            -int *idMateriaPrima
+            -int CantidadRemito
+        }
+
+        class ComprobanteVentaProveedor {
+            -int *IdComprobanteVentaProveedor
+            -int IdOrdenCompraProveedor
+            -int IdProveedor
+            -Date FechaEmision
+            -float ImporteIVA
+            -float ImporteNeto
+        }
+
+        class DetalleComprobanteVentaProveedor {
+            -int *idComprovanteVentaProveedor
+            -int *idMateriaPrima
+            -int cantidad
+            -float subtotal
+            -float PrecioUnitario
+        }
+
+        class ReciboPagoProveedor {
+            -int *IdReciboPagoProveedor
+            -int IdComprobanteVentaProveedor
+            -int IdMedioPago
+            -Date FechaEmision
+            -float MontoPagado
+        }
+
+    }
+
+    namespace Inventario_y_catalogos ["Inventario y catalogos"] {
+        class Producto {
+            -int *IdProducto
+            -int IdReceta
+            -int Idunidad
+            -int IdtipoProducto
+            -String Nombre
+            -float Precio
+            -Date FechaVencimiento
+            -float StockProducto
+        }
+
+        class TipoProducto {
+            -int *IdTipoProducto
+            -String Tipo
+        }
+
+        class SubtipoProducto {
+            -int *IdSubtipoProducto
+            -int IdTipoProducto
+            -String SubtipoProducto
+        }
+
+        class MateriaPrima {
+            -int *IdMateriaPrima
+            -int IdUnidad
+            -int IdTipoMateriaPrima
+            -int IdMarca
+            -String Nombre
+            -int StockMateriaPrima
+            -double PrecioUltimaCompra
+        }
+
+        class TipoMateriaPrima {
+            -int *IdTipoMateriaPrima
+            -String Nombre
+        }
+
+        class Marca {
+            -int *IdMarca
+            -String Nombre
+        }
+
+        class Unidad {
+            -int *IdUnidad
+            -String Unidad
+        }
+
+    }
+
+    namespace Ventas_y_entregas ["Ventas y entregas"] {
+        class PresupuestoCliente {
+            -int *IdPresupuestoCliente
+            -int IdCliente
+            -date FechaEmision
+            -date FechaVencimiento
+            -float Total
+        }
+
+        class DetallePresupuestoCliente {
+            -int *IdPresupuestoCliente
+            -int *IdProducto
+            -int Cantidad
+            -float Subtotal
+            -int PrecioUnitario
+        }
+
+        class OrdenPedidoCliente {
+            -int *IdPedidoCliente
+            -int IdCliente
+            -int idPresupuestpCliente
+            -int IdEmpleado
+            -String DireccionEntrega
+            -Date FechaEmision
+            -Date FechaEntrega
+            -Float MontoTotal
+        }
+
+        class DetallePedidoCliente {
+            -int *IdProducto
+            -int *IdPedidoCliente
+            -int Cantidad
+            -float PrecioUnitario
+            -float Subtotal
+        }
+
+        class RemitoCliente {
+            -int *IdRemitoCliente
+            -int IdOrdenPedidoCliente
+            -Date FechaEntrega
+        }
+
+        class DetalleRemitoCliente {
+            -int *IDremitoCliente
+            -int *IDproducto
+            -int CantidadRemito
+        }
+
+        class DevolucionCliente {
+            -int *IdDevolucion
+            -int IdCliente
+            -Date Fecha
+            -String Descripcion
+        }
+
+        class DetalleDevolucionCliente {
+            -int *IdDetalleDevolucionCliente
+            -int IdDevolucionCliente
+            -int IdProducto
+            -int Cantidad
+        }
+
+    }
+
+    namespace Facturacion_y_cobros ["Facturacion y cobros"] {
+        class ComprobanteVentaCliente {
+            -int *IdComprobanteVentaCliente
+            -int IdCliente
+            -int IdPedidoCliente
+            -Date FechaEmision
+            -int ImporteIVA
+            -float ImporteNeto
+            -String Tipo Factura
+            -Date Vencimiento
+        }
+
+        class DetalleComprobanteVentaCliente {
+            -int *idComprabanteVentaCliente
+            -int *idProducto
+            -float precioUnitario
+            -int cantidad
+            -float subtotal
+        }
+
+        class ReciboPagoCliente {
+            -int *IdReciboPagoCliente
+            -int IdComprobanteVentaCliente
+            -date FechaEmision
+        }
+
+        class DetalleReciboPagoCliente {
+            -int *IdReciboPagoCliente
+            -int *IdMedioPago
+            -float MontoAbonado
+        }
+
+        class MedioPago {
+            -int *IdMedioPago
+            -String TipoMedioPago
+        }
+
+    }
+
+    namespace Produccion_y_recetas ["Produccion y recetas"] {
+        class Receta {
+            -int *IdReceta
+            -String Nombre
+            -String Procedimiento
+            -Time TiempoCoccion
+            -float Temperatura
+        }
+
+        class DetalleMateriaPrima {
+            -int *IdReceta
+            -int *IdMateriaPrima
+            -float CantidadNecesaria
+        }
+
+        class DetalleRecetaMaquina {
+            -int *IdReceta
+            -int *IdMaquina
+            -Time HoraInicio
+            -Time HoraFin
+        }
+
+        class OrdenProduccion {
+            -int *IdOrdenProduccion
+            -int IdEmpleado
+            -Date FechaEmision
+            -Date FechaInicio
+            -Date FechaFinalizacion
+            -String Estado
+            -double NmrLote
+        }
+
+        class DetalleOrdenProduccion {
+            -int *IdProducto
+            -int *IdOrdenProduccio
+            -float CantidadRealGenerada
+        }
+
+    }
+
+    namespace Maquinas_y_mantenimiento ["Maquinas y mantenimiento"] {
+        class Maquina {
+            -int *IdMaquina
+            -int IdTipoMaquina
+            -Date FechaAdquirida
+            -String Marca
+            -String Modelo
+            -int NumeroSerie
+            -String Estado
+        }
+
+        class TipoMaquina {
+            -int *IdTipoMaquina
+            -String TipoMaquina
+        }
+
+        class TipoMantenimiento {
+            -int *IdTipoMantenimiento
+            -String TipoMantenimiento
+        }
+
+        class OrdenMantenimiento {
+            -int *IdOrdenMantenimiento
+            -int IdTipoMantenimiento
+            -int IdEmpleado
+            -Date FechaEmision
+            -Date FechaInicio
+            -Date FechaFinalizacion
+            -float CostoTotal
+        }
+
+        class DetalleOrdenMantenimiento {
+            -int *IdOrdenMantenimiento
+            -int *IdMaquina
+            -String Descripcion
+            -float CostoUnitario
+        }
+
+    }
+
+    %% Relaciones internas: Personas_y_domicilios
+    Calle "*" -- "1" Localidad
+    Localidad "*" -- "1" Provincia
+    Domicilio "*" -- "1" Calle
+    Persona "1" -- "*" Domicilio
+    Telefono "*" -- "1" Persona
+    Empleado --|> Persona
+    Proveedor --|> Persona
+    Cliente --|> Persona
+
+    %% Relaciones internas: Compras
+    DetalleOrdenCompra "*" -- "1" OrdenCompraProveedor
+    RemitoProveedor "*" -- "1" OrdenCompraProveedor
+    DetalleRemitoProveedor "*" -- "1" RemitoProveedor
+    DetallePresupuestoProveedor "*" -- "1" PresupuestoProveedor
+    ComprobanteVentaProveedor "1" -- "1" OrdenCompraProveedor
+    ReciboPagoProveedor "*" -- "1" ComprobanteVentaProveedor
+    DetalleComprobanteVentaProveedor "*" -- "1" ComprobanteVentaProveedor
+    PresupuestoProveedor "1" -- "0..*" OrdenCompraProveedor
+
+    %% Relaciones internas: Inventario_y_catalogos
+    TipoMateriaPrima "1" -- "*" MateriaPrima
+    Unidad "1" -- "*" Producto
+    TipoProducto "1" -- "*" Producto
+    TipoProducto "1" -- "*" SubtipoProducto
+    MateriaPrima "*" -- "1" Unidad
+    Marca "1" -- "*" MateriaPrima
+
+    %% Relaciones internas: Ventas_y_entregas
+    OrdenPedidoCliente "1" -- "*" DetallePedidoCliente
+    RemitoCliente "1" -- "*" DetalleRemitoCliente
+    RemitoCliente "1,*" -- "1" OrdenPedidoCliente
+    PresupuestoCliente "1" -- "*" DetallePresupuestoCliente
+    PresupuestoCliente "1" -- "0..*" OrdenPedidoCliente
+    DevolucionCliente "1" -- "*" DetalleDevolucionCliente
+
+    %% Relaciones internas: Facturacion_y_cobros
+    ReciboPagoCliente "*" -- "1" ComprobanteVentaCliente
+    DetalleComprobanteVentaCliente "*" -- "1" ComprobanteVentaCliente
+    ReciboPagoCliente "1" -- "*" DetalleReciboPagoCliente
+    MedioPago "1" -- "*" DetalleReciboPagoCliente
+
+    %% Relaciones internas: Produccion_y_recetas
+    DetalleOrdenProduccion "*" -- "1" OrdenProduccion
+    Receta "1" -- "*" DetalleMateriaPrima
+    Receta "1" -- "*" DetalleRecetaMaquina
+
+    %% Relaciones internas: Maquinas_y_mantenimiento
+    TipoMantenimiento "1" -- "*" OrdenMantenimiento
+    TipoMaquina "1" -- "*" Maquina
+    OrdenMantenimiento "1" -- "*" DetalleOrdenMantenimiento
+    DetalleOrdenMantenimiento "*" -- "1" Maquina
+
+    %% Relaciones entre áreas
+    OrdenCompraProveedor "*" -- "1" Proveedor
+    DetalleOrdenCompra "*" -- "1" MateriaPrima
+    PresupuestoProveedor "*" -- "1" Proveedor
+    DetallePedidoCliente "1" -- "*" Producto
+    DetalleMateriaPrima "*" -- "1" MateriaPrima
+    OrdenMantenimiento "*" -- "1" Empleado
+    MateriaPrima "1" -- "*" DetallePresupuestoProveedor
+    ComprobanteVentaCliente "1" -- "1" OrdenPedidoCliente
+    MedioPago "1" -- "*" ReciboPagoProveedor
+    Receta -- Unidad
+    Cliente "1" -- "*" PresupuestoCliente
+    DetalleComprobanteVentaCliente "*" -- "1" Producto
+    DetallePresupuestoCliente "*" -- "1" Producto
+    DetalleComprobanteVentaProveedor "*" -- "1" MateriaPrima
+    DetalleRemitoCliente "*" -- "1" Producto
+    DetalleOrdenProduccion "*" -- "1" Producto
+    DetalleRemitoProveedor "*" -- "1" MateriaPrima
+    Empleado -- OrdenPedidoCliente
+    Empleado -- OrdenCompraProveedor
+    Maquina "1" -- "*" DetalleRecetaMaquina
+    Empleado "1" -- "*" OrdenProduccion
+    Receta "1" -- "*" Producto
+    Cliente "1" -- "*" DevolucionCliente
+    DetalleDevolucionCliente "*" -- "1" Producto
+
+    %% Colores por área
+    style Persona fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Cliente fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Proveedor fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Empleado fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Telefono fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Domicilio fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Calle fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Localidad fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style Provincia fill:#253247,stroke:#94a3b8,color:#f1f5f9,stroke-width:1.5px
+    style PresupuestoProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style DetallePresupuestoProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style OrdenCompraProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style DetalleOrdenCompra fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style RemitoProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style DetalleRemitoProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style ComprobanteVentaProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style DetalleComprobanteVentaProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style ReciboPagoProveedor fill:#39291e,stroke:#fb923c,color:#f1f5f9,stroke-width:1.5px
+    style Producto fill:#16382f,stroke:#34d399,color:#f1f5f9,stroke-width:1.5px
+    style TipoProducto fill:#16382f,stroke:#34d399,color:#f1f5f9,stroke-width:1.5px
+    style SubtipoProducto fill:#16382f,stroke:#34d399,color:#f1f5f9,stroke-width:1.5px
+    style MateriaPrima fill:#16382f,stroke:#34d399,color:#f1f5f9,stroke-width:1.5px
+    style TipoMateriaPrima fill:#16382f,stroke:#34d399,color:#f1f5f9,stroke-width:1.5px
+    style Marca fill:#16382f,stroke:#34d399,color:#f1f5f9,stroke-width:1.5px
+    style Unidad fill:#16382f,stroke:#34d399,color:#f1f5f9,stroke-width:1.5px
+    style PresupuestoCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style DetallePresupuestoCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style OrdenPedidoCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style DetallePedidoCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style RemitoCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style DetalleRemitoCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style DevolucionCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style DetalleDevolucionCliente fill:#1e3252,stroke:#60a5fa,color:#f1f5f9,stroke-width:1.5px
+    style ComprobanteVentaCliente fill:#332347,stroke:#c084fc,color:#f1f5f9,stroke-width:1.5px
+    style DetalleComprobanteVentaCliente fill:#332347,stroke:#c084fc,color:#f1f5f9,stroke-width:1.5px
+    style ReciboPagoCliente fill:#332347,stroke:#c084fc,color:#f1f5f9,stroke-width:1.5px
+    style DetalleReciboPagoCliente fill:#332347,stroke:#c084fc,color:#f1f5f9,stroke-width:1.5px
+    style MedioPago fill:#332347,stroke:#c084fc,color:#f1f5f9,stroke-width:1.5px
+    style Receta fill:#3a341c,stroke:#facc15,color:#f1f5f9,stroke-width:1.5px
+    style DetalleMateriaPrima fill:#3a341c,stroke:#facc15,color:#f1f5f9,stroke-width:1.5px
+    style DetalleRecetaMaquina fill:#3a341c,stroke:#facc15,color:#f1f5f9,stroke-width:1.5px
+    style OrdenProduccion fill:#3a341c,stroke:#facc15,color:#f1f5f9,stroke-width:1.5px
+    style DetalleOrdenProduccion fill:#3a341c,stroke:#facc15,color:#f1f5f9,stroke-width:1.5px
+    style Maquina fill:#40232d,stroke:#fb7185,color:#f1f5f9,stroke-width:1.5px
+    style TipoMaquina fill:#40232d,stroke:#fb7185,color:#f1f5f9,stroke-width:1.5px
+    style TipoMantenimiento fill:#40232d,stroke:#fb7185,color:#f1f5f9,stroke-width:1.5px
+    style OrdenMantenimiento fill:#40232d,stroke:#fb7185,color:#f1f5f9,stroke-width:1.5px
+    style DetalleOrdenMantenimiento fill:#40232d,stroke:#fb7185,color:#f1f5f9,stroke-width:1.5px
