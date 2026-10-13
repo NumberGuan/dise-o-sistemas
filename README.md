@@ -1,4 +1,13 @@
 # Diseño-Sistemas
+
+## Diagrama de clases
+
+Ultimo diagrama que paso carli
+
+[![Diagrama de clases de Pastas](Diagrama%20Clases%20Pastas.svg)](Diagrama%20Clases%20Pastas.svg)
+
+[Ver en tamaño completo](Diagrama%20Clases%20Pastas.svg) · [Editar el Mermaid](Diagrama%20Clases%20Pastas.mmd)
+
 Traverso, Ascani, Ortellado
 Cambios del proyecto anual
 
