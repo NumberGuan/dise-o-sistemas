@@ -1,7 +1,8 @@
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { randomUUID } from "node:crypto";
 
-import { SAMPLE_ORDERS, SAMPLE_PRODUCTS } from "~/data/sales";
+import { SAMPLE_ORDERS, SAMPLE_PRODUCTS, getClientAddresses, formatClientAddress } from "~/data/sales";
+import { customerAsClient } from "~/data/customer.server";
 import type { CustomerMutationResult } from "~/data/customer.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import { mutateUser } from "~/utils/db.server";
@@ -31,7 +32,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     total,
     totalItems: cart.reduce((sum, item) => Number.isSafeInteger(sum + item.quantity) ? sum + item.quantity : sum, 0),
     isActive: (user.customerStatus ?? "Activo") === "Activo",
-    hasDeliveryAddress: Boolean(user.address?.trim() && user.customerData?.locality?.trim()),
+    addresses: getClientAddresses(customerAsClient(user)!).filter(address => address.street.trim() && address.locality.trim()),
+    hasDeliveryAddress: getClientAddresses(customerAsClient(user)!).some(address => address.street.trim() && address.locality.trim()),
   };
 };
 
@@ -48,8 +50,9 @@ export const action = async ({ request }: Route.ActionArgs) => {
           checkoutError = "Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.";
           return;
         }
-        if (!current.address?.trim() || !current.customerData?.locality?.trim()) {
-          checkoutError = "Completá la dirección y localidad en Mi perfil antes de confirmar el pedido.";
+        const selectedAddress = getClientAddresses(customerAsClient(current)!).find(address => address.id === formData.get("deliveryAddressId") && address.street.trim() && address.locality.trim());
+        if (!selectedAddress) {
+          checkoutError = "Seleccioná una dirección guardada. Podés agregar direcciones desde Mi perfil.";
           return;
         }
         const cartItems = current.cart ?? [];
@@ -88,7 +91,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
           number = `PC-WEB-${String(sequence).padStart(6, "0")}`;
           id = `web-order-${String(sequence).padStart(6, "0")}`;
         }
-        const order = { id, number, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
+        const order = { id, number, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, deliveryAddressId: selectedAddress.id, deliveryAddress: formatClientAddress(selectedAddress), items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
         current.customerOrders = [...(current.customerOrders ?? []), order];
         current.cart = [];
         created = true;
@@ -201,7 +204,7 @@ function CartLine({ item }: { item: ReturnType<typeof useLoaderData<typeof loade
 }
 
 export default function ClienteCarrito() {
-  const { cart, total, totalItems, isActive, hasDeliveryAddress } = useLoaderData<typeof loader>();
+  const { cart, total, totalItems, isActive, hasDeliveryAddress, addresses } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<CustomerMutationResult>();
 
   return (
@@ -236,6 +239,7 @@ export default function ClienteCarrito() {
       )}
 
       {cart.length > 0 && <fetcher.Form method="post" className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
+        <label className="mb-4 block text-sm font-semibold text-gray-800">Dirección de entrega<select name="deliveryAddressId" required defaultValue={addresses[0]?.id ?? ""} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm">{!addresses.length && <option value="">Agregá una dirección en Mi perfil</option>}{addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}</select></label>
         <h2 className="text-lg font-semibold text-gray-900">Datos para el pedido</h2>
         <p className="mt-1 text-sm text-gray-600">Se usarán los datos guardados en <Link to="/compras/perfil" className="font-medium text-amber-800 underline">Mi perfil</Link>, iguales a los que consulta Ventas.</p>
         {!isActive && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.</p>}

@@ -21,6 +21,41 @@ export type ClientDocumentType = (typeof CLIENT_DOCUMENT_TYPES)[number];
 export const CLIENT_IVA_TYPES = ["Responsable inscripto", "Monotributista", "Consumidor final", "Exento"] as const;
 export type ClientIvaType = (typeof CLIENT_IVA_TYPES)[number];
 
+export type ClientAddress = {
+  id: string;
+  label: string;
+  street: string;
+  streetNumber: string;
+  floor: string;
+  apartment: string;
+  locality: string;
+  province: string;
+};
+
+export function getClientAddresses(client: Pick<Client, "id" | "street" | "streetNumber" | "floor" | "apartment" | "locality" | "province" | "addresses">): ClientAddress[] {
+  if (client.addresses) return client.addresses;
+  if (!client.street.trim()) return [];
+  return [{ id: "principal", label: "Principal", street: client.street, streetNumber: client.streetNumber, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province }];
+}
+
+export function validateClientAddresses(value: unknown): ClientAddress[] {
+  if (!Array.isArray(value) || value.length > 20) throw new Error("Podés guardar hasta 20 direcciones.");
+  const ids = new Set<string>();
+  return value.map((entry) => {
+    if (!entry || typeof entry !== "object") throw new Error("La dirección no es válida.");
+    const fields = { id: 120, label: 60, street: 160, streetNumber: 20, floor: 20, apartment: 20, locality: 100, province: 100 };
+    const address = {} as ClientAddress;
+    for (const key of Object.keys(fields) as (keyof ClientAddress)[]) {
+      const text = entry[key];
+      if (typeof text !== "string" || text.length > fields[key] || (!["floor", "apartment"].includes(key) && !text.trim())) throw new Error("Completá el nombre, calle, altura, localidad y provincia de cada dirección.");
+      address[key] = text.trim();
+    }
+    if (ids.has(address.id)) throw new Error("Hay direcciones repetidas.");
+    ids.add(address.id);
+    return address;
+  });
+}
+
 export type Client = {
   id: string;
   code: string;
@@ -34,6 +69,7 @@ export type Client = {
   street: string;
   streetNumber: string;
   balance: number;
+  addresses?: ClientAddress[];
   floor?: string;
   apartment?: string;
   locality: string;
@@ -120,6 +156,8 @@ export type Order = {
   date: string;
   deliveryDate: string;
   deliveryAddressType?: "client" | "custom";
+  deliveryAddressId?: string;
+  deliveryAddress?: string;
   customDeliveryAddress?: string;
   items: OrderItem[];
   subtotal: number;

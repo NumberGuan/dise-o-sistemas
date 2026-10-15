@@ -4,6 +4,9 @@ import crypto from "node:crypto";
 
 import {
   normalizeClient,
+  getClientAddresses,
+  validateClientAddresses,
+  formatClientAddress,
   CLIENT_DOCUMENT_TYPES,
   CLIENT_IVA_TYPES,
   ORDER_STATUSES,
@@ -84,22 +87,32 @@ const validDate = (value: string) => {
 function validateClient(value: unknown): Omit<Client, "id" | "code"> | null {
   const row = asRecord(value);
   if (!row) return null;
+  const addresses = row.addresses === undefined ? undefined : validateClientAddresses(row.addresses);
+  const primary = addresses?.[0];
   const name = text(row.name, 100, true);
   const phone = text(row.phone, 40);
   const email = text(row.email, 254);
-  const street = text(row.street, 160);
-  const streetNumber = text(row.streetNumber, 20);
+  const street = text(primary?.street ?? row.street, 160);
+  const streetNumber = text(primary?.streetNumber ?? row.streetNumber, 20);
   const balance = row.type === "Comercio" ? row.balance : 0;
   if (typeof balance !== "number" || !Number.isFinite(balance) || Math.abs(balance) > 999999999.99 || Math.abs(balance * 100 - Math.round(balance * 100)) > 0.0001) return null;
-  const floor = text(row.floor ?? "", 20);
-  const apartment = text(row.apartment ?? "", 20);
-  const locality = text(row.locality, 100, true);
-  const province = text(row.province, 100, true);
+  const floor = text(primary?.floor ?? row.floor ?? "", 20);
+  const apartment = text(primary?.apartment ?? row.apartment ?? "", 20);
+  const locality = text(primary?.locality ?? row.locality, 100);
+  const province = text(primary?.province ?? row.province, 100, true);
   const cuitCuil = text(row.cuitCuil, 30);
   const notes = text(row.notes, 2000);
-  if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || !locality || !province || cuitCuil === null || notes === null) return null;
+  if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || locality === null || !province || cuitCuil === null || notes === null) return null;
   if (!isOneOf(row.type, ["Comercio", "Distribuidor", "Particular"] as const) || !isOneOf(row.documentType, CLIENT_DOCUMENT_TYPES) || !isOneOf(row.ivaType, ["", ...CLIENT_IVA_TYPES] as const) || !isOneOf(row.status, ["Activo", "Inactivo"] as const)) return null;
-  return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
+  return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, addresses, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
+}
+
+export function preserveOrderAddresses(orders: Order[], client: Client) {
+  return orders.map((order) => {
+    if (order.clientId !== client.id || order.deliveryAddress) return order;
+    const address = getClientAddresses(client)[0];
+    return { ...order, deliveryAddressType: order.deliveryAddressType ?? "client", deliveryAddressId: order.deliveryAddressType === "custom" ? undefined : address?.id, deliveryAddress: order.deliveryAddressType === "custom" ? order.customDeliveryAddress : address ? formatClientAddress(address) : undefined };
+  });
 }
 
 export async function saveSalesClient(input: unknown, id: string | undefined, actorRole: Role) {
@@ -114,10 +127,11 @@ export async function saveSalesClient(input: unknown, id: string | undefined, ac
       if (current.role !== "Cliente") throw new Error("La cuenta de cliente ya no existe.");
       const previousType = current.customerData?.type ?? "Particular";
       if (client.type !== previousType && actorRole !== "Administrador") throw new Error("Solo un administrador puede cambiar la condición del cliente.");
+      current.customerOrders = preserveOrderAddresses(current.customerOrders ?? [], customerAsClient(current)!);
       current.name = client.name;
       current.phone = client.phone;
       current.address = [client.street, client.streetNumber].filter(Boolean).join(" ");
-      current.customerData = { street: client.street, streetNumber: client.streetNumber, balance: client.balance, type: client.type, documentType: client.documentType, cuitCuil: client.cuitCuil, ivaType: client.ivaType, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province, notes: client.notes };
+      current.customerData = { addresses: client.addresses, street: client.street, streetNumber: client.streetNumber, balance: client.balance, type: client.type, documentType: client.documentType, cuitCuil: client.cuitCuil, ivaType: client.ivaType, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province, notes: client.notes };
       current.customerStatus = client.status;
     });
     return;
@@ -128,6 +142,7 @@ export async function saveSalesClient(input: unknown, id: string | undefined, ac
       const index = data.clients.findIndex((entry) => entry.id === id);
       if (index < 0) throw new Error("El cliente ya no existe.");
       if (client.type !== data.clients[index].type && actorRole !== "Administrador") throw new Error("Solo un administrador puede cambiar la condición del cliente.");
+      data.orders = preserveOrderAddresses(data.orders, data.clients[index]);
       data.clients[index] = { ...client, id, code: data.clients[index].code };
     } else {
       const next = Math.max(0, ...data.clients.map((entry) => Number(entry.code.match(/\d+$/)?.[0] ?? 0))) + 1;
@@ -150,7 +165,13 @@ function validateOrder(value: unknown, clients: Client[], existing?: Order): Ord
   const observations = text(row.observations, 2000);
   const employeeId = text(row.employeeId ?? "", 100);
   const deliveryAddressType = row.deliveryAddressType;
-  const customAddress = text(row.customDeliveryAddress ?? "", 200);
+  const customAddress = text(row.customDeliveryAddress ?? "", 500);
+  const addresses = getClientAddresses(client);
+  const deliveryAddressId = text(row.deliveryAddressId ?? addresses[0]?.id ?? "", 120);
+  const selectedAddress = addresses.find((address) => address.id === deliveryAddressId);
+  const retainedAddress = existing?.deliveryAddressType === "client" && existing.deliveryAddressId === deliveryAddressId ? existing.deliveryAddress : undefined;
+  if (deliveryAddressType === "client" && !retainedAddress && (!selectedAddress || !selectedAddress.street || !selectedAddress.locality)) throw new Error("Seleccioná una dirección guardada del cliente.");
+  const deliveryAddress = deliveryAddressType === "custom" ? customAddress || "" : retainedAddress ?? (selectedAddress ? formatClientAddress(selectedAddress) : "");
   if (!date || !validDate(date) || deliveryDate === null || (deliveryDate && !validDate(deliveryDate)) || observations === null || !employeeId || !SAMPLE_EMPLOYEES.some((employee) => employee.id === employeeId && employee.status === "Activo") || (deliveryAddressType !== "client" && deliveryAddressType !== "custom") || customAddress === null || (deliveryAddressType === "custom" && !customAddress)) throw new Error("Revisá el vendedor, las fechas, la dirección y las observaciones del pedido.");
   if (!Array.isArray(row.items) || row.items.length < 1 || row.items.length > 100) throw new Error("El pedido debe incluir productos válidos.");
   const items: OrderItem[] = row.items.map((rawItem, index) => {
@@ -171,7 +192,7 @@ function validateOrder(value: unknown, clients: Client[], existing?: Order): Ord
   if (existing && requestedStatus !== existing.status) throw new Error("El estado del pedido debe cambiarse con la acción correspondiente.");
   const status = existing?.status ?? "Pendiente";
   if (!existing && requestedStatus !== undefined && requestedStatus !== status) throw new Error("El estado inicial no es válido.");
-  return { id: existing?.id ?? `o-${crypto.randomUUID()}`, number: existing?.number ?? "", clientId, employeeId: employeeId || undefined, date, deliveryDate: deliveryDate || "", deliveryAddressType, customDeliveryAddress: deliveryAddressType === "custom" ? customAddress : undefined, items, subtotal, discount: discount as number, total: subtotal - (discount as number), status, observations };
+  return { id: existing?.id ?? `o-${crypto.randomUUID()}`, number: existing?.number ?? "", clientId, employeeId: employeeId || undefined, date, deliveryDate: deliveryDate || "", deliveryAddressType, deliveryAddressId: deliveryAddressType === "client" ? deliveryAddressId || undefined : undefined, deliveryAddress, customDeliveryAddress: deliveryAddressType === "custom" ? customAddress : undefined, items, subtotal, discount: discount as number, total: subtotal - (discount as number), status, observations };
 }
 
 async function findClient(id: string) {

@@ -1,6 +1,10 @@
+import { useState } from "react";
+import ClientAddressesEditor from "~/components/ClientAddressesEditor";
+import { customerAsClient } from "~/data/customer.server";
+import { preserveOrderAddresses } from "~/data/sales.server";
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 
-import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, splitClientAddress } from "~/data/sales";
+import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, getClientAddresses, validateClientAddresses } from "~/data/sales";
 import { mutateUser } from "~/utils/db.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/cliente-perfil";
@@ -15,20 +19,19 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     floor: user.customerData?.floor ?? "", apartment: user.customerData?.apartment ?? "",
     locality: user.customerData?.locality ?? "", province: user.customerData?.province ?? "Buenos Aires",
     notes: user.customerData?.notes ?? "",
+    addresses: getClientAddresses(customerAsClient(user)!),
   } };
 };
 
 export const action = async ({ request }: Route.ActionArgs) => {
   const user = await requireUserAndRole(request, ["Cliente"]);
   const data = await request.formData();
-  const fields = ["name", "phone", "address", "documentType", "cuitCuil", "ivaType", "floor", "apartment", "locality", "province", "notes"] as const;
+  const fields = ["name", "phone", "documentType", "cuitCuil", "ivaType", "notes"] as const;
   const values = Object.fromEntries(fields.map((field) => [field, data.get(field)]));
   if (fields.some((field) => typeof values[field] !== "string")) return { error: "Revisá los datos del formulario e intentá nuevamente." };
   const value = (field: typeof fields[number]) => (values[field] as string).trim();
   const name = value("name");
   if (name.length < 2 || name.length > 100) return { error: "El nombre o razón social debe tener entre 2 y 100 caracteres." };
-  if (!value("address")) return { error: "Completá el domicilio para poder confirmar pedidos." };
-  if (!value("locality")) return { error: "Completá la localidad para poder confirmar pedidos." };
   if (fields.some((field) => value(field).length > 180)) return { error: "Uno de los datos supera el máximo permitido." };
   const documentType = value("documentType");
   const ivaType = value("ivaType");
@@ -36,20 +39,24 @@ export const action = async ({ request }: Route.ActionArgs) => {
     return { error: "Seleccioná un tipo de documento y condición IVA válidos." };
   }
   try {
+    const addresses = validateClientAddresses(JSON.parse(String(data.get("addresses") ?? "[]")));
+    const primary = addresses[0];
     await mutateUser(user.id, (current) => {
+      current.customerOrders = preserveOrderAddresses(current.customerOrders ?? [], customerAsClient(current)!);
       current.name = name;
       current.phone = value("phone");
-      current.address = value("address");
-      current.customerData = { ...splitClientAddress(value("address")), balance: current.customerData?.balance, type: current.customerData?.type ?? "Particular", documentType: documentType as typeof CLIENT_DOCUMENT_TYPES[number], cuitCuil: value("cuitCuil"), ivaType: ivaType as typeof CLIENT_IVA_TYPES[number] | "", floor: value("floor"), apartment: value("apartment"), locality: value("locality"), province: value("province"), notes: value("notes") };
+      current.address = primary ? [primary.street, primary.streetNumber].join(" ") : "";
+      current.customerData = { addresses, street: primary?.street ?? "", streetNumber: primary?.streetNumber ?? "", balance: current.customerData?.balance, type: current.customerData?.type ?? "Particular", documentType: documentType as typeof CLIENT_DOCUMENT_TYPES[number], cuitCuil: value("cuitCuil"), ivaType: ivaType as typeof CLIENT_IVA_TYPES[number] | "", floor: primary?.floor ?? "", apartment: primary?.apartment ?? "", locality: primary?.locality ?? "", province: primary?.province ?? "", notes: value("notes") };
     });
     return { success: true };
-  } catch {
-    return { error: "No pudimos guardar tu perfil. Intentá nuevamente." };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No pudimos guardar tu perfil. Intentá nuevamente." };
   }
 };
 
 export default function ClientePerfil() {
   const { profile } = useLoaderData<typeof loader>();
+  const [addresses, setAddresses] = useState(profile.addresses);
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSaving = navigation.state === "submitting";
@@ -69,13 +76,10 @@ export default function ClientePerfil() {
         <label className={labelClass}>Tipo IVA<select name="ivaType" defaultValue={profile.ivaType} className={inputClass}><option value="">Seleccionar</option>{CLIENT_IVA_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
         <label className={labelClass}>Correo electrónico<input type="email" value={profile.email} readOnly aria-readonly="true" className={`${inputClass} bg-gray-50 text-gray-600`} /><span className="mt-1 block text-xs font-normal text-gray-500">El correo identifica tu cuenta y no se puede modificar desde el perfil.</span></label>
         <label className={labelClass}>Teléfono<input name="phone" type="tel" maxLength={40} defaultValue={profile.phone} className={inputClass} /></label>
-        <label className={labelClass}>Domicilio<input name="address" required maxLength={180} defaultValue={profile.address} className={inputClass} placeholder="Calle y altura" /></label>
-        <label className={labelClass}>Piso<input name="floor" maxLength={20} defaultValue={profile.floor} className={inputClass} /></label>
-        <label className={labelClass}>Departamento<input name="apartment" maxLength={20} defaultValue={profile.apartment} className={inputClass} /></label>
-        <label className={labelClass}>Localidad<input name="locality" required maxLength={100} defaultValue={profile.locality} className={inputClass} /></label>
-        <label className={labelClass}>Provincia<input name="province" maxLength={100} defaultValue={profile.province} className={inputClass} /></label>
         <label className={`${labelClass} sm:col-span-2`}>Observaciones<textarea name="notes" rows={3} maxLength={180} defaultValue={profile.notes} className={inputClass} /></label>
       </div>
+      <input type="hidden" name="addresses" value={JSON.stringify(addresses)} />
+      <ClientAddressesEditor addresses={addresses} onChange={setAddresses} disabled={isSaving} />
       <div className="flex justify-end border-t border-[#f0e7dd] pt-5"><button type="submit" disabled={isSaving} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white transition hover:bg-amber-900 disabled:cursor-wait disabled:opacity-70">{isSaving ? "Guardando…" : "Guardar datos"}</button></div>
     </Form></section>
   </div>;

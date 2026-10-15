@@ -6,6 +6,7 @@ import {
   SAMPLE_REMITS,
   SAMPLE_PRODUCTS, 
   formatClientAddress,
+  getClientAddresses,
   ORDER_STATUSES, 
   type Client, 
   type Order, 
@@ -74,6 +75,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
   const [deliveryDate, setDeliveryDate] = useState(order?.deliveryDate || "");
   const [employeeId, setEmployeeId] = useState(order?.employeeId || "");
   const [deliveryAddressType, setDeliveryAddressType] = useState<"client" | "custom">(order?.deliveryAddressType || "client");
+  const [addressId, setAddressId] = useState(order?.deliveryAddressId ?? getClientAddresses(clients.find(client => client.id === order?.clientId) ?? { id: "", street: "", streetNumber: "", locality: "", province: "" })[0]?.id ?? "");
   const [customDeliveryAddress, setCustomDeliveryAddress] = useState(order?.customDeliveryAddress || "");
   const [items, setItems] = useState<OrderItem[]>(order?.items || []);
   const [discount, setDiscount] = useState(order?.discount || 0);
@@ -84,6 +86,8 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
   const [quantity, setQuantity] = useState(1);
 
   const selectedClient = clients.find(c => c.id === clientId);
+  const addresses = selectedClient ? getClientAddresses(selectedClient) : [];
+  const selectedAddressId = addressId || addresses[0]?.id || "";
 
   const subtotal = items.reduce((acc, item) => acc + item.subtotal, 0);
   const total = Math.max(0, subtotal - discount);
@@ -140,6 +144,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
       date,
       deliveryDate,
       deliveryAddressType,
+      deliveryAddressId: selectedAddressId,
       customDeliveryAddress: deliveryAddressType === "custom" ? customDeliveryAddress : undefined,
       items,
       subtotal,
@@ -171,6 +176,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                     value={clientId}
                     onChange={e => {
                       setClientId(e.target.value);
+                      setAddressId("");
                       setDeliveryAddressType("client");
                       setCustomDeliveryAddress("");
                     }}
@@ -232,9 +238,13 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                 <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dirección de entrega</label>
                   <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="text-sm text-gray-700">
-                      Predeterminada: <span className="font-medium text-gray-900">{selectedClient ? formatClientAddress(selectedClient) || "No disponible" : "Seleccione un cliente"}</span>
-                    </p>
+                    <label className="block text-sm font-medium text-gray-700">Dirección guardada
+                      <select disabled={deliveryAddressType === "custom" || !selectedClient} value={selectedAddressId} onChange={event => setAddressId(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900">
+                        {!addresses.length && <option value="">Sin direcciones guardadas</option>}
+                        {order?.deliveryAddress && order.deliveryAddressId && !addresses.some(address => address.id === order.deliveryAddressId) && <option value={order.deliveryAddressId}>Dirección original: {order.deliveryAddress}</option>}
+                        {addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}
+                      </select>
+                    </label>
                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-900 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -466,9 +476,9 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
                 <>
               <h3 className="mt-4 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Dirección de Entrega</h3>
               <p className="text-sm font-medium text-gray-800">
-                {order.deliveryAddressType === "custom" 
+                {order.deliveryAddress || (order.deliveryAddressType === "custom"
                   ? order.customDeliveryAddress 
-                  : (client ? formatClientAddress(client) : "Dirección del cliente no disponible")}
+                  : (client ? formatClientAddress(client) : "Dirección del cliente no disponible"))}
                 <span className="ml-2 text-xs font-normal text-gray-500">
                   ({order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
                 </span>
