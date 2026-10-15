@@ -1,7 +1,10 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 
-import { ChevronIcon, CloseIcon, Logo } from "~/components/icons";
+import { AnimatePresence, motion } from "motion/react";
+
+import { CloseIcon, Logo } from "~/components/icons";
+import { Chevron, Collapse, EASE_OUT, SPRING_BOUNCE } from "~/components/motion";
 import { NAV_SECTIONS } from "~/data/navigation";
 
 import type { PublicUser } from "~/utils/db.server";
@@ -215,32 +218,46 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                             : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
                         }`}
                       >
-                        <ChevronIcon className={expanded ? "" : "-rotate-90"} />
+                        <Chevron open={expanded} className="h-5 w-5" />
                       </button>
                     )}
                   </div>
 
-                  {open && expanded && section.items.length > 0 && (
-                    <div id={`sidebar-${section.label}`} className="ml-6 mt-1.5 space-y-0.5 border-l border-gray-200 pl-3">
-                      {section.items.map((item) => (
-                        <NavLink
-                          key={item.to}
-                          to={item.to}
-                          end
-                          onClick={handleNavigate}
-                          className={({ isActive }) =>
-                            `block rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
-                              isActive
-                                ? "bg-amber-50 font-semibold text-amber-800"
-                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
-                            }`
-                          }
-                        >
-                          {item.label}
-                        </NavLink>
-                      ))}
-                    </div>
-                  )}
+                  <AnimatePresence initial={false}>
+                    {open && expanded && section.items.length > 0 && (
+                      <Collapse id={`sidebar-${section.label}`} transition={SPRING_BOUNCE}>
+                        <div className="ml-6 mt-1.5 space-y-0.5 border-l border-gray-200 pl-3">
+                          {section.items.map((item) => (
+                            <NavLink
+                              key={item.to}
+                              to={item.to}
+                              end
+                              onClick={handleNavigate}
+                              className={({ isActive }) =>
+                                `relative block rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
+                                  isActive ? "font-semibold text-amber-800" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                }`
+                              }
+                            >
+                              {({ isActive }) => (
+                                <>
+                                  {isActive && (
+                                    <motion.span
+                                      layoutId="sidebar-active-item"
+                                      aria-hidden="true"
+                                      className="absolute inset-0 rounded-md bg-amber-50"
+                                      transition={{ duration: 0.25, ease: EASE_OUT }}
+                                    />
+                                  )}
+                                  <span className="relative">{item.label}</span>
+                                </>
+                              )}
+                            </NavLink>
+                          ))}
+                        </div>
+                      </Collapse>
+                    )}
+                  </AnimatePresence>
                 </li>
               );
             })}
