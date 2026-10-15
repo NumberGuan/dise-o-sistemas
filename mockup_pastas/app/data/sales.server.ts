@@ -3,6 +3,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 
 import {
+  normalizeClient,
   CLIENT_DOCUMENT_TYPES,
   CLIENT_IVA_TYPES,
   ORDER_STATUSES,
@@ -36,7 +37,8 @@ async function readSalesData(): Promise<SalesData> {
     if (!parsed || typeof parsed !== "object" || !Array.isArray((parsed as SalesData).clients) || !Array.isArray((parsed as SalesData).orders)) {
       throw new Error("El archivo de Ventas tiene un formato inválido.");
     }
-    return parsed as SalesData;
+    const data = parsed as SalesData;
+    return { ...data, clients: data.clients.map(normalizeClient) };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw new Error("No se pudieron leer los datos de Ventas; se preservó el archivo existente.");
     const initial = { clients: structuredClone(SAMPLE_CLIENTS), orders: structuredClone(SAMPLE_ORDERS) };
@@ -85,23 +87,25 @@ function validateClient(value: unknown): Omit<Client, "id" | "code"> | null {
   const name = text(row.name, 100, true);
   const phone = text(row.phone, 40);
   const email = text(row.email, 254);
-  const address = text(row.address, 160);
+  const street = text(row.street, 160);
+  const streetNumber = text(row.streetNumber, 20);
+  const balance = row.type === "Comercio" ? row.balance : 0;
+  if (typeof balance !== "number" || !Number.isFinite(balance) || Math.abs(balance) > 999999999.99 || Math.abs(balance * 100 - Math.round(balance * 100)) > 0.0001) return null;
   const floor = text(row.floor ?? "", 20);
   const apartment = text(row.apartment ?? "", 20);
   const locality = text(row.locality, 100, true);
   const province = text(row.province, 100, true);
   const cuitCuil = text(row.cuitCuil, 30);
   const notes = text(row.notes, 2000);
-  if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || address === null || floor === null || apartment === null || !locality || !province || cuitCuil === null || notes === null) return null;
+  if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || !locality || !province || cuitCuil === null || notes === null) return null;
   if (!isOneOf(row.type, ["Comercio", "Distribuidor", "Particular"] as const) || !isOneOf(row.documentType, CLIENT_DOCUMENT_TYPES) || !isOneOf(row.ivaType, ["", ...CLIENT_IVA_TYPES] as const) || !isOneOf(row.status, ["Activo", "Inactivo"] as const)) return null;
-  return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, address, floor, apartment, locality, province, status: row.status, notes };
+  return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
 }
 
 export async function saveSalesClient(input: unknown, id: string | undefined, actorRole: Role) {
   if (actorRole !== "Administrador" && actorRole !== "Ventas") throw new Error("No tenés permiso para guardar clientes.");
   const client = validateClient(input);
   if (!client) throw new Error("Revisá los datos ingresados del cliente.");
-  if (!id) client.type = "Particular";
   if (id?.startsWith("customer-")) {
     const userId = id.slice("customer-".length);
     const user = (await getUsers()).find((candidate) => candidate.id === userId && candidate.role === "Cliente");
@@ -112,8 +116,8 @@ export async function saveSalesClient(input: unknown, id: string | undefined, ac
       if (client.type !== previousType && actorRole !== "Administrador") throw new Error("Solo un administrador puede cambiar la condición del cliente.");
       current.name = client.name;
       current.phone = client.phone;
-      current.address = client.address;
-      current.customerData = { type: client.type, documentType: client.documentType, cuitCuil: client.cuitCuil, ivaType: client.ivaType, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province, notes: client.notes };
+      current.address = [client.street, client.streetNumber].filter(Boolean).join(" ");
+      current.customerData = { street: client.street, streetNumber: client.streetNumber, balance: client.balance, type: client.type, documentType: client.documentType, cuitCuil: client.cuitCuil, ivaType: client.ivaType, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province, notes: client.notes };
       current.customerStatus = client.status;
     });
     return;

@@ -1,6 +1,6 @@
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 
-import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES } from "~/data/sales";
+import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, splitClientAddress } from "~/data/sales";
 import { mutateUser } from "~/utils/db.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/cliente-perfil";
@@ -40,7 +40,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       current.name = name;
       current.phone = value("phone");
       current.address = value("address");
-      current.customerData = { type: current.customerData?.type ?? "Particular", documentType: documentType as typeof CLIENT_DOCUMENT_TYPES[number], cuitCuil: value("cuitCuil"), ivaType: ivaType as typeof CLIENT_IVA_TYPES[number] | "", floor: value("floor"), apartment: value("apartment"), locality: value("locality"), province: value("province"), notes: value("notes") };
+      current.customerData = { ...splitClientAddress(value("address")), balance: current.customerData?.balance, type: current.customerData?.type ?? "Particular", documentType: documentType as typeof CLIENT_DOCUMENT_TYPES[number], cuitCuil: value("cuitCuil"), ivaType: ivaType as typeof CLIENT_IVA_TYPES[number] | "", floor: value("floor"), apartment: value("apartment"), locality: value("locality"), province: value("province"), notes: value("notes") };
     });
     return { success: true };
   } catch {

@@ -38,7 +38,7 @@ type ClientFormProps = {
 };
 
 const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
-  type: "Particular", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
+  type: "Particular", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", street: "", streetNumber: "", balance: 0, floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
 };
 
 function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeClientType }: ClientFormProps) {
@@ -58,6 +58,9 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
     onSave({
       ...values,
       name: values.name.trim(),
+      street: values.street.trim(),
+      streetNumber: values.streetNumber.trim(),
+      balance: values.type === "Comercio" ? values.balance : 0,
       floor: values.floor?.trim() || undefined,
       apartment: values.apartment?.trim() || undefined,
       locality: values.locality.trim(),
@@ -81,11 +84,10 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
           {(error || serverError) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error || serverError}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Tipo de cliente
-              <select value={client ? values.type : "Particular"} disabled={!client || !canChangeClientType} onChange={(event) => update("type", event.target.value as Client["type"])} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}>
+              <select value={values.type} disabled={Boolean(client) && !canChangeClientType} onChange={(event) => update("type", event.target.value as Client["type"])} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}>
                 <option>Comercio</option><option>Distribuidor</option><option>Particular</option>
               </select>
               {client && !canChangeClientType && <span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar la condición del cliente.</span>}
-              {!client && <span className="mt-1 block text-xs font-normal text-gray-500">Los clientes nuevos se registran como Particular.</span>}
             </label>
             <label className={labelClass}>Estado
               <select value={values.status} onChange={(event) => update("status", event.target.value as ClientStatus)} className={inputClass}>
@@ -115,9 +117,15 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
             <label className={labelClass}>Correo electrónico
               <input type="email" value={values.email} disabled={Boolean(client?.id.startsWith("customer-"))} onChange={(event) => update("email", event.target.value)} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`} placeholder="nombre@comercio.com" />
             </label>
-            <label className={labelClass}>Domicilio
-              <input value={values.address} onChange={(event) => update("address", event.target.value)} className={inputClass} placeholder="Calle y altura" />
+            <label className={labelClass}>Calle
+              <input maxLength={160} value={values.street} onChange={(event) => update("street", event.target.value)} className={inputClass} placeholder="Nombre de la calle" />
             </label>
+            <label className={labelClass}>Altura
+              <input maxLength={20} value={values.streetNumber} onChange={(event) => update("streetNumber", event.target.value)} className={inputClass} placeholder="Ej.: 1234" />
+            </label>
+            {values.type === "Comercio" && <label className={labelClass}>Saldo ($)
+              <input type="number" step="0.01" min="-999999999.99" max="999999999.99" required value={values.balance} onChange={(event) => update("balance", Number(event.target.value))} className={inputClass} />
+            </label>}
             <label className={labelClass}>Piso
               <input value={values.floor || ""} onChange={(event) => update("floor", event.target.value)} className={inputClass} placeholder="Ej.: 2" />
             </label>
@@ -157,7 +165,7 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Información del cliente</h3>
             <dl className="mt-3 space-y-3 text-sm">
-              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Domicilio", formatClientAddress(client)], ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección completa", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
             </dl>
             {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 text-sm text-amber-900">{client.notes}</p></div>}
           </div>

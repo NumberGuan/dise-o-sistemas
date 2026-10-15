@@ -31,7 +31,9 @@ export type Client = {
   ivaType: ClientIvaType | "";
   phone: string;
   email: string;
-  address: string;
+  street: string;
+  streetNumber: string;
+  balance: number;
   floor?: string;
   apartment?: string;
   locality: string;
@@ -40,9 +42,21 @@ export type Client = {
   notes: string;
 };
 
-export function formatClientAddress(client: Pick<Client, "address" | "floor" | "apartment" | "locality" | "province">) {
+// Compatibilidad con las direcciones guardadas antes de separar calle y altura.
+export function splitClientAddress(address: string) {
+  const match = address.trim().match(/^(.*?)\s+(\d+[A-Za-z]?)$/);
+  return { street: match?.[1] ?? address.trim(), streetNumber: match?.[2] ?? "" };
+}
+
+export function normalizeClient(client: Client & { address?: string }): Client {
+  const { address, ...fields } = client;
+  const legacy = splitClientAddress(address ?? "");
+  return { ...fields, street: client.street ?? legacy.street, streetNumber: client.streetNumber ?? legacy.streetNumber, balance: client.type === "Comercio" ? client.balance ?? 0 : 0 };
+}
+
+export function formatClientAddress(client: Pick<Client, "street" | "streetNumber" | "floor" | "apartment" | "locality" | "province">) {
   return [
-    client.address,
+    [client.street, client.streetNumber].filter(Boolean).join(" "),
     client.floor && `Piso ${client.floor}`,
     client.apartment && `Depto. ${client.apartment}`,
     client.locality,
@@ -51,12 +65,12 @@ export function formatClientAddress(client: Pick<Client, "address" | "floor" | "
 }
 
 export const SAMPLE_CLIENTS: Client[] = [
-  { id: "c-148", code: "CLI-00148", type: "Distribuidor", name: "Distribuidora El Sol", documentType: "CUIT", cuitCuil: "30-71234567-8", ivaType: "Responsable inscripto", phone: "11 4567-2300", email: "compras@distribuidoraelsol.com.ar", address: "Av. Rivadavia 2840", floor: "", apartment: "", locality: "Morón", province: "Buenos Aires", status: "Activo", notes: "Entrega por la mañana. Contactar a Laura." },
-  { id: "c-147", code: "CLI-00147", type: "Comercio", name: "Supermercados Andes", documentType: "CUIT", cuitCuil: "30-69876543-2", ivaType: "Responsable inscripto", phone: "11 4788-1200", email: "pedidos@andes.com.ar", address: "Belgrano 145", floor: "", apartment: "", locality: "San Martín", province: "Buenos Aires", status: "Activo", notes: "" },
-  { id: "c-146", code: "CLI-00146", type: "Comercio", name: "Almacén Don Pedro", documentType: "CUIT", cuitCuil: "20-24567891-3", ivaType: "Monotributista", phone: "11 4455-7701", email: "donpedro@correo.com", address: "Italia 820", floor: "", apartment: "", locality: "Haedo", province: "Buenos Aires", status: "Activo", notes: "Recibe pedidos los lunes y jueves." },
-  { id: "c-145", code: "CLI-00145", type: "Comercio", name: "Mini Market Norte", documentType: "CUIT", cuitCuil: "30-73456789-1", ivaType: "Responsable inscripto", phone: "11 4766-0092", email: "administracion@mininorte.com.ar", address: "San Lorenzo 560", floor: "", apartment: "", locality: "Villa Ballester", province: "Buenos Aires", status: "Activo", notes: "" },
-  { id: "c-144", code: "CLI-00144", type: "Particular", name: "María Fernanda López", documentType: "CUIL", cuitCuil: "27-28345678-4", ivaType: "Consumidor final", phone: "11 6098-3321", email: "maria.lopez@email.com", address: "Las Heras 112", floor: "2", apartment: "B", locality: "Castelar", province: "Buenos Aires", status: "Inactivo", notes: "Cliente sin actividad reciente." },
-  { id: "c-143", code: "CLI-00143", type: "Distribuidor", name: "Alimentos La Estación", documentType: "CUIT", cuitCuil: "30-72345678-9", ivaType: "Responsable inscripto", phone: "11 4621-8800", email: "ventas@laestacion.com.ar", address: "Calle 25 de Mayo 1010", floor: "", apartment: "", locality: "Ituzaingó", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-148", code: "CLI-00148", type: "Distribuidor", name: "Distribuidora El Sol", documentType: "CUIT", cuitCuil: "30-71234567-8", ivaType: "Responsable inscripto", phone: "11 4567-2300", email: "compras@distribuidoraelsol.com.ar", street: "Av. Rivadavia", streetNumber: "2840", balance: 0, floor: "", apartment: "", locality: "Morón", province: "Buenos Aires", status: "Activo", notes: "Entrega por la mañana. Contactar a Laura." },
+  { id: "c-147", code: "CLI-00147", type: "Comercio", name: "Supermercados Andes", documentType: "CUIT", cuitCuil: "30-69876543-2", ivaType: "Responsable inscripto", phone: "11 4788-1200", email: "pedidos@andes.com.ar", street: "Belgrano", streetNumber: "145", balance: 0, floor: "", apartment: "", locality: "San Martín", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-146", code: "CLI-00146", type: "Comercio", name: "Almacén Don Pedro", documentType: "CUIT", cuitCuil: "20-24567891-3", ivaType: "Monotributista", phone: "11 4455-7701", email: "donpedro@correo.com", street: "Italia", streetNumber: "820", balance: 0, floor: "", apartment: "", locality: "Haedo", province: "Buenos Aires", status: "Activo", notes: "Recibe pedidos los lunes y jueves." },
+  { id: "c-145", code: "CLI-00145", type: "Comercio", name: "Mini Market Norte", documentType: "CUIT", cuitCuil: "30-73456789-1", ivaType: "Responsable inscripto", phone: "11 4766-0092", email: "administracion@mininorte.com.ar", street: "San Lorenzo", streetNumber: "560", balance: 0, floor: "", apartment: "", locality: "Villa Ballester", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-144", code: "CLI-00144", type: "Particular", name: "María Fernanda López", documentType: "CUIL", cuitCuil: "27-28345678-4", ivaType: "Consumidor final", phone: "11 6098-3321", email: "maria.lopez@email.com", street: "Las Heras", streetNumber: "112", balance: 0, floor: "2", apartment: "B", locality: "Castelar", province: "Buenos Aires", status: "Inactivo", notes: "Cliente sin actividad reciente." },
+  { id: "c-143", code: "CLI-00143", type: "Distribuidor", name: "Alimentos La Estación", documentType: "CUIT", cuitCuil: "30-72345678-9", ivaType: "Responsable inscripto", phone: "11 4621-8800", email: "ventas@laestacion.com.ar", street: "Calle 25 de Mayo", streetNumber: "1010", balance: 0, floor: "", apartment: "", locality: "Ituzaingó", province: "Buenos Aires", status: "Activo", notes: "" },
 ];
 
 export type ClientActivity = { type: string; code: string; date: string; summary: string; status: string; to: string };

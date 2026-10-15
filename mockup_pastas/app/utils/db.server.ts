@@ -14,6 +14,9 @@ export interface User {
   phone?: string;
   address?: string;
   customerData?: {
+    balance?: number;
+    street?: string;
+    streetNumber?: string;
     type: 'Comercio' | 'Distribuidor' | 'Particular';
     documentType: 'DNI' | 'CUIT' | 'CUIL' | 'Pasaporte' | 'Otro';
     cuitCuil: string;
