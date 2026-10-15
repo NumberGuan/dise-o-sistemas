@@ -48,3 +48,12 @@ export function SalesPageHeader({ title, description, action }: SalesPageHeaderP
     </header>
   );
 }
+
+export function SalesFormHeader({ title, onCancel, pending = false }: { title: string; onCancel: () => void; pending?: boolean }) {
+  return (
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+      <button type="button" disabled={pending} onClick={onCancel} className="text-sm font-medium text-gray-600 hover:text-gray-900 disabled:opacity-50">Volver al listado</button>
+    </div>
+  );
+}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
-import { SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import {
   CUSTOMER_RETURN_STATUSES,
   SAMPLE_CLIENTS,
@@ -155,11 +155,8 @@ function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: Return
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">{isNew ? "Nueva Devolución" : `Editar ${customerReturn.number}`}</h1>
-        <button type="button" onClick={onCancel} className="text-sm font-medium text-gray-600 hover:text-gray-900">Volver</button>
-      </div>
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={isNew ? "Nueva Devolución" : `Editar ${customerReturn.number}`} onCancel={onCancel} />
       {error && <p role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
       <form className="space-y-6" onSubmit={event => event.preventDefault()}>
         <section className="rounded-xl border border-gray-200 bg-white shadow-sm">

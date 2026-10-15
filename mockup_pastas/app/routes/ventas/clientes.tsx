@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 
-import { SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
 import { getSalesData, saveSalesClient } from "~/data/sales.server";
 import { requireUserAndRole } from "~/utils/session.server";
@@ -71,15 +71,9 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
   const labelClass = "block text-sm font-medium text-gray-700";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (!pending && event.target === event.currentTarget) onCancel(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="client-form-title" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 id="client-form-title" className="text-lg font-semibold text-gray-900">{client ? "Editar cliente" : "Nuevo cliente"}</h2>
-            <p className="mt-1 text-sm text-gray-500">Los cambios se guardan en el registro de Ventas.</p>
-          </div>
-          <button type="button" disabled={pending} onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
-        </div>
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={client ? "Editar cliente" : "Nuevo cliente"} onCancel={onCancel} pending={pending} />
+      <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
           {(error || serverError) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error || serverError}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
@@ -227,6 +221,10 @@ export default function Clientes() {
     fetcher.submit(formData, { method: "post" });
   }
 
+  if (editingClient !== undefined) {
+    return <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} pending={fetcher.state !== "idle"} serverError={serverError || ""} canChangeClientType={canChangeClientType} />;
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <SalesPageHeader title="Clientes" description="Consulta y administra los datos de clientes comerciales y particulares." action={<button type="button" onClick={() => setEditingClient(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nuevo cliente</button>} />
@@ -286,7 +284,6 @@ export default function Clientes() {
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Incluye cuentas registradas en Compras y clientes de muestra de Ventas.</div>
       </section>
 
-      {editingClient !== undefined && <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} pending={fetcher.state !== "idle"} serverError={serverError || ""} canChangeClientType={canChangeClientType} />}
       {selectedClient && <ClientDetails client={selectedClient} orders={orders} canEdit onClose={() => setSelectedClient(null)} onEdit={() => { setEditingClient(selectedClient); setSelectedClient(null); }} />}
     </div>
   );

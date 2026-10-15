@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import {
   SAMPLE_CLIENTS,
   SAMPLE_INVOICES,
@@ -142,11 +142,8 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold text-gray-900">{isNew ? "Nuevo Recibo" : `Editar Recibo ${receipt.number}`}</h1>
-        <button type="button" onClick={onCancel} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver</button>
-      </div>
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={isNew ? "Nuevo Recibo" : `Editar Recibo ${receipt.number}`} onCancel={onCancel} />
 
       {errorMsg && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">

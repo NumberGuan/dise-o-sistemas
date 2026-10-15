@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useFetcher, useLoaderData, useRevalidator, useSearchParams } from "react-router";
 
-import { SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import { 
   SAMPLE_REMITS,
   SAMPLE_PRODUCTS, 
@@ -151,17 +151,9 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm sm:p-6">
-      <div className="flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {isNew ? "Nuevo Pedido" : `Editar Pedido ${order.number}`}
-          </h2>
-          <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-500">
-            <span className="sr-only">Cerrar</span>✕
-          </button>
-        </div>
-
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={isNew ? "Nuevo Pedido" : `Editar Pedido ${order.number}`} onCancel={onCancel} pending={pending} />
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {errorMsg && (
             <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800 border border-red-200">
@@ -618,6 +610,13 @@ export default function Pedidos() {
     fetcher.submit(formData, { method: "post" });
   }
 
+  if (editingOrder !== undefined) {
+    return <>
+      {actionError && <p role="alert" className="mx-auto mt-6 max-w-4xl rounded-lg bg-red-50 p-4 text-sm text-red-800">{actionError}</p>}
+      <OrderForm order={editingOrder} clients={clients} onCancel={() => setEditingOrder(undefined)} onSave={saveOrder} pending={fetcher.state !== "idle"} />
+    </>;
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <SalesPageHeader 
@@ -718,15 +717,7 @@ export default function Pedidos() {
         )}
       </section>
 
-      {editingOrder !== undefined && (
-        <OrderForm 
-          order={editingOrder} 
-          clients={clients}
-          onCancel={() => setEditingOrder(undefined)} 
-          onSave={saveOrder}
-          pending={fetcher.state !== "idle"}
-        />
-      )}
+
       {selectedOrder && (
         <OrderDetails 
           order={selectedOrder} 

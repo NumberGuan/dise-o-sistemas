@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router";
-import { SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import {
   SAMPLE_CLIENTS,
   SAMPLE_ORDERS,
@@ -116,10 +116,7 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{isNew ? "Nueva Factura" : `Editar Factura ${invoice.number}`}</h1>
-        <button type="button" onClick={onCancel} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver</button>
-      </div>
+      <SalesFormHeader title={isNew ? "Nueva Factura" : `Editar Factura ${invoice.number}`} onCancel={onCancel} />
 
       {errorMsg && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
