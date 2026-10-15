@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Link, useSearchParams } from "react-router";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import { SAMPLE_MACHINES } from "~/data/maintenance";
@@ -7,6 +8,7 @@ import {
   codigo, formatCantidad, getProducto, getReceta, getUnidad, siguienteId,
   type DetalleOrdenProduccion, type EstadoOrdenProduccion, type OrdenProduccion,
 } from "~/data/produccion";
+import { AnimatedBadge, Collapse, Dialog, EASE_OUT, HoldToConfirm, rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
@@ -40,8 +42,7 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <section role="dialog" aria-modal="true" className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
+    <Dialog onClose={onCancel} className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{order ? "Editar orden de producción" : "Nueva orden de producción"}</h2>
@@ -72,13 +73,14 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
               <h3 className="font-semibold text-gray-900">Productos a elaborar</h3>
               <button type="button" onClick={() => setProductos([...productos, { key: `p-${Date.now()}`, idProducto: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar producto</button>
             </div>
-            <div className="mt-4 space-y-3">
-              {productos.length === 0 ? (
-                <p className="text-sm text-gray-500">No hay productos agregados a esta orden.</p>
-              ) : productos.map((p, idx) => {
+            <div className="mt-4">
+              {productos.length === 0 && <p className="text-sm text-gray-500">No hay productos agregados a esta orden.</p>}
+              <AnimatePresence initial={false}>
+              {productos.map((p, idx) => {
                 const receta = p.idProducto ? getReceta(getProducto(Number(p.idProducto))?.idReceta ?? 0) : undefined;
                 return (
-                  <div key={p.key} className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <Collapse key={p.key} className="pb-3">
+                  <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <button type="button" onClick={() => setProductos(productos.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar producto">✕</button>
                     <div className="grid gap-4 pr-6 sm:grid-cols-2">
                       <label className={labelClass}>Producto <span className="text-rose-600">*</span>
@@ -93,8 +95,10 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
                       </div>
                     </div>
                   </div>
+                  </Collapse>
                 );
               })}
+              </AnimatePresence>
             </div>
           </div>
         </form>
@@ -103,8 +107,7 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
           <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
           <button type="submit" form="production-order-form" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar orden</button>
         </div>
-      </section>
-    </div>
+    </Dialog>
   );
 }
 
@@ -121,14 +124,13 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
   const handleTransition = (next: EstadoOrdenProduccion) => setError(onTransition(next, cantidades, fechaFin) ?? "");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-4xl sm:rounded-2xl">
+    <Dialog onClose={onClose} className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-4xl sm:rounded-2xl">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Orden {numero(order)}</p>
             <div className="mt-1 flex items-center gap-3">
               <h2 className="text-xl font-bold text-gray-900">Lote {order.nmrLote}</h2>
-              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.estado)}`}>{order.estado}</span>
+              <AnimatedBadge value={order.estado} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.estado)}`} />
             </div>
           </div>
           <div className="flex gap-2">
@@ -199,10 +201,12 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                 <h3 className="text-sm font-semibold text-gray-900">Acciones de estado</h3>
                 {error && <p role="alert" className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800">{error}</p>}
 
+                <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={order.estado} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: EASE_OUT }}>
                 {order.estado === "Pendiente" && (
                   <div className="mt-3 flex flex-col gap-2">
                     <button type="button" onClick={() => handleTransition("En proceso")} className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">Iniciar producción</button>
-                    <button type="button" onClick={() => handleTransition("Cancelada")} className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Cancelar orden</button>
+                    <HoldToConfirm label="Mantené presionado para cancelar" holdingLabel="Seguí presionando..." onConfirm={() => handleTransition("Cancelada")} className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 select-none" />
                   </div>
                 )}
 
@@ -219,12 +223,13 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                 {(order.estado === "Finalizada" || order.estado === "Cancelada") && (
                   <p className="mt-2 text-xs text-gray-500">La orden está {order.estado.toLowerCase()} y no admite cambios.</p>
                 )}
+                </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </div>
         </div>
-      </section>
-    </div>
+    </Dialog>
   );
 }
 
@@ -265,15 +270,23 @@ export default function OrdenesProduccion() {
   }
 
   function save(order: OrdenProduccion) {
+    const isNew = !ORDENES_PRODUCCION.some((o) => o.idOrdenProduccion === order.idOrdenProduccion);
     persist(order);
+    toast(`La orden ${numero(order)} se ${isNew ? "creó" : "actualizó"} correctamente.`);
     setEditing(undefined);
     setParams({ orden: String(order.idOrdenProduccion) });
   }
 
   function transition(next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string) {
     if (!selected) return;
-    if (next === "En proceso") return persist({ ...selected, estado: next, fechaInicio: today() });
-    if (next === "Cancelada") return persist({ ...selected, estado: next });
+    if (next === "En proceso") {
+      toast(`Se inició la producción del lote ${selected.nmrLote}.`, "info");
+      return persist({ ...selected, estado: next, fechaInicio: today() });
+    }
+    if (next === "Cancelada") {
+      toast(`Se canceló la orden ${numero(selected)}.`, "info");
+      return persist({ ...selected, estado: next });
+    }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaFin)) return "Ingresá una fecha de finalización válida.";
     if (selected.fechaInicio && fechaFin < selected.fechaInicio) return "La fecha de finalización no puede ser anterior a la de inicio.";
@@ -285,6 +298,10 @@ export default function OrdenesProduccion() {
       if (i >= 0) PRODUCTOS_PRODUCCION[i] = { ...PRODUCTOS_PRODUCCION[i], stockProducto: PRODUCTOS_PRODUCCION[i].stockProducto + d.cantidadRealGenerada };
     });
     persist({ ...selected, estado: next, fechaFinalizacion: fechaFin, detalle });
+    detalle.forEach((d) => {
+      const producto = getProducto(d.idProducto);
+      if (producto) toast(`Stock de ${producto.nombre}: +${formatCantidad(d.cantidadRealGenerada, producto.idUnidad)}`);
+    });
   }
 
   return (
@@ -332,10 +349,11 @@ export default function OrdenesProduccion() {
               <div className="min-w-0 text-center">Acciones</div>
             </div>
             <div className="divide-y divide-gray-100">
-              {filtered.map((o) => {
+              <AnimatePresence mode="popLayout">
+              {filtered.map((o, index) => {
                 const resumen = o.detalle.map((d) => getProducto(d.idProducto)?.nombre).filter(Boolean).join(", ");
                 return (
-                  <article key={o.idOrdenProduccion} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1fr_0.8fr_1.6fr_1fr_1.2fr_1fr_auto] lg:gap-5 lg:px-5">
+                  <motion.article key={o.idOrdenProduccion} {...rowMotion(index)} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1fr_0.8fr_1.6fr_1fr_1.2fr_1fr_auto] lg:gap-5 lg:px-5">
                     <div className="min-w-0 text-left">
                       <h3 className="font-semibold text-gray-900">{numero(o)}</h3>
                     </div>
@@ -357,21 +375,24 @@ export default function OrdenesProduccion() {
                     </div>
                     <div className="flex flex-col items-start gap-1 lg:items-center">
                       <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(o.estado)}`}>{o.estado}</span>
+                      <AnimatedBadge value={o.estado} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(o.estado)}`} />
                     </div>
                     <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:justify-center lg:border-0 lg:pt-0">
                       <button type="button" onClick={() => { setSelected(o); setParams({ orden: String(o.idOrdenProduccion) }); }} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Consultar</button>
                     </div>
-                  </article>
+                  </motion.article>
                 );
               })}
+              </AnimatePresence>
             </div>
           </>
         )}
       </section>
 
-      {editing !== undefined && <ProductionOrderForm order={editing} onCancel={() => { setEditing(undefined); setParams({}); }} onSave={save} />}
-      {selected && <ProductionOrderDetails key={`${selected.idOrdenProduccion}-${selected.estado}`} order={selected} onClose={() => { setSelected(null); setParams({}); }} onEdit={() => { setEditing(selected); setSelected(null); }} onTransition={transition} />}
+      <AnimatePresence>
+        {editing !== undefined && <ProductionOrderForm order={editing} onCancel={() => { setEditing(undefined); setParams({}); }} onSave={save} key="form" />}
+        {selected && <ProductionOrderDetails key="detail" order={selected} onClose={() => { setSelected(null); setParams({}); }} onEdit={() => { setEditing(selected); setSelected(null); }} onTransition={transition} />}
+      </AnimatePresence>
     </div>
   );
 }

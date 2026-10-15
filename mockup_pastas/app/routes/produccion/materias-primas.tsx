@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
 import {
   MARCAS, MATERIAS_PRIMAS_PRODUCCION, RECETAS, TIPOS_MATERIA_PRIMA, UNIDADES,
   codigo, formatCantidad, formatCurrency, getMarca, getTipoMateriaPrima, siguienteId, type MateriaPrima,
 } from "~/data/produccion";
+import { Dialog, rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
@@ -29,8 +31,7 @@ function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrim
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <section role="dialog" aria-modal="true" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
+    <Dialog onClose={onCancel} className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
         <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{material ? "Editar materia prima" : "Nueva materia prima"}</h2>
@@ -77,8 +78,7 @@ function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrim
             <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar materia prima</button>
           </div>
         </form>
-      </section>
-    </div>
+    </Dialog>
   );
 }
 
@@ -89,8 +89,7 @@ function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPr
   });
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
+    <Dialog onClose={onClose} className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{codigo("MP", material.idMateriaPrima)} · {getTipoMateriaPrima(material.idTipoMateriaPrima)}</p>
@@ -137,8 +136,7 @@ function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPr
             </ol>
           </div>
         </div>
-      </section>
-    </div>
+    </Dialog>
   );
 }
 
@@ -170,6 +168,7 @@ export default function MateriasPrimas() {
     const i = MATERIAS_PRIMAS_PRODUCCION.findIndex((x) => x.idMateriaPrima === m.idMateriaPrima);
     if (i >= 0) MATERIAS_PRIMAS_PRODUCCION[i] = m;
     else MATERIAS_PRIMAS_PRODUCCION.unshift(m);
+    toast(`${m.nombre} se ${i >= 0 ? "actualizó" : "agregó"} correctamente.`);
     setMaterials([...MATERIAS_PRIMAS_PRODUCCION]);
     setEditing(undefined);
     setSelected(m);
@@ -223,8 +222,9 @@ export default function MateriasPrimas() {
               <div className="min-w-0 text-center">Acciones</div>
             </div>
             <div className="divide-y divide-gray-100">
-              {filtered.map((m) => (
-                <article key={m.idMateriaPrima} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
+              <AnimatePresence mode="popLayout">
+              {filtered.map((m, index) => (
+                <motion.article key={m.idMateriaPrima} {...rowMotion(index)} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
                   <div className="col-span-2 min-w-0 text-left lg:col-span-1">
                     <p className="mb-1 text-xs font-medium text-gray-500">{codigo("MP", m.idMateriaPrima)}</p>
                     <h3 className="break-words font-semibold leading-5 text-gray-900">{m.nombre}</h3>
@@ -251,15 +251,18 @@ export default function MateriasPrimas() {
                     <button type="button" onClick={() => setSelected(m)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
                     <button type="button" onClick={() => setEditing(m)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
                   </div>
-                </article>
+                </motion.article>
               ))}
+              </AnimatePresence>
             </div>
           </>
         )}
       </section>
 
-      {editing !== undefined && <RawMaterialForm material={editing} onCancel={() => setEditing(undefined)} onSave={save} />}
-      {selected && <RawMaterialDetails material={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); setSelected(null); }} />}
+      <AnimatePresence>
+        {editing !== undefined && <RawMaterialForm material={editing} onCancel={() => setEditing(undefined)} onSave={save} key="form" />}
+        {selected && <RawMaterialDetails key="detail" material={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); setSelected(null); }} />}
+      </AnimatePresence>
     </div>
   );
 }

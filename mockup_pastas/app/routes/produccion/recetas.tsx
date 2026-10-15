@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { Link, useSearchParams } from "react-router";
 import { SAMPLE_MACHINES } from "~/data/maintenance";
 import {
@@ -6,6 +7,7 @@ import {
   codigo, formatCantidad, getMateriaPrima, getUnidad, siguienteId,
   type DetalleMateriaPrima, type DetalleRecetaMaquina, type Receta,
 } from "~/data/produccion";
+import { Accordion, Collapse, Dialog, rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
@@ -50,8 +52,7 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <section role="dialog" aria-modal="true" className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
+    <Dialog onClose={onCancel} className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
         <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
           <div>
             <h2 className="text-lg font-semibold text-gray-900">{recipe ? "Editar receta" : "Nueva receta"}</h2>
@@ -82,13 +83,14 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
               <h3 className="font-semibold text-gray-900">Materias primas</h3>
               <button type="button" onClick={() => setMaterias([...materias, { key: `mp-${Date.now()}`, idMateriaPrima: "", cantidadNecesaria: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar materia prima</button>
             </div>
-            <div className="mt-4 space-y-3">
-              {materias.length === 0 ? (
-                <p className="text-sm text-gray-500">Todavía no agregaste materias primas.</p>
-              ) : materias.map((m, idx) => {
+            <div className="mt-4">
+              {materias.length === 0 && <p className="text-sm text-gray-500">Todavía no agregaste materias primas.</p>}
+              <AnimatePresence initial={false}>
+              {materias.map((m, idx) => {
                 const unidad = m.idMateriaPrima ? getUnidad(getMateriaPrima(Number(m.idMateriaPrima))?.idUnidad ?? 0) : "";
                 return (
-                  <div key={m.key} className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <Collapse key={m.key} className="pb-3">
+                  <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <button type="button" onClick={() => setMaterias(materias.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar materia prima">✕</button>
                     <div className="grid gap-4 pr-6 sm:grid-cols-[2fr_1fr]">
                       <label className={labelClass}>Materia prima <span className="text-rose-600">*</span>
@@ -102,8 +104,10 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
                       </label>
                     </div>
                   </div>
+                  </Collapse>
                 );
               })}
+              </AnimatePresence>
             </div>
           </div>
 
@@ -112,11 +116,12 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
               <h3 className="font-semibold text-gray-900">Máquinas</h3>
               <button type="button" onClick={() => setMaquinas([...maquinas, { key: `maq-${Date.now()}`, idMaquina: "", horaInicio: "", horaFin: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar máquina</button>
             </div>
-            <div className="mt-4 space-y-3">
-              {maquinas.length === 0 ? (
-                <p className="text-sm text-gray-500">La receta no tiene máquinas asignadas.</p>
-              ) : maquinas.map((m, idx) => (
-                <div key={m.key} className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div className="mt-4">
+              {maquinas.length === 0 && <p className="text-sm text-gray-500">La receta no tiene máquinas asignadas.</p>}
+              <AnimatePresence initial={false}>
+              {maquinas.map((m, idx) => (
+                <Collapse key={m.key} className="pb-3">
+                <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <button type="button" onClick={() => setMaquinas(maquinas.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar máquina">✕</button>
                   <div className="grid gap-4 pr-6 sm:grid-cols-[2fr_1fr_1fr]">
                     <label className={labelClass}>Máquina <span className="text-rose-600">*</span>
@@ -133,7 +138,9 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
                     </label>
                   </div>
                 </div>
+                </Collapse>
               ))}
+              </AnimatePresence>
             </div>
           </div>
         </form>
@@ -142,8 +149,7 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
           <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
           <button type="submit" form="recipe-form" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar receta</button>
         </div>
-      </section>
-    </div>
+    </Dialog>
   );
 }
 
@@ -151,8 +157,7 @@ function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: (
   const productos = PRODUCTOS_PRODUCCION.filter((p) => p.idReceta === recipe.idReceta);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-4xl sm:rounded-2xl">
+    <Dialog onClose={onClose} className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-4xl sm:rounded-2xl">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
           <div>
             <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{codigo("REC", recipe.idReceta)}</p>
@@ -166,53 +171,57 @@ function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: (
 
         <div className="flex-1 overflow-y-auto p-5 sm:p-6">
           <div className="grid gap-7 md:grid-cols-[1fr_280px]">
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Procedimiento</h3>
-                <p className="mt-2 whitespace-pre-line text-sm leading-6 text-gray-700">{recipe.procedimiento}</p>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-gray-200">
-                <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Materias primas</h3>
-                </div>
-                <ul className="divide-y divide-gray-100">
-                  {recipe.materiasPrimas.map((d) => {
-                    const mp = getMateriaPrima(d.idMateriaPrima);
-                    return (
-                      <li key={d.idMateriaPrima} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                        <span className="text-gray-900">{mp?.nombre ?? "—"}</span>
-                        <span className="font-medium text-gray-700">{mp ? formatCantidad(d.cantidadNecesaria, mp.idUnidad) : d.cantidadNecesaria}</span>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-
-              <div className="overflow-hidden rounded-xl border border-gray-200">
-                <div className="border-b border-gray-200 bg-gray-50 px-4 py-3">
-                  <h3 className="text-sm font-semibold text-gray-900">Máquinas</h3>
-                </div>
-                {recipe.maquinas.length === 0 ? (
-                  <p className="px-4 py-3 text-sm text-gray-500">La receta no tiene máquinas asignadas.</p>
-                ) : (
-                  <ul className="divide-y divide-gray-100">
-                    {recipe.maquinas.map((d) => {
-                      const maq = SAMPLE_MACHINES.find((m) => m.id === d.idMaquina);
-                      return (
-                        <li key={d.idMaquina} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                          <span>
-                            <span className="text-xs font-semibold text-gray-500">{maq?.code}</span>
-                            <span className="ml-2 text-gray-900">{maq?.name ?? "—"}</span>
-                          </span>
-                          <span className="font-medium text-gray-700">{d.horaInicio} a {d.horaFin}</span>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </div>
-            </div>
+            <Accordion
+              defaultOpen="materias"
+              items={[
+                {
+                  id: "procedimiento",
+                  title: "Procedimiento",
+                  content: <p className="whitespace-pre-line px-4 py-3 text-sm leading-6 text-gray-700">{recipe.procedimiento}</p>,
+                },
+                {
+                  id: "materias",
+                  title: "Materias primas",
+                  meta: String(recipe.materiasPrimas.length),
+                  content: (
+                    <ul className="divide-y divide-gray-100">
+                      {recipe.materiasPrimas.map((d) => {
+                        const mp = getMateriaPrima(d.idMateriaPrima);
+                        return (
+                          <li key={d.idMateriaPrima} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                            <span className="text-gray-900">{mp?.nombre ?? "—"}</span>
+                            <span className="font-medium text-gray-700">{mp ? formatCantidad(d.cantidadNecesaria, mp.idUnidad) : d.cantidadNecesaria}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ),
+                },
+                {
+                  id: "maquinas",
+                  title: "Máquinas",
+                  meta: String(recipe.maquinas.length),
+                  content: recipe.maquinas.length === 0 ? (
+                    <p className="px-4 py-3 text-sm text-gray-500">La receta no tiene máquinas asignadas.</p>
+                  ) : (
+                    <ul className="divide-y divide-gray-100">
+                      {recipe.maquinas.map((d) => {
+                        const maq = SAMPLE_MACHINES.find((m) => m.id === d.idMaquina);
+                        return (
+                          <li key={d.idMaquina} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
+                            <span>
+                              <span className="text-xs font-semibold text-gray-500">{maq?.code}</span>
+                              <span className="ml-2 text-gray-900">{maq?.name ?? "—"}</span>
+                            </span>
+                            <span className="font-medium text-gray-700">{d.horaInicio} a {d.horaFin}</span>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  ),
+                },
+              ]}
+            />
 
             <div className="space-y-6">
               <div>
@@ -245,8 +254,7 @@ function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: (
             </div>
           </div>
         </div>
-      </section>
-    </div>
+    </Dialog>
   );
 }
 
@@ -285,6 +293,7 @@ export default function Recetas() {
     const i = RECETAS.findIndex((x) => x.idReceta === r.idReceta);
     if (i >= 0) RECETAS[i] = r;
     else RECETAS.unshift(r);
+    toast(`La receta ${r.nombre} se ${i >= 0 ? "actualizó" : "agregó"} correctamente.`);
     setRecipes([...RECETAS]);
     setEditing(undefined);
     setSelected(r);
@@ -328,8 +337,9 @@ export default function Recetas() {
               <div className="min-w-0 text-center">Acciones</div>
             </div>
             <div className="divide-y divide-gray-100">
-              {filtered.map((r) => (
-                <article key={r.idReceta} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.6fr_1fr_1fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
+              <AnimatePresence mode="popLayout">
+              {filtered.map((r, index) => (
+                <motion.article key={r.idReceta} {...rowMotion(index)} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.6fr_1fr_1fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
                   <div className="col-span-2 min-w-0 text-left lg:col-span-1">
                     <p className="mb-1 text-xs font-medium text-gray-500">{codigo("REC", r.idReceta)}</p>
                     <h3 className="break-words font-semibold leading-5 text-gray-900">{r.nombre}</h3>
@@ -354,15 +364,18 @@ export default function Recetas() {
                     <button type="button" onClick={() => setSelected(r)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
                     <button type="button" onClick={() => setEditing(r)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
                   </div>
-                </article>
+                </motion.article>
               ))}
+              </AnimatePresence>
             </div>
           </>
         )}
       </section>
 
-      {editing !== undefined && <RecipeForm recipe={editing} onCancel={() => setEditing(undefined)} onSave={save} />}
-      {selected && <RecipeDetails recipe={selected} onClose={closeDetails} onEdit={() => { setEditing(selected); closeDetails(); }} />}
+      <AnimatePresence>
+        {editing !== undefined && <RecipeForm recipe={editing} onCancel={() => setEditing(undefined)} onSave={save} key="form" />}
+        {selected && <RecipeDetails key="detail" recipe={selected} onClose={closeDetails} onEdit={() => { setEditing(selected); closeDetails(); }} />}
+      </AnimatePresence>
     </div>
   );
 }

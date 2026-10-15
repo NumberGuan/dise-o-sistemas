@@ -1,5 +1,7 @@
 import { Link } from "react-router";
 
+import { AnimatedNumber } from "~/components/motion";
+
 export type DashboardMetricTone = "neutral" | "success" | "info" | "warning";
 
 export type DashboardMetric = {
@@ -101,7 +103,7 @@ export default function ModuleDashboard({
               return (
                 <div key={metric.label} className={`rounded-xl border p-5 shadow-sm ${METRIC_TONES[tone]}`}>
                   <dt className="text-sm font-medium opacity-80">{metric.label}</dt>
-                  <dd className="mt-2 text-3xl font-bold">{metric.value}</dd>
+                  <dd className="mt-2 text-3xl font-bold tabular-nums">{typeof metric.value === "number" ? <AnimatedNumber value={metric.value} /> : metric.value}</dd>
                 </div>
               );
             })}

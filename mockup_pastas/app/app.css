@@ -141,6 +141,25 @@ body {
   color-scheme: light;
 }
 
+/* Respuesta al presionar: los botones se hunden apenas para confirmar el click. */
+@layer base {
+  button:not(:disabled) {
+    transition-property: scale, color, background-color, border-color, box-shadow;
+    transition-duration: 160ms;
+    transition-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  button:not(:disabled):active {
+    scale: 0.97;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    button:not(:disabled):active {
+      scale: none;
+    }
+  }
+}
+
 ::selection {
   background: var(--color-brand-200);
   color: var(--color-slateblue-950);
