@@ -1,16 +1,3 @@
-import type { NavItem } from "~/data/navigation";
-
-export const SALES_PAGES = [
-  { label: "Resumen", to: "/ventas" },
-  { label: "Clientes", to: "/ventas/clientes" },
-  { label: "Presupuestos", to: "/ventas/presupuestos" },
-  { label: "Pedidos", to: "/ventas/pedidos" },
-  { label: "Comprobantes", to: "/ventas/comprobantes" },
-  { label: "Recibos", to: "/ventas/recibos" },
-  { label: "Remitos", to: "/ventas/remitos" },
-  { label: "Devoluciones", to: "/ventas/devoluciones" },
-] as const satisfies readonly NavItem[];
-
 export type ClientStatus = "Activo" | "Inactivo";
 
 // Opciones de referencia para la maqueta; no representan un catálogo fiscal oficial.
@@ -20,6 +7,41 @@ export type ClientDocumentType = (typeof CLIENT_DOCUMENT_TYPES)[number];
 // Opciones de muestra para la interfaz, sujetas a definición del negocio.
 export const CLIENT_IVA_TYPES = ["Responsable inscripto", "Monotributista", "Consumidor final", "Exento"] as const;
 export type ClientIvaType = (typeof CLIENT_IVA_TYPES)[number];
+
+export type ClientAddress = {
+  id: string;
+  label: string;
+  street: string;
+  streetNumber: string;
+  floor: string;
+  apartment: string;
+  locality: string;
+  province: string;
+};
+
+export function getClientAddresses(client: Pick<Client, "id" | "street" | "streetNumber" | "floor" | "apartment" | "locality" | "province" | "addresses">): ClientAddress[] {
+  if (client.addresses) return client.addresses;
+  if (!client.street.trim()) return [];
+  return [{ id: "principal", label: "Principal", street: client.street, streetNumber: client.streetNumber, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province }];
+}
+
+export function validateClientAddresses(value: unknown): ClientAddress[] {
+  if (!Array.isArray(value) || value.length > 20) throw new Error("Podés guardar hasta 20 direcciones.");
+  const ids = new Set<string>();
+  return value.map((entry) => {
+    if (!entry || typeof entry !== "object") throw new Error("La dirección no es válida.");
+    const fields = { id: 120, label: 60, street: 160, streetNumber: 20, floor: 20, apartment: 20, locality: 100, province: 100 };
+    const address = {} as ClientAddress;
+    for (const key of Object.keys(fields) as (keyof ClientAddress)[]) {
+      const text = entry[key];
+      if (typeof text !== "string" || text.length > fields[key] || (!["floor", "apartment"].includes(key) && !text.trim())) throw new Error("Completá el nombre, calle, altura, localidad y provincia de cada dirección.");
+      address[key] = text.trim();
+    }
+    if (ids.has(address.id)) throw new Error("Hay direcciones repetidas.");
+    ids.add(address.id);
+    return address;
+  });
+}
 
 export type Client = {
   id: string;
@@ -31,7 +53,10 @@ export type Client = {
   ivaType: ClientIvaType | "";
   phone: string;
   email: string;
-  address: string;
+  street: string;
+  streetNumber: string;
+  balance: number;
+  addresses?: ClientAddress[];
   floor?: string;
   apartment?: string;
   locality: string;
@@ -40,9 +65,27 @@ export type Client = {
   notes: string;
 };
 
-export function formatClientAddress(client: Pick<Client, "address" | "floor" | "apartment" | "locality" | "province">) {
+export const COUNTER_CLIENT: Client = {
+  id: "consumidor-final", code: "MOSTRADOR", type: "Particular", name: "Consumidor final (Mostrador)",
+  documentType: "Otro", cuitCuil: "", ivaType: "Consumidor final", phone: "", email: "",
+  street: "", streetNumber: "", locality: "", province: "", balance: 0, addresses: [], status: "Activo", notes: "",
+};
+
+// Compatibilidad con las direcciones guardadas antes de separar calle y altura.
+export function splitClientAddress(address: string) {
+  const match = address.trim().match(/^(.*?)\s+(\d+[A-Za-z]?)$/);
+  return { street: match?.[1] ?? address.trim(), streetNumber: match?.[2] ?? "" };
+}
+
+export function normalizeClient(client: Client & { address?: string }): Client {
+  const { address, ...fields } = client;
+  const legacy = splitClientAddress(address ?? "");
+  return { ...fields, street: client.street ?? legacy.street, streetNumber: client.streetNumber ?? legacy.streetNumber, balance: client.type === "Comercio" ? client.balance ?? 0 : 0 };
+}
+
+export function formatClientAddress(client: Pick<Client, "street" | "streetNumber" | "floor" | "apartment" | "locality" | "province">) {
   return [
-    client.address,
+    [client.street, client.streetNumber].filter(Boolean).join(" "),
     client.floor && `Piso ${client.floor}`,
     client.apartment && `Depto. ${client.apartment}`,
     client.locality,
@@ -51,12 +94,12 @@ export function formatClientAddress(client: Pick<Client, "address" | "floor" | "
 }
 
 export const SAMPLE_CLIENTS: Client[] = [
-  { id: "c-148", code: "CLI-00148", type: "Distribuidor", name: "Distribuidora El Sol", documentType: "CUIT", cuitCuil: "30-71234567-8", ivaType: "Responsable inscripto", phone: "11 4567-2300", email: "compras@distribuidoraelsol.com.ar", address: "Av. Rivadavia 2840", floor: "", apartment: "", locality: "Morón", province: "Buenos Aires", status: "Activo", notes: "Entrega por la mañana. Contactar a Laura." },
-  { id: "c-147", code: "CLI-00147", type: "Comercio", name: "Supermercados Andes", documentType: "CUIT", cuitCuil: "30-69876543-2", ivaType: "Responsable inscripto", phone: "11 4788-1200", email: "pedidos@andes.com.ar", address: "Belgrano 145", floor: "", apartment: "", locality: "San Martín", province: "Buenos Aires", status: "Activo", notes: "" },
-  { id: "c-146", code: "CLI-00146", type: "Comercio", name: "Almacén Don Pedro", documentType: "CUIT", cuitCuil: "20-24567891-3", ivaType: "Monotributista", phone: "11 4455-7701", email: "donpedro@correo.com", address: "Italia 820", floor: "", apartment: "", locality: "Haedo", province: "Buenos Aires", status: "Activo", notes: "Recibe pedidos los lunes y jueves." },
-  { id: "c-145", code: "CLI-00145", type: "Comercio", name: "Mini Market Norte", documentType: "CUIT", cuitCuil: "30-73456789-1", ivaType: "Responsable inscripto", phone: "11 4766-0092", email: "administracion@mininorte.com.ar", address: "San Lorenzo 560", floor: "", apartment: "", locality: "Villa Ballester", province: "Buenos Aires", status: "Activo", notes: "" },
-  { id: "c-144", code: "CLI-00144", type: "Particular", name: "María Fernanda López", documentType: "CUIL", cuitCuil: "27-28345678-4", ivaType: "Consumidor final", phone: "11 6098-3321", email: "maria.lopez@email.com", address: "Las Heras 112", floor: "2", apartment: "B", locality: "Castelar", province: "Buenos Aires", status: "Inactivo", notes: "Cliente sin actividad reciente." },
-  { id: "c-143", code: "CLI-00143", type: "Distribuidor", name: "Alimentos La Estación", documentType: "CUIT", cuitCuil: "30-72345678-9", ivaType: "Responsable inscripto", phone: "11 4621-8800", email: "ventas@laestacion.com.ar", address: "Calle 25 de Mayo 1010", floor: "", apartment: "", locality: "Ituzaingó", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-148", code: "CLI-00148", type: "Distribuidor", name: "Distribuidora El Sol", documentType: "CUIT", cuitCuil: "30-71234567-8", ivaType: "Responsable inscripto", phone: "11 4567-2300", email: "compras@distribuidoraelsol.com.ar", street: "Av. Rivadavia", streetNumber: "2840", balance: 0, floor: "", apartment: "", locality: "Morón", province: "Buenos Aires", status: "Activo", notes: "Entrega por la mañana. Contactar a Laura." },
+  { id: "c-147", code: "CLI-00147", type: "Comercio", name: "Supermercados Andes", documentType: "CUIT", cuitCuil: "30-69876543-2", ivaType: "Responsable inscripto", phone: "11 4788-1200", email: "pedidos@andes.com.ar", street: "Belgrano", streetNumber: "145", balance: 0, floor: "", apartment: "", locality: "San Martín", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-146", code: "CLI-00146", type: "Comercio", name: "Almacén Don Pedro", documentType: "CUIT", cuitCuil: "20-24567891-3", ivaType: "Monotributista", phone: "11 4455-7701", email: "donpedro@correo.com", street: "Italia", streetNumber: "820", balance: 0, floor: "", apartment: "", locality: "Haedo", province: "Buenos Aires", status: "Activo", notes: "Recibe pedidos los lunes y jueves." },
+  { id: "c-145", code: "CLI-00145", type: "Comercio", name: "Mini Market Norte", documentType: "CUIT", cuitCuil: "30-73456789-1", ivaType: "Responsable inscripto", phone: "11 4766-0092", email: "administracion@mininorte.com.ar", street: "San Lorenzo", streetNumber: "560", balance: 0, floor: "", apartment: "", locality: "Villa Ballester", province: "Buenos Aires", status: "Activo", notes: "" },
+  { id: "c-144", code: "CLI-00144", type: "Particular", name: "María Fernanda López", documentType: "CUIL", cuitCuil: "27-28345678-4", ivaType: "Consumidor final", phone: "11 6098-3321", email: "maria.lopez@email.com", street: "Las Heras", streetNumber: "112", balance: 0, floor: "2", apartment: "B", locality: "Castelar", province: "Buenos Aires", status: "Inactivo", notes: "Cliente sin actividad reciente." },
+  { id: "c-143", code: "CLI-00143", type: "Distribuidor", name: "Alimentos La Estación", documentType: "CUIT", cuitCuil: "30-72345678-9", ivaType: "Responsable inscripto", phone: "11 4621-8800", email: "ventas@laestacion.com.ar", street: "Calle 25 de Mayo", streetNumber: "1010", balance: 0, floor: "", apartment: "", locality: "Ituzaingó", province: "Buenos Aires", status: "Activo", notes: "" },
 ];
 
 export type ClientActivity = { type: string; code: string; date: string; summary: string; status: string; to: string };
@@ -88,6 +131,8 @@ export const SAMPLE_PRODUCTS: Product[] = [
 
 export const ORDER_STATUSES = ["Pendiente", "En preparación", "Listo para remito", "Facturado", "Cancelado"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export const ORDER_KINDS = ["Regular", "Mostrador", "Evento"] as const;
+export type OrderKind = (typeof ORDER_KINDS)[number];
 
 export type OrderItem = {
   id: string;
@@ -102,10 +147,15 @@ export type Order = {
   id: string;
   number: string;
   clientId: string;
+  kind?: OrderKind;
+  fulfillment?: "Retiro en local" | "Envío";
+  deliveryTime?: string;
   employeeId?: string;
   date: string;
   deliveryDate: string;
   deliveryAddressType?: "client" | "custom";
+  deliveryAddressId?: string;
+  deliveryAddress?: string;
   customDeliveryAddress?: string;
   items: OrderItem[];
   subtotal: number;
@@ -181,6 +231,8 @@ export type InvoiceItem = {
   quantity: number;
   unitPrice: number;
   subtotal: number;
+  discount?: number;
+  netSubtotal?: number;
 };
 
 export type Invoice = {
@@ -197,6 +249,7 @@ export type Invoice = {
   tax: number;
   total: number;
   status: InvoiceStatus;
+  commercialDiscountRate?: number;
   observations: string;
 
 };
@@ -446,6 +499,8 @@ export type Receipt = {
   total: number;
   status: ReceiptStatus;
   observations: string;
+  accountMonth?: string;
+  advanceOrderId?: string;
 };
 
 export const SAMPLE_RECEIPTS: Receipt[] = [
@@ -467,8 +522,8 @@ export const SAMPLE_RECEIPTS: Receipt[] = [
 ];
 
 // Solo los recibos registrados afectan el saldo. Un borrador no representa un cobro.
-export function getInvoicePaymentSummary(invoice: Invoice, excludingReceiptId?: string) {
-  const paid = SAMPLE_RECEIPTS
+export function getInvoicePaymentSummary(invoice: Invoice, excludingReceiptId?: string, receipts: Receipt[] = SAMPLE_RECEIPTS) {
+  const paid = receipts
     .filter(receipt => receipt.status === "Registrado" && receipt.id !== excludingReceiptId && receipt.clientId === invoice.clientId)
     .flatMap(receipt => receipt.invoices)
     .filter(detail => detail.invoiceId === invoice.id)

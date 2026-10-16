@@ -1,3 +1,5 @@
+import RecordPage, { RecordNotFound } from "~/components/RecordPage";
+import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
@@ -5,7 +7,7 @@ import {
   ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS, TIPOS_PRODUCTO, UNIDADES,
   codigo, formatCantidad, formatCurrency, getReceta, getTipoProducto, siguienteId, type Producto,
 } from "~/data/produccion";
-import { Dialog, rowMotion, toast } from "~/components/motion";
+import { rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
@@ -41,57 +43,56 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
   }
 
   return (
-    <Dialog onClose={onCancel} className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{product ? "Editar producto" : "Nuevo producto"}</h2>
-            <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
-          </div>
-          <button type="button" onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
+    <RecordPage onBack={onCancel}>
+      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{product ? "Editar producto" : "Nuevo producto"}</h1>
+          <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
-        <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
-          {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelClass}>Código
-              <input value={codigo("PRO", id)} readOnly className={`${field} bg-gray-100`} />
-            </label>
-            <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
-              <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Tipo de producto <span className="text-rose-600">*</span>
-              <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
-                <option value="">Seleccionar...</option>
-                {TIPOS_PRODUCTO.map((t) => <option key={t.idTipoProducto} value={t.idTipoProducto}>{t.tipo}</option>)}
-              </select>
-            </label>
-            <label className={labelClass}>Receta <span className="text-rose-600">*</span>
-              <select value={receta} onChange={(e) => setReceta(e.target.value)} className={field}>
-                <option value="">Seleccionar...</option>
-                {RECETAS.map((r) => <option key={r.idReceta} value={r.idReceta}>{r.nombre}</option>)}
-              </select>
-            </label>
-            <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
-              <select value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
-                <option value="">Seleccionar...</option>
-                {UNIDADES.map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
-              </select>
-            </label>
-            <label className={labelClass}>Precio (ARS) <span className="text-rose-600">*</span>
-              <input type="number" min="0" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Stock <span className="text-rose-600">*</span>
-              <input type="number" min="0" step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Fecha de vencimiento <span className="text-rose-600">*</span>
-              <input type="date" value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} className={field} />
-            </label>
-          </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
-            <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar producto</button>
-          </div>
-        </form>
-    </Dialog>
+      </div>
+      <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
+        {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={labelClass}>Código
+            <input value={codigo("PRO", id)} readOnly className={`${field} bg-gray-100`} />
+          </label>
+          <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
+            <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Tipo de producto <span className="text-rose-600">*</span>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
+              <option value="">Seleccionar...</option>
+              {TIPOS_PRODUCTO.map((t) => <option key={t.idTipoProducto} value={t.idTipoProducto}>{t.tipo}</option>)}
+            </select>
+          </label>
+          <label className={labelClass}>Receta <span className="text-rose-600">*</span>
+            <select value={receta} onChange={(e) => setReceta(e.target.value)} className={field}>
+              <option value="">Seleccionar...</option>
+              {RECETAS.map((r) => <option key={r.idReceta} value={r.idReceta}>{r.nombre}</option>)}
+            </select>
+          </label>
+          <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
+            <select value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
+              <option value="">Seleccionar...</option>
+              {UNIDADES.map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
+            </select>
+          </label>
+          <label className={labelClass}>Precio (ARS) <span className="text-rose-600">*</span>
+            <input type="number" min="0" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Stock <span className="text-rose-600">*</span>
+            <input type="number" min="0" step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Fecha de vencimiento <span className="text-rose-600">*</span>
+            <input type="date" value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} className={field} />
+          </label>
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
+          <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar producto</button>
+        </div>
+      </form>
+    </RecordPage>
   );
 }
 
@@ -102,64 +103,64 @@ function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClo
     .sort((a, b) => b.fechaEmision.localeCompare(a.fechaEmision));
 
   return (
-    <Dialog onClose={onClose} className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{codigo("PRO", product.idProducto)} · {getTipoProducto(product.idTipoProducto)}</p>
-            <h2 className="mt-1 text-xl font-bold text-gray-900">{product.nombre}</h2>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
-            <button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button>
-          </div>
+    <RecordPage onBack={onClose}>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{codigo("PRO", product.idProducto)} · {getTipoProducto(product.idTipoProducto)}</p>
+          <h1 className="mt-1 text-2xl font-bold text-gray-900">{product.nombre}</h1>
         </div>
-        <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Información del producto</h3>
-            <dl className="mt-3 space-y-3 text-sm">
-              {[
-                ["Tipo", getTipoProducto(product.idTipoProducto)],
-                ["Precio", formatCurrency(product.precio)],
-                ["Stock", formatCantidad(product.stockProducto, product.idUnidad)],
-                ["Fecha de vencimiento", product.fechaVencimiento],
-                ["Receta", receta?.nombre ?? "—"],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-gray-500">{label}</dt>
-                  <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            {receta && (
-              <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="mt-6 block rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">Ver receta</Link>
-            )}
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Órdenes de producción</h3>
-            <ol className="mt-4 divide-y divide-gray-100">
-              {ordenes.length === 0 ? (
-                <p className="text-sm text-gray-500">Este producto todavía no figura en ninguna orden.</p>
-              ) : ordenes.map((o) => {
-                const cantidad = o.detalle.find((d) => d.idProducto === product.idProducto)?.cantidadRealGenerada;
-                return (
-                  <li key={o.idOrdenProduccion} className="py-3 first:pt-0">
-                    <Link to={`/produccion/ordenes?orden=${o.idOrdenProduccion}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
-                      <span>
-                        <span className="text-xs font-medium text-gray-500">{codigo("OP", o.idOrdenProduccion, 4)} · Lote {o.nmrLote}</span>
-                        <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">
-                          {cantidad != null ? `Se generaron ${formatCantidad(cantidad, product.idUnidad)}` : "Sin cantidad registrada"}
-                        </span>
-                        <span className="mt-1 block text-xs text-gray-500">Emitida el {o.fechaEmision}</span>
+        <div className="flex gap-2">
+          <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
+
+        </div>
+      </div>
+      <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Información del producto</h3>
+          <dl className="mt-3 space-y-3 text-sm">
+            {[
+              ["Tipo", getTipoProducto(product.idTipoProducto)],
+              ["Precio", formatCurrency(product.precio)],
+              ["Stock", formatCantidad(product.stockProducto, product.idUnidad)],
+              ["Fecha de vencimiento", product.fechaVencimiento],
+              ["Receta", receta?.nombre ?? "—"],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-xs text-gray-500">{label}</dt>
+                <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
+              </div>
+            ))}
+          </dl>
+          {receta && (
+            <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="mt-6 block rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">Ver receta</Link>
+          )}
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Órdenes de producción</h3>
+          <ol className="mt-4 divide-y divide-gray-100">
+            {ordenes.length === 0 ? (
+              <p className="text-sm text-gray-500">Este producto todavía no figura en ninguna orden.</p>
+            ) : ordenes.map((o) => {
+              const cantidad = o.detalle.find((d) => d.idProducto === product.idProducto)?.cantidadRealGenerada;
+              return (
+                <li key={o.idOrdenProduccion} className="py-3 first:pt-0">
+                  <Link to={`/produccion/ordenes?orden=${o.idOrdenProduccion}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
+                    <span>
+                      <span className="text-xs font-medium text-gray-500">{codigo("OP", o.idOrdenProduccion, 4)} · Lote {o.nmrLote}</span>
+                      <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">
+                        {cantidad != null ? `Se generaron ${formatCantidad(cantidad, product.idUnidad)}` : "Sin cantidad registrada"}
                       </span>
-                      <span className="text-xs font-medium text-gray-500">{o.estado}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
-          </div>
+                      <span className="mt-1 block text-xs text-gray-500">Emitida el {o.fechaEmision}</span>
+                    </span>
+                    <span className="text-xs font-medium text-gray-500">{o.estado}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
         </div>
-    </Dialog>
+      </div>
+    </RecordPage>
   );
 }
 
@@ -167,8 +168,7 @@ export default function Productos() {
   const [products, setProducts] = useState(() => [...PRODUCTOS_PRODUCCION]);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("Todos");
-  const [editing, setEditing] = useState<Producto | null | undefined>();
-  const [selected, setSelected] = useState<Producto | null>(null);
+  const { editing, setEditing, selected, setSelected, closeScreen, missing, params } = useRecordScreen(products, item => item.idProducto, "producto");
 
   const filtered = useMemo(() => products.filter((p) => {
     const q = search.toLowerCase();
@@ -179,7 +179,7 @@ export default function Productos() {
   useEffect(() => {
     if (editing === undefined && selected === null) return;
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") { setEditing(undefined); setSelected(null); }
+      if (event.key === "Escape") { closeScreen(); }
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
@@ -191,9 +191,12 @@ export default function Productos() {
     else PRODUCTOS_PRODUCCION.unshift(p);
     toast(`${p.nombre} se ${i >= 0 ? "actualizó" : "agregó"} correctamente.`);
     setProducts([...PRODUCTOS_PRODUCCION]);
-    setEditing(undefined);
     setSelected(p);
   }
+
+  if (missing) return <RecordNotFound onBack={closeScreen} />;
+  if (editing !== undefined) return <ProductForm product={editing} onCancel={() => setEditing(undefined)} onSave={save} key={params.toString()} />;
+  if (selected) return <ProductDetails key={params.toString()} product={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); }} />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -284,11 +287,6 @@ export default function Productos() {
           </>
         )}
       </section>
-
-      <AnimatePresence>
-        {editing !== undefined && <ProductForm product={editing} onCancel={() => setEditing(undefined)} onSave={save} key="form" />}
-        {selected && <ProductDetails key="detail" product={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); setSelected(null); }} />}
-      </AnimatePresence>
     </div>
   );
 }

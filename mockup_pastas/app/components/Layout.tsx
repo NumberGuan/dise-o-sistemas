@@ -43,7 +43,9 @@ function PageTransition({ children }: { children: ReactNode }) {
   const reduceMotion = useReducedMotion();
 
   useEffect(() => {
-    if (scope.current && !reduceMotion) animatePage(scope.current, { opacity: [0, 1], transform: ["translateY(6px)", "translateY(0px)"] }, { duration: 0.22, ease: EASE_OUT });
+    if (!scope.current) return;
+    scope.current.style.transform = "none";
+    if (!reduceMotion) animatePage(scope.current, { opacity: [0, 1] }, { duration: 0.22, ease: EASE_OUT });
   }, [pathname]);
 
   return <main ref={scope} className="flex-1">{children}</main>;

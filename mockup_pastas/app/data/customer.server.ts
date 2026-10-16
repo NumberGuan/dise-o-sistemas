@@ -1,4 +1,4 @@
-import { SAMPLE_PRODUCTS } from "~/data/sales";
+import { SAMPLE_PRODUCTS, splitClientAddress } from "~/data/sales";
 import type { Client } from "~/data/sales";
 import { mutateUser, type User } from "~/utils/db.server";
 
@@ -21,9 +21,11 @@ export function customerAsClient(user: User): Client | null {
     name: user.name,
     email: user.email,
     phone: user.phone ?? "",
-    address: user.address ?? "",
     status: user.customerStatus ?? "Activo",
     ...customerData,
+    street: user.customerData?.street ?? splitClientAddress(user.address ?? "").street,
+    streetNumber: user.customerData?.streetNumber ?? splitClientAddress(user.address ?? "").streetNumber,
+    balance: customerData.type === "Comercio" ? user.customerData?.balance ?? 0 : 0,
   };
 }
 

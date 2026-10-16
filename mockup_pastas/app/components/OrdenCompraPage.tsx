@@ -1,3 +1,4 @@
+import BackToListButton from "~/components/BackToListButton";
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 
@@ -224,13 +225,7 @@ export default function OrdenCompraPage({
         <p className="mt-2 text-sm text-gray-500">
           No existe una orden de compra con ese identificador.
         </p>
-        <button
-          type="button"
-          onClick={irVolver}
-          className="mt-6 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
-        >
-          Volver a Órdenes
-        </button>
+        <BackToListButton onClick={irVolver} />
       </div>
     );
   }
@@ -479,7 +474,7 @@ export default function OrdenCompraPage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
             {esNueva ? "Nueva Orden de Compra" : "Detalle de Orden de Compra"}
@@ -490,13 +485,7 @@ export default function OrdenCompraPage({
               : `${orden?.numero} · ${proveedor?.nombre ?? "Proveedor"} · ${formatMoney(montoTotal)}`}
           </p>
         </div>
-        <button
-          type="button"
-          onClick={irVolver}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-        >
-          Volver a Órdenes
-        </button>
+        <BackToListButton onClick={irVolver} />
       </div>
       {contenido}
     </div>

@@ -6,32 +6,6 @@ export const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 export const SPRING_BOUNCE: Transition = { type: "spring", duration: 0.45, bounce: 0.25 };
 const FAST: Transition = { duration: 0.2, ease: EASE_OUT };
 
-/* Modal con entrada y salida animadas. El padre lo renderiza dentro de <AnimatePresence>. */
-export function Dialog({ onClose, className, children }: { onClose: () => void; className: string; children: ReactNode }) {
-  return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0, transition: { duration: 0.15 } }}
-      transition={FAST}
-      onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
-    >
-      <motion.section
-        role="dialog"
-        aria-modal="true"
-        className={className}
-        initial={{ opacity: 0, y: 24, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        exit={{ opacity: 0, y: 12, scale: 0.98, transition: { duration: 0.15 } }}
-        transition={{ duration: 0.25, ease: EASE_OUT }}
-      >
-        {children}
-      </motion.section>
-    </motion.div>
-  );
-}
-
 /* Props para filas de listados: entran en cascada y se reacomodan al filtrar. */
 export function rowMotion(index: number) {
   return {

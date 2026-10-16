@@ -1,12 +1,19 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useFetcher, useLoaderData, useRevalidator, useSearchParams } from "react-router";
+import { Link, redirect, useFetcher, useLoaderData, useRevalidator, useSearchParams } from "react-router";
+import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 
-import { SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import { 
   SAMPLE_REMITS,
   SAMPLE_PRODUCTS, 
   formatClientAddress,
+  getClientAddresses,
   ORDER_STATUSES, 
+  ORDER_KINDS,
+  COUNTER_CLIENT,
+  PAYMENT_METHODS,
+  type OrderKind,
+  type PaymentMethod,
   type Client, 
   type Order, 
   type OrderStatus, 
@@ -17,6 +24,8 @@ import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import { changeSalesOrderStatus, getSalesData, saveSalesOrder } from "~/data/sales.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/pedidos";
+
+const currency = (amount: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   await requireUserAndRole(request, ["Ventas"]);
@@ -33,7 +42,8 @@ export const action = async ({ request }: Route.ActionArgs) => {
       if (typeof raw !== "string") throw new Error("Los datos del pedido no son válidos.");
       const id = formData.get("id");
       if (id !== null && (typeof id !== "string" || id.length > 120)) throw new Error("El identificador del pedido no es válido.");
-      await saveSalesOrder(JSON.parse(raw), id || undefined);
+      const saved = await saveSalesOrder(JSON.parse(raw), id || undefined);
+      if (formData.get("invoice") === "yes") return redirect(`/ventas/comprobantes?pedido=${encodeURIComponent(saved.id)}`);
       return { success: true, intent };
     }
     if (intent === "change-status") {
@@ -63,17 +73,27 @@ type OrderFormProps = {
   order: Order | null;
   clients: Client[];
   onCancel: () => void;
-  onSave: (order: Order) => void;
+  onSave: (order: Order & { deposit?: { amount: number; method: PaymentMethod; reference: string } }, invoice: boolean) => void;
   pending: boolean;
 };
 
 function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps) {
   const isNew = !order;
-  const [clientId, setClientId] = useState(order?.clientId || "");
-  const [date, setDate] = useState(order?.date || new Date().toISOString().split("T")[0]);
+  const { receipts } = useLoaderData<typeof loader>();
+  const [kind, setKind] = useState<OrderKind>(order?.kind ?? "Regular");
+  const [fulfillment, setFulfillment] = useState<"Retiro en local" | "Envío">(order?.fulfillment ?? "Envío");
+  const [deliveryTime, setDeliveryTime] = useState(order?.deliveryTime ?? "");
+  const existingDeposit = order ? receipts.find(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado") : undefined;
+  const [depositAmount, setDepositAmount] = useState<number | "">(existingDeposit?.total ?? "");
+  const [depositMethod, setDepositMethod] = useState<PaymentMethod>("Efectivo");
+  const [depositReference, setDepositReference] = useState("");
+  const [productSearch, setProductSearch] = useState("");
+  const [clientId, setClientId] = useState(order?.clientId === COUNTER_CLIENT.id ? "" : order?.clientId || "");
+  const [date, setDate] = useState(order?.date || currentSalesDate());
   const [deliveryDate, setDeliveryDate] = useState(order?.deliveryDate || "");
   const [employeeId, setEmployeeId] = useState(order?.employeeId || "");
   const [deliveryAddressType, setDeliveryAddressType] = useState<"client" | "custom">(order?.deliveryAddressType || "client");
+  const [addressId, setAddressId] = useState(order?.deliveryAddressId ?? getClientAddresses(clients.find(client => client.id === order?.clientId) ?? { id: "", street: "", streetNumber: "", locality: "", province: "" })[0]?.id ?? "");
   const [customDeliveryAddress, setCustomDeliveryAddress] = useState(order?.customDeliveryAddress || "");
   const [items, setItems] = useState<OrderItem[]>(order?.items || []);
   const [discount, setDiscount] = useState(order?.discount || 0);
@@ -84,25 +104,36 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
   const [quantity, setQuantity] = useState(1);
 
   const selectedClient = clients.find(c => c.id === clientId);
+  const addresses = selectedClient ? getClientAddresses(selectedClient) : [];
+  const selectedAddressId = addressId || addresses[0]?.id || "";
 
   const subtotal = items.reduce((acc, item) => acc + item.subtotal, 0);
   const total = Math.max(0, subtotal - discount);
+  const finalAmounts = invoiceAmounts(items, selectedClient?.type ?? "Particular", discount);
+  const minimumDeposit = Math.ceil(Math.round(finalAmounts.total * 100) / 2) / 100;
 
   function handleAddItem() {
     const product = SAMPLE_PRODUCTS.find(p => p.id === selectedProductId);
     if (!product || quantity <= 0) return;
     
-    const newItem: OrderItem = {
-      id: `oi-${Date.now()}`,
-      productId: product.id,
-      productName: product.name,
-      quantity,
-      unitPrice: product.price,
-      subtotal: product.price * quantity
-    };
-    setItems([...items, newItem]);
+    addProduct(product, quantity);
     setSelectedProductId("");
     setQuantity(1);
+  }
+
+  function addProduct(product: Product, count = 1) {
+    const newItem: OrderItem = {
+      id: `oi-${crypto.randomUUID()}`,
+      productId: product.id,
+      productName: product.name,
+      quantity: count,
+      unitPrice: product.price,
+      subtotal: product.price * count
+    };
+    setItems(current => {
+      const existing = current.find(item => item.productId === product.id);
+      return existing ? current.map(item => item.id === existing.id ? { ...item, quantity: item.quantity + count, subtotal: (item.quantity + count) * item.unitPrice } : item) : [...current, newItem];
+    });
     setErrorMsg("");
   }
 
@@ -112,7 +143,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
 
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
-    if (!clientId) {
+    if (!clientId && kind !== "Mostrador") {
       setErrorMsg("Debe seleccionar un cliente.");
       return;
     }
@@ -120,7 +151,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
       setErrorMsg("Debe seleccionar un empleado responsable del pedido.");
       return;
     }
-    if (deliveryAddressType === "custom" && !customDeliveryAddress.trim()) {
+    if (fulfillment === "Envío" && deliveryAddressType === "custom" && !customDeliveryAddress.trim()) {
       setErrorMsg("Debe ingresar la dirección alternativa de entrega.");
       return;
     }
@@ -128,6 +159,9 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
       setErrorMsg("Debe agregar al menos un producto al pedido.");
       return;
     }
+    if (kind === "Evento" && (!deliveryDate || !deliveryTime)) return setErrorMsg("Completá el día y la hora del evento.");
+    const paidDeposit = existingDeposit?.total ?? (depositAmount === "" ? minimumDeposit : depositAmount);
+    if (kind === "Evento" && (paidDeposit < minimumDeposit || paidDeposit > finalAmounts.total)) return setErrorMsg("La seña debe cubrir al menos el 50% y no superar el total final.");
     
     const nextNumber = isNew ? Math.floor(Math.random() * 10000) : parseInt(order.number.split("-")[1], 10);
     const orderNumber = isNew ? `PC-${String(nextNumber).padStart(6, "0")}` : order.number;
@@ -135,11 +169,16 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
     onSave({
       id: order?.id || `o-${Date.now()}`,
       number: orderNumber,
-      clientId,
+      clientId: clientId || COUNTER_CLIENT.id,
+      kind,
+      fulfillment,
+      deliveryTime,
+      deposit: kind === "Evento" ? { amount: paidDeposit, method: depositMethod, reference: depositReference } : undefined,
       employeeId,
       date,
       deliveryDate,
       deliveryAddressType,
+      deliveryAddressId: selectedAddressId,
       customDeliveryAddress: deliveryAddressType === "custom" ? customDeliveryAddress : undefined,
       items,
       subtotal,
@@ -147,21 +186,13 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
       total,
       status: order?.status || "Pendiente",
       observations
-    });
+    }, (e.nativeEvent as SubmitEvent).submitter instanceof HTMLButtonElement && ((e.nativeEvent as SubmitEvent).submitter as HTMLButtonElement).value === "invoice");
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-900/50 p-4 backdrop-blur-sm sm:p-6">
-      <div className="flex max-h-full w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl">
-        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
-          <h2 className="text-lg font-semibold text-gray-900">
-            {isNew ? "Nuevo Pedido" : `Editar Pedido ${order.number}`}
-          </h2>
-          <button type="button" onClick={onCancel} className="text-gray-400 hover:text-gray-500">
-            <span className="sr-only">Cerrar</span>✕
-          </button>
-        </div>
-
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={isNew ? "Nuevo Pedido" : `Editar Pedido ${order.number}`} onCancel={onCancel} pending={pending} />
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex-1 overflow-y-auto px-6 py-5">
           {errorMsg && (
             <div className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-800 border border-red-200">
@@ -169,23 +200,30 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
             </div>
           )}
           <form id="order-form" onSubmit={handleSubmit} className="space-y-6">
+            <label className="block text-sm font-medium text-gray-700">Tipo de pedido
+              <select value={kind} disabled={!isNew} onChange={event => { const next = event.target.value as OrderKind; setKind(next); setFulfillment(next === "Mostrador" ? "Retiro en local" : "Envío"); if (clientId === COUNTER_CLIENT.id) setClientId(""); }} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3">
+                {ORDER_KINDS.map(type => <option key={type}>{type}</option>)}
+              </select>
+            </label>
             
             <div className="grid gap-6 md:grid-cols-2">
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700">Cliente *</label>
+                  <label htmlFor="order-client" className="block text-sm font-medium text-gray-700">{kind === "Mostrador" ? "Cliente (opcional)" : "Cliente *"}</label>
                   <select
-                    required
+                    id="order-client"
+                    required={kind !== "Mostrador"}
                     value={clientId}
                     onChange={e => {
                       setClientId(e.target.value);
+                      setAddressId("");
                       setDeliveryAddressType("client");
                       setCustomDeliveryAddress("");
                     }}
                     className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                   >
-                    <option value="">Seleccionar cliente...</option>
-                    {clients.filter((client) => client.status === "Activo").map(c => (
+                    <option value="">{kind === "Mostrador" ? "Consumidor final · sin seleccionar cliente" : "Seleccionar cliente..."}</option>
+                    {clients.filter((client) => client.status === "Activo" && client.id !== COUNTER_CLIENT.id).map(c => (
                       <option key={c.id} value={c.id}>{c.name}</option>
                     ))}
                   </select>
@@ -199,8 +237,9 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                 )}
                 
                 <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700">Empleado responsable *</label>
+                  <label htmlFor="order-employee" className="block text-sm font-medium text-gray-700">Empleado responsable *</label>
                   <select
+                    id="order-employee"
                     required
                     value={employeeId}
                     onChange={e => setEmployeeId(e.target.value)}
@@ -227,9 +266,12 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Fecha de entrega</label>
+                    <label htmlFor="order-delivery-date" className="block text-sm font-medium text-gray-700">{kind === "Evento" ? "Día de retiro o envío *" : "Fecha de entrega"}</label>
                     <input
+                      id="order-delivery-date"
                       type="date"
+                      required={kind === "Evento"}
+                      min={kind === "Evento" ? date : undefined}
                       value={deliveryDate}
                       onChange={e => setDeliveryDate(e.target.value)}
                       className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
@@ -237,12 +279,21 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                   </div>
                 </div>
 
-                <div className="mt-4">
+                {kind === "Evento" && <label className="block text-sm font-medium text-gray-700">Hora de retiro o envío *<input type="time" required value={deliveryTime} onChange={event => setDeliveryTime(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" /></label>}
+                <label className="block text-sm font-medium text-gray-700">Modalidad de entrega
+                  <select value={fulfillment} onChange={event => setFulfillment(event.target.value as typeof fulfillment)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3"><option>Retiro en local</option><option>Envío</option></select>
+                </label>
+
+                {fulfillment === "Envío" && <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dirección de entrega</label>
                   <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <p className="text-sm text-gray-700">
-                      Predeterminada: <span className="font-medium text-gray-900">{selectedClient ? formatClientAddress(selectedClient) || "No disponible" : "Seleccione un cliente"}</span>
-                    </p>
+                    <label className="block text-sm font-medium text-gray-700">Dirección guardada
+                      <select disabled={deliveryAddressType === "custom" || !selectedClient} value={selectedAddressId} onChange={event => setAddressId(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900">
+                        {!addresses.length && <option value="">Sin direcciones guardadas</option>}
+                        {order?.deliveryAddress && order.deliveryAddressId && !addresses.some(address => address.id === order.deliveryAddressId) && <option value={order.deliveryAddressId}>Dirección original: {order.deliveryAddress}</option>}
+                        {addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}
+                      </select>
+                    </label>
                     <label className="mt-3 flex items-center gap-2 text-sm text-gray-900 cursor-pointer select-none">
                       <input
                         type="checkbox"
@@ -265,11 +316,16 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                       </div>
                     )}
                   </div>
-                </div>
+                </div>}
               </div>
             </div>
 
             <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+              {kind === "Mostrador" && <section className="border-b border-gray-200 p-4">
+                <label className="block text-sm font-medium">Buscar producto<input type="search" value={productSearch} onChange={event => setProductSearch(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" placeholder="Nombre del producto..." /></label>
+                <div className="mt-3 grid gap-2 sm:grid-cols-3">{SAMPLE_PRODUCTS.filter(product => product.name.toLowerCase().includes(productSearch.toLowerCase())).map(product => <button key={product.id} type="button" onClick={() => addProduct(product)} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm hover:bg-amber-100">+ {product.name}<span className="block font-semibold">${product.price}</span></button>)}</div>
+                <p className="mt-2 text-xs text-gray-600">Cada clic agrega una unidad. Podés cargar otras cantidades debajo.</p>
+              </section>}
               <div className="border-b border-gray-200 bg-gray-50 p-4">
                 <h3 className="text-sm font-medium text-gray-900">Productos</h3>
                 <div className="mt-3 flex flex-wrap items-end gap-3">
@@ -348,6 +404,17 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
               )}
             </div>
 
+            {kind === "Evento" && <section className="space-y-3 rounded-lg border border-amber-200 bg-amber-50 p-5">
+              <h2 className="font-semibold">Seña obligatoria del evento</h2>
+              <p className="text-sm">Total final con IVA y descuentos: {currency(finalAmounts.total)}. Seña mínima (50%): {currency(minimumDeposit)}.</p>
+              {existingDeposit ? <p className="text-sm font-semibold">Seña registrada: {currency(existingDeposit.total)} · {existingDeposit.number}</p> : <>
+                <label className="block text-sm">Seña a cobrar *<input type="number" required min={minimumDeposit} max={finalAmounts.total} step="0.01" value={depositAmount === "" ? minimumDeposit : depositAmount} onChange={event => setDepositAmount(event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" /></label>
+                <label className="block text-sm">Medio de pago de la seña<select value={depositMethod} onChange={event => setDepositMethod(event.target.value as PaymentMethod)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3">{PAYMENT_METHODS.map(method => <option key={method}>{method}</option>)}</select></label>
+                <label className="block text-sm">Referencia de la seña<input value={depositReference} onChange={event => setDepositReference(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" /></label>
+                <p className="text-sm">Al guardar se registra el cobro de la seña. Al emitir la factura se descuenta del saldo a pagar.</p>
+              </>}
+            </section>}
+
             <div className="grid gap-6 md:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Observaciones</label>
@@ -387,6 +454,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
         </div>
 
         <div className="flex items-center justify-end gap-3 border-t border-gray-200 bg-gray-50 px-6 py-4">
+          <button type="submit" name="flow" value="invoice" disabled={pending} form="order-form" className="rounded-lg bg-amber-800 px-5 py-2 text-sm font-medium text-white disabled:opacity-50">Guardar y facturar</button>
           <button type="button" disabled={pending} onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50">
             Cancelar
           </button>
@@ -408,18 +476,16 @@ type OrderDetailsProps = {
 };
 
 function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderDetailsProps) {
+  const { invoices, receipts } = useLoaderData<typeof loader>();
+  const deposit = receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
+  const activeInvoice = invoices.find(invoice => invoice.orderId === order.id && invoice.status !== "Anulado");
   const activeRemit = SAMPLE_REMITS.find(remit => remit.orderId === order.id && remit.status !== "Anulado");
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/50 backdrop-blur-sm transition-opacity">
-      <div className="flex w-full max-w-md flex-col bg-white shadow-2xl h-full animate-slide-left overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-900">Pedido {order.number}</h2>
-          <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition">
-            <span className="sr-only">Cerrar</span>✕
-          </button>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={`Pedido ${order.number}`} onCancel={onClose} />
+      <p className="mb-4 text-sm font-semibold text-amber-800">Tipo: {order.kind ?? "Regular"} · {order.fulfillment ?? "Envío"}{order.kind === "Evento" ? ` · ${order.deliveryDate} a las ${order.deliveryTime} · Seña cobrada: ${currency(deposit)}` : ""}</p>
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-6 p-5 sm:p-6">
           <div className="flex justify-between items-center">
             <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClass(order.status)}`}>
               {order.status}
@@ -474,11 +540,11 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
                 <>
               <h3 className="mt-4 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Dirección de Entrega</h3>
               <p className="text-sm font-medium text-gray-800">
-                {order.deliveryAddressType === "custom" 
+                {order.deliveryAddress || (order.deliveryAddressType === "custom"
                   ? order.customDeliveryAddress 
-                  : (client ? formatClientAddress(client) : "Dirección del cliente no disponible")}
+                  : (client ? formatClientAddress(client) : "Dirección del cliente no disponible"))}
                 <span className="ml-2 text-xs font-normal text-gray-500">
-                  ({order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
+                  ({order.fulfillment === "Retiro en local" ? "Retiro" : order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
                 </span>
               </p>
                 </>
@@ -496,6 +562,11 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
         </div>
         
         <div className="border-t border-gray-100 p-5 bg-gray-50 space-y-3">
+          {(activeInvoice || order.status !== "Cancelado") && (
+            <Link to={activeInvoice ? `/ventas/comprobantes?comprobante=${encodeURIComponent(activeInvoice.id)}` : `/ventas/comprobantes?pedido=${encodeURIComponent(order.id)}`} className="block w-full rounded-lg bg-amber-700 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm hover:bg-amber-800">
+              {activeInvoice ? `Consultar factura ${activeInvoice.number}` : "Generar factura"}
+            </Link>
+          )}
           {(activeRemit || order.status === "Listo para remito" || order.status === "Facturado") && (
             <Link to={activeRemit ? `/ventas/remitos?remito=${encodeURIComponent(activeRemit.id)}` : `/ventas/remitos?pedido=${encodeURIComponent(order.id)}`} className="block w-full rounded-lg bg-amber-600 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm hover:bg-amber-700">
               {activeRemit ? `Consultar remito ${activeRemit.number}` : "Generar remito"}
@@ -545,6 +616,7 @@ export default function Pedidos() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("Todos los estados");
+  const [kindFilter, setKindFilter] = useState("Todos los tipos");
   const [notice, setNotice] = useState("");
   const [actionError, setActionError] = useState("");
 
@@ -569,9 +641,9 @@ export default function Pedidos() {
       const clientName = client?.name.toLowerCase() || "";
       const matchesSearch = !query || order.number.toLowerCase().includes(query) || clientName.includes(query);
       const matchesStatus = statusFilter === "Todos los estados" || order.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus && (kindFilter === "Todos los tipos" || (order.kind ?? "Regular") === kindFilter);
     });
-  }, [orders, search, statusFilter, clients]);
+  }, [orders, search, statusFilter, kindFilter, clients]);
 
   useEffect(() => {
     if (editingOrder === undefined && selectedOrder === null) return;
@@ -601,10 +673,11 @@ export default function Pedidos() {
     }
   }
 
-  function saveOrder(order: Order) {
+  function saveOrder(order: Order, invoice = false) {
     const formData = new FormData();
     formData.set("intent", "save-order");
     formData.set("order", JSON.stringify(order));
+    if (invoice) formData.set("invoice", "yes");
     if (initialData.orders.some((candidate) => candidate.id === order.id)) formData.set("id", order.id);
     fetcher.submit(formData, { method: "post" });
   }
@@ -616,6 +689,26 @@ export default function Pedidos() {
     formData.set("id", selectedOrder.id);
     formData.set("status", status);
     fetcher.submit(formData, { method: "post" });
+  }
+
+  if (editingOrder !== undefined) {
+    return <>
+      {actionError && <p role="alert" className="mx-auto mt-6 max-w-4xl rounded-lg bg-red-50 p-4 text-sm text-red-800">{actionError}</p>}
+      <OrderForm order={editingOrder} clients={clients} onCancel={() => setEditingOrder(undefined)} onSave={saveOrder} pending={fetcher.state !== "idle"} />
+    </>;
+  }
+
+  if (selectedOrder) {
+    return <>
+      {actionError && <p role="alert" className="mx-auto mt-6 max-w-4xl rounded-lg bg-red-50 p-4 text-sm text-red-800">{actionError}</p>}
+      <OrderDetails
+        order={selectedOrder}
+        client={clients.find(client => client.id === selectedOrder.clientId)}
+        onClose={closeOrderDetails}
+        onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(); }}
+        onChangeStatus={changeOrderStatus}
+      />
+    </>;
   }
 
   return (
@@ -663,6 +756,7 @@ export default function Pedidos() {
               <option>Todos los estados</option>
               {ORDER_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
             </select>
+            <select aria-label="Filtrar por tipo de pedido" value={kindFilter} onChange={event => setKindFilter(event.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900"><option>Todos los tipos</option>{ORDER_KINDS.map(kind => <option key={kind}>{kind}</option>)}</select>
           </div>
         </div>
 
@@ -670,7 +764,7 @@ export default function Pedidos() {
           <div className="px-5 py-14 text-center">
             <h3 className="mt-4 font-semibold text-gray-900">No encontramos pedidos</h3>
             <p className="mt-1 text-sm text-gray-500">Prueba con otro término o cambia los filtros.</p>
-            <button type="button" onClick={() => { setSearch(""); setStatusFilter("Todos los estados"); }} className="mt-4 text-sm font-semibold text-amber-700 hover:text-amber-800">Limpiar filtros</button>
+            <button type="button" onClick={() => { setSearch(""); setStatusFilter("Todos los estados"); setKindFilter("Todos los tipos"); }} className="mt-4 text-sm font-semibold text-amber-700 hover:text-amber-800">Limpiar filtros</button>
           </div>
         ) : (
           <>
@@ -689,6 +783,7 @@ export default function Pedidos() {
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="mb-1 text-xs font-medium text-gray-500">{order.date}</p>
                     <h3 className="font-semibold leading-5 text-gray-900">{order.number}</h3>
+                    <p className="mt-1 text-xs font-medium text-amber-800">{order.kind ?? "Regular"}{order.kind === "Evento" ? ` · ${order.deliveryDate} ${order.deliveryTime}` : ""}</p>
                   </div>
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
@@ -718,24 +813,8 @@ export default function Pedidos() {
         )}
       </section>
 
-      {editingOrder !== undefined && (
-        <OrderForm 
-          order={editingOrder} 
-          clients={clients}
-          onCancel={() => setEditingOrder(undefined)} 
-          onSave={saveOrder}
-          pending={fetcher.state !== "idle"}
-        />
-      )}
-      {selectedOrder && (
-        <OrderDetails 
-          order={selectedOrder} 
-          client={clients.find(c => c.id === selectedOrder.clientId)}
-          onClose={closeOrderDetails}
-          onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(); }}
-          onChangeStatus={changeOrderStatus}
-        />
-      )}
+
+
     </div>
   );
 }

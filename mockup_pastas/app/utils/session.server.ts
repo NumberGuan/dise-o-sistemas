@@ -1,5 +1,6 @@
 import { createCookieSessionStorage, redirect } from "react-router";
-import { getUserById, type User, type Role } from "./db.server";
+import { getUserById, mutateUser, type User, type Role } from "./db.server";
+import { guestCartItems, mergeGuestCart } from "~/data/guest-cart";
 
 const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
 if (!configuredSessionSecret && process.env.NODE_ENV === "production") {
@@ -19,8 +20,15 @@ export const sessionStorage = createCookieSessionStorage({
   },
 });
 
-export async function createUserSession(userId: string, redirectTo: string) {
-  const session = await sessionStorage.getSession();
+export async function createUserSession(userId: string, redirectTo: string, request?: Request) {
+  const session = await sessionStorage.getSession(request?.headers.get("Cookie"));
+  const cart = guestCartItems(session.get("guestCart"));
+  if (cart.length) {
+    await mutateUser(userId, user => {
+      if (user.role === "Cliente") user.cart = mergeGuestCart(user.cart ?? [], cart);
+    });
+  }
+  session.unset("guestCart");
   session.set("userId", userId);
   return redirect(redirectTo, {
     headers: {

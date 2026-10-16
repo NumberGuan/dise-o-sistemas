@@ -1,3 +1,5 @@
+import RecordPage, { RecordNotFound } from "~/components/RecordPage";
+import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
@@ -5,7 +7,7 @@ import {
   MARCAS, MATERIAS_PRIMAS_PRODUCCION, RECETAS, TIPOS_MATERIA_PRIMA, UNIDADES,
   codigo, formatCantidad, formatCurrency, getMarca, getTipoMateriaPrima, siguienteId, type MateriaPrima,
 } from "~/data/produccion";
-import { Dialog, rowMotion, toast } from "~/components/motion";
+import { rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
@@ -31,54 +33,53 @@ function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrim
   }
 
   return (
-    <Dialog onClose={onCancel} className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{material ? "Editar materia prima" : "Nueva materia prima"}</h2>
-            <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
-          </div>
-          <button type="button" onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
+    <RecordPage onBack={onCancel}>
+      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{material ? "Editar materia prima" : "Nueva materia prima"}</h1>
+          <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
-        <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
-          {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelClass}>Código
-              <input value={codigo("MP", id)} readOnly className={`${field} bg-gray-100`} />
-            </label>
-            <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
-              <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
-              <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
-                <option value="">Seleccionar...</option>
-                {TIPOS_MATERIA_PRIMA.map((t) => <option key={t.idTipoMateriaPrima} value={t.idTipoMateriaPrima}>{t.nombre}</option>)}
-              </select>
-            </label>
-            <label className={labelClass}>Marca <span className="text-rose-600">*</span>
-              <select value={marca} onChange={(e) => setMarca(e.target.value)} className={field}>
-                <option value="">Seleccionar...</option>
-                {MARCAS.map((m) => <option key={m.idMarca} value={m.idMarca}>{m.nombre}</option>)}
-              </select>
-            </label>
-            <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
-              <select value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
-                <option value="">Seleccionar...</option>
-                {UNIDADES.map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
-              </select>
-            </label>
-            <label className={labelClass}>Stock <span className="text-rose-600">*</span>
-              <input type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Precio de última compra (ARS)
-              <input type="number" min="0" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} className={field} />
-            </label>
-          </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
-            <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar materia prima</button>
-          </div>
-        </form>
-    </Dialog>
+      </div>
+      <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
+        {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={labelClass}>Código
+            <input value={codigo("MP", id)} readOnly className={`${field} bg-gray-100`} />
+          </label>
+          <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
+            <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
+              <option value="">Seleccionar...</option>
+              {TIPOS_MATERIA_PRIMA.map((t) => <option key={t.idTipoMateriaPrima} value={t.idTipoMateriaPrima}>{t.nombre}</option>)}
+            </select>
+          </label>
+          <label className={labelClass}>Marca <span className="text-rose-600">*</span>
+            <select value={marca} onChange={(e) => setMarca(e.target.value)} className={field}>
+              <option value="">Seleccionar...</option>
+              {MARCAS.map((m) => <option key={m.idMarca} value={m.idMarca}>{m.nombre}</option>)}
+            </select>
+          </label>
+          <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
+            <select value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
+              <option value="">Seleccionar...</option>
+              {UNIDADES.map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
+            </select>
+          </label>
+          <label className={labelClass}>Stock <span className="text-rose-600">*</span>
+            <input type="number" min="0" step="1" value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Precio de última compra (ARS)
+            <input type="number" min="0" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} className={field} />
+          </label>
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
+          <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar materia prima</button>
+        </div>
+      </form>
+    </RecordPage>
   );
 }
 
@@ -89,54 +90,54 @@ function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPr
   });
 
   return (
-    <Dialog onClose={onClose} className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{codigo("MP", material.idMateriaPrima)} · {getTipoMateriaPrima(material.idTipoMateriaPrima)}</p>
-            <h2 className="mt-1 text-xl font-bold text-gray-900">{material.nombre}</h2>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
-            <button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button>
-          </div>
+    <RecordPage onBack={onClose}>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{codigo("MP", material.idMateriaPrima)} · {getTipoMateriaPrima(material.idTipoMateriaPrima)}</p>
+          <h1 className="mt-1 text-2xl font-bold text-gray-900">{material.nombre}</h1>
         </div>
-        <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Información de la materia prima</h3>
-            <dl className="mt-3 space-y-3 text-sm">
-              {[
-                ["Tipo", getTipoMateriaPrima(material.idTipoMateriaPrima)],
-                ["Marca", getMarca(material.idMarca)],
-                ["Stock", formatCantidad(material.stockMateriaPrima, material.idUnidad)],
-                ["Precio de última compra", material.precioUltimaCompra ? formatCurrency(material.precioUltimaCompra) : "—"],
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-gray-500">{label}</dt>
-                  <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Recetas que la usan</h3>
-            <ol className="mt-4 divide-y divide-gray-100">
-              {recetas.length === 0 ? (
-                <p className="text-sm text-gray-500">Ninguna receta usa esta materia prima.</p>
-              ) : recetas.map(({ receta, cantidad }) => (
-                <li key={receta.idReceta} className="py-3 first:pt-0">
-                  <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
-                    <span>
-                      <span className="text-xs font-medium text-gray-500">{codigo("REC", receta.idReceta)}</span>
-                      <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{receta.nombre}</span>
-                    </span>
-                    <span className="text-sm text-gray-700">{formatCantidad(cantidad, material.idUnidad)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ol>
-          </div>
+        <div className="flex gap-2">
+          <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
+
         </div>
-    </Dialog>
+      </div>
+      <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Información de la materia prima</h3>
+          <dl className="mt-3 space-y-3 text-sm">
+            {[
+              ["Tipo", getTipoMateriaPrima(material.idTipoMateriaPrima)],
+              ["Marca", getMarca(material.idMarca)],
+              ["Stock", formatCantidad(material.stockMateriaPrima, material.idUnidad)],
+              ["Precio de última compra", material.precioUltimaCompra ? formatCurrency(material.precioUltimaCompra) : "—"],
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-xs text-gray-500">{label}</dt>
+                <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Recetas que la usan</h3>
+          <ol className="mt-4 divide-y divide-gray-100">
+            {recetas.length === 0 ? (
+              <p className="text-sm text-gray-500">Ninguna receta usa esta materia prima.</p>
+            ) : recetas.map(({ receta, cantidad }) => (
+              <li key={receta.idReceta} className="py-3 first:pt-0">
+                <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
+                  <span>
+                    <span className="text-xs font-medium text-gray-500">{codigo("REC", receta.idReceta)}</span>
+                    <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{receta.nombre}</span>
+                  </span>
+                  <span className="text-sm text-gray-700">{formatCantidad(cantidad, material.idUnidad)}</span>
+                </Link>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+    </RecordPage>
   );
 }
 
@@ -145,8 +146,7 @@ export default function MateriasPrimas() {
   const [search, setSearch] = useState("");
   const [type, setType] = useState("Todos");
   const [brand, setBrand] = useState("Todas");
-  const [editing, setEditing] = useState<MateriaPrima | null | undefined>();
-  const [selected, setSelected] = useState<MateriaPrima | null>(null);
+  const { editing, setEditing, selected, setSelected, closeScreen, missing, params } = useRecordScreen(materials, item => item.idMateriaPrima, "materia");
 
   const filtered = useMemo(() => materials.filter((m) => {
     const q = search.toLowerCase();
@@ -158,7 +158,7 @@ export default function MateriasPrimas() {
   useEffect(() => {
     if (editing === undefined && selected === null) return;
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") { setEditing(undefined); setSelected(null); }
+      if (event.key === "Escape") { closeScreen(); }
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
@@ -170,9 +170,12 @@ export default function MateriasPrimas() {
     else MATERIAS_PRIMAS_PRODUCCION.unshift(m);
     toast(`${m.nombre} se ${i >= 0 ? "actualizó" : "agregó"} correctamente.`);
     setMaterials([...MATERIAS_PRIMAS_PRODUCCION]);
-    setEditing(undefined);
     setSelected(m);
   }
+
+  if (missing) return <RecordNotFound onBack={closeScreen} />;
+  if (editing !== undefined) return <RawMaterialForm material={editing} onCancel={() => setEditing(undefined)} onSave={save} key={params.toString()} />;
+  if (selected) return <RawMaterialDetails key={params.toString()} material={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); }} />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -258,11 +261,6 @@ export default function MateriasPrimas() {
           </>
         )}
       </section>
-
-      <AnimatePresence>
-        {editing !== undefined && <RawMaterialForm material={editing} onCancel={() => setEditing(undefined)} onSave={save} key="form" />}
-        {selected && <RawMaterialDetails key="detail" material={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); setSelected(null); }} />}
-      </AnimatePresence>
     </div>
   );
 }

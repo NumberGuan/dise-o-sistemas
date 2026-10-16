@@ -1,7 +1,9 @@
+import CustomerCartLine from "~/components/CustomerCartLine";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { randomUUID } from "node:crypto";
 
-import { SAMPLE_ORDERS, SAMPLE_PRODUCTS } from "~/data/sales";
+import { SAMPLE_ORDERS, SAMPLE_PRODUCTS, getClientAddresses, formatClientAddress } from "~/data/sales";
+import { customerAsClient } from "~/data/customer.server";
 import type { CustomerMutationResult } from "~/data/customer.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import { mutateUser } from "~/utils/db.server";
@@ -31,7 +33,8 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     total,
     totalItems: cart.reduce((sum, item) => Number.isSafeInteger(sum + item.quantity) ? sum + item.quantity : sum, 0),
     isActive: (user.customerStatus ?? "Activo") === "Activo",
-    hasDeliveryAddress: Boolean(user.address?.trim() && user.customerData?.locality?.trim()),
+    addresses: getClientAddresses(customerAsClient(user)!).filter(address => address.street.trim() && address.locality.trim()),
+    hasDeliveryAddress: getClientAddresses(customerAsClient(user)!).some(address => address.street.trim() && address.locality.trim()),
   };
 };
 
@@ -48,8 +51,9 @@ export const action = async ({ request }: Route.ActionArgs) => {
           checkoutError = "Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.";
           return;
         }
-        if (!current.address?.trim() || !current.customerData?.locality?.trim()) {
-          checkoutError = "Completá la dirección y localidad en Mi perfil antes de confirmar el pedido.";
+        const selectedAddress = getClientAddresses(customerAsClient(current)!).find(address => address.id === formData.get("deliveryAddressId") && address.street.trim() && address.locality.trim());
+        if (!selectedAddress) {
+          checkoutError = "Seleccioná una dirección guardada. Podés agregar direcciones desde Mi perfil.";
           return;
         }
         const cartItems = current.cart ?? [];
@@ -88,7 +92,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
           number = `PC-WEB-${String(sequence).padStart(6, "0")}`;
           id = `web-order-${String(sequence).padStart(6, "0")}`;
         }
-        const order = { id, number, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
+        const order = { id, number, kind: "Regular" as const, fulfillment: "Envío" as const, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, deliveryAddressId: selectedAddress.id, deliveryAddress: formatClientAddress(selectedAddress), items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
         current.customerOrders = [...(current.customerOrders ?? []), order];
         current.cart = [];
         created = true;
@@ -155,53 +159,8 @@ export const action = async ({ request }: Route.ActionArgs) => {
   }
 };
 
-function CartLine({ item }: { item: ReturnType<typeof useLoaderData<typeof loader>>["cart"][number] }) {
-  const fetcher = useFetcher<CustomerMutationResult>();
-
-  return (
-    <li className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-      <div className="flex min-w-0 items-center gap-4">
-        <img src="/hero-pastas.jpg" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
-        <div className="min-w-0">
-          <h2 className="font-semibold text-gray-900">{item.product?.name ?? "Producto fuera del catálogo"}</h2>
-          {item.product ? (
-            <p className="mt-1 text-sm text-gray-600">{currency.format(item.product.price)} por unidad · {item.product.stock}</p>
-          ) : (
-            <p className="mt-1 text-sm text-amber-900">El precio ya no está disponible en el catálogo. Quitalo para limpiar el carrito.</p>
-          )}
-          {fetcher.state === "idle" && fetcher.data?.error && <p role="alert" className="mt-1 text-xs text-red-700">{fetcher.data.error}</p>}
-          {fetcher.state === "idle" && fetcher.data?.success && <p role="status" className="mt-1 text-xs text-emerald-800">Carrito actualizado.</p>}
-        </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-3 sm:justify-end">
-        <div className="inline-flex items-center rounded-xl border border-[#e5d9cb] bg-[#fffdfa]">
-          <fetcher.Form method="post">
-            <input type="hidden" name="productId" value={item.productId} />
-            <input type="hidden" name="quantity" value={item.quantity - 1} />
-            <button type="submit" name="intent" value="update-quantity" aria-label={`Restar una unidad de ${item.product?.name ?? "este producto"}`} disabled={fetcher.state !== "idle"} className="h-10 w-10 rounded-l-xl text-lg text-gray-700 hover:bg-amber-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-800">−</button>
-          </fetcher.Form>
-          <span className="min-w-10 border-x border-[#e5d9cb] px-2 py-2 text-center text-sm font-semibold tabular-nums" aria-label={`Cantidad: ${item.quantity}`}>{item.quantity}</span>
-          <fetcher.Form method="post">
-            <input type="hidden" name="productId" value={item.productId} />
-            <input type="hidden" name="quantity" value={item.quantity + 1} />
-            <button type="submit" name="intent" value="update-quantity" aria-label={`Sumar una unidad de ${item.product?.name ?? "este producto"}`} disabled={!item.product || fetcher.state !== "idle"} className="h-10 w-10 rounded-r-xl text-lg text-gray-700 hover:bg-amber-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-800">+</button>
-          </fetcher.Form>
-        </div>
-        <p className="w-28 text-right text-sm font-bold tabular-nums text-gray-900">{item.subtotal === null ? "Sin precio" : currency.format(item.subtotal)}</p>
-        <fetcher.Form method="post">
-          <input type="hidden" name="productId" value={item.productId} />
-          <button type="submit" name="intent" value="remove-item" aria-label={`Quitar ${item.product?.name ?? "producto"} del carrito`} disabled={fetcher.state !== "idle"} className="flex h-10 w-10 items-center justify-center rounded-xl text-gray-500 transition hover:bg-red-50 hover:text-red-700 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-800">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" className="h-5 w-5" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M5.5 7l1 13h11l1-13M9 7V4h6v3" /></svg>
-          </button>
-        </fetcher.Form>
-      </div>
-    </li>
-  );
-}
-
 export default function ClienteCarrito() {
-  const { cart, total, totalItems, isActive, hasDeliveryAddress } = useLoaderData<typeof loader>();
+  const { cart, total, totalItems, isActive, hasDeliveryAddress, addresses } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<CustomerMutationResult>();
 
   return (
@@ -226,7 +185,7 @@ export default function ClienteCarrito() {
         </section>
       ) : (
         <section className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm" aria-label="Productos en el carrito">
-          <ul className="divide-y divide-[#f0e7dd]">{cart.map((item) => <CartLine key={item.productId} item={item} />)}</ul>
+          <ul className="divide-y divide-[#f0e7dd]">{cart.map((item) => <CustomerCartLine key={item.productId} item={item} />)}</ul>
           <div className="flex flex-col gap-2 border-t border-[#eadfd3] bg-[#fffdfa] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <span className="text-sm text-gray-600">Total de referencia</span>
             <strong className="text-xl tabular-nums text-gray-900">{total === null ? "No disponible" : currency.format(total)}</strong>
@@ -236,6 +195,7 @@ export default function ClienteCarrito() {
       )}
 
       {cart.length > 0 && <fetcher.Form method="post" className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
+        <label className="mb-4 block text-sm font-semibold text-gray-800">Dirección de entrega<select name="deliveryAddressId" required defaultValue={addresses[0]?.id ?? ""} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm">{!addresses.length && <option value="">Agregá una dirección en Mi perfil</option>}{addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}</select></label>
         <h2 className="text-lg font-semibold text-gray-900">Datos para el pedido</h2>
         <p className="mt-1 text-sm text-gray-600">Se usarán los datos guardados en <Link to="/compras/perfil" className="font-medium text-amber-800 underline">Mi perfil</Link>, iguales a los que consulta Ventas.</p>
         {!isActive && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.</p>}

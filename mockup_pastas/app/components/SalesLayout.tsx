@@ -1,33 +1,8 @@
-import { NavLink, Outlet } from "react-router";
-
-import { SALES_PAGES } from "~/data/sales";
+import BackToListButton from "~/components/BackToListButton";
+import { Outlet } from "react-router";
 
 export function SalesLayout() {
-  return (
-    <>
-      <nav className="border-b border-gray-200 bg-white" aria-label="Navegación de Ventas">
-        <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8">
-          {SALES_PAGES.map((page) => (
-            <NavLink
-              key={page.to}
-              to={page.to}
-              end
-              className={({ isActive }) =>
-                `shrink-0 border-b-2 px-3 py-3 text-sm transition ${
-                  isActive
-                    ? "border-amber-600 font-semibold text-amber-800"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
-                }`
-              }
-            >
-              {page.label}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-      <Outlet />
-    </>
-  );
+  return <Outlet />;
 }
 
 type SalesPageHeaderProps = {
@@ -46,5 +21,14 @@ export function SalesPageHeader({ title, description, action }: SalesPageHeaderP
       </div>
       {action && <div className="flex flex-wrap gap-2">{action}</div>}
     </header>
+  );
+}
+
+export function SalesFormHeader({ title, onCancel, pending = false }: { title: string; onCancel: () => void; pending?: boolean }) {
+  return (
+    <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
+      <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
+      <BackToListButton onClick={onCancel} disabled={pending} />
+    </div>
   );
 }

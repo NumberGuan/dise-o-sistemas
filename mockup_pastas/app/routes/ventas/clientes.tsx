@@ -1,8 +1,11 @@
+import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
+import { getClientMonthlyAccount } from "~/data/billing";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 
-import { SalesPageHeader } from "~/components/SalesLayout";
-import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
+import ClientAddressesEditor from "~/components/ClientAddressesEditor";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
+import { getClientAddresses, CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
 import { getSalesData, saveSalesClient } from "~/data/sales.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/clientes";
@@ -38,11 +41,11 @@ type ClientFormProps = {
 };
 
 const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
-  type: "Particular", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", address: "", floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
+  type: "Particular", name: "", documentType: "DNI", cuitCuil: "", ivaType: "", phone: "", email: "", street: "", streetNumber: "", balance: 0, floor: "", apartment: "", locality: "", province: "Buenos Aires", status: "Activo", notes: "",
 };
 
 function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeClientType }: ClientFormProps) {
-  const [values, setValues] = useState(client ?? { ...EMPTY_CLIENT, id: "", code: "" });
+  const [values, setValues] = useState(client ? { ...client, addresses: getClientAddresses(client) } : { ...EMPTY_CLIENT, id: "", code: "", addresses: [] });
   const [error, setError] = useState("");
 
   function update<K extends keyof Client>(key: K, value: Client[K]) {
@@ -51,16 +54,20 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!values.name.trim() || !values.locality.trim()) {
-      setError("Completa el nombre o razón social y la localidad.");
+    if (!values.name.trim()) {
+      setError("Completá el nombre o razón social.");
       return;
     }
     onSave({
       ...values,
+      street: values.addresses[0]?.street ?? "",
+      streetNumber: values.addresses[0]?.streetNumber ?? "",
+      floor: values.addresses[0]?.floor ?? "",
+      apartment: values.addresses[0]?.apartment ?? "",
+      locality: values.addresses[0]?.locality ?? "",
+      province: values.addresses[0]?.province ?? "Buenos Aires",
       name: values.name.trim(),
-      floor: values.floor?.trim() || undefined,
-      apartment: values.apartment?.trim() || undefined,
-      locality: values.locality.trim(),
+      balance: values.type === "Comercio" ? values.balance : 0,
     });
   }
 
@@ -68,24 +75,17 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
   const labelClass = "block text-sm font-medium text-gray-700";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (!pending && event.target === event.currentTarget) onCancel(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="client-form-title" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 id="client-form-title" className="text-lg font-semibold text-gray-900">{client ? "Editar cliente" : "Nuevo cliente"}</h2>
-            <p className="mt-1 text-sm text-gray-500">Los cambios se guardan en el registro de Ventas.</p>
-          </div>
-          <button type="button" disabled={pending} onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
-        </div>
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={client ? "Editar cliente" : "Nuevo cliente"} onCancel={onCancel} pending={pending} />
+      <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
         <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
           {(error || serverError) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error || serverError}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Tipo de cliente
-              <select value={client ? values.type : "Particular"} disabled={!client || !canChangeClientType} onChange={(event) => update("type", event.target.value as Client["type"])} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}>
+              <select value={values.type} disabled={Boolean(client) && !canChangeClientType} onChange={(event) => update("type", event.target.value as Client["type"])} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}>
                 <option>Comercio</option><option>Distribuidor</option><option>Particular</option>
               </select>
               {client && !canChangeClientType && <span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar la condición del cliente.</span>}
-              {!client && <span className="mt-1 block text-xs font-normal text-gray-500">Los clientes nuevos se registran como Particular.</span>}
             </label>
             <label className={labelClass}>Estado
               <select value={values.status} onChange={(event) => update("status", event.target.value as ClientStatus)} className={inputClass}>
@@ -115,25 +115,12 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
             <label className={labelClass}>Correo electrónico
               <input type="email" value={values.email} disabled={Boolean(client?.id.startsWith("customer-"))} onChange={(event) => update("email", event.target.value)} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`} placeholder="nombre@comercio.com" />
             </label>
-            <label className={labelClass}>Domicilio
-              <input value={values.address} onChange={(event) => update("address", event.target.value)} className={inputClass} placeholder="Calle y altura" />
-            </label>
-            <label className={labelClass}>Piso
-              <input value={values.floor || ""} onChange={(event) => update("floor", event.target.value)} className={inputClass} placeholder="Ej.: 2" />
-            </label>
-            <label className={labelClass}>Departamento
-              <input value={values.apartment || ""} onChange={(event) => update("apartment", event.target.value)} className={inputClass} placeholder="Ej.: B" />
-            </label>
-            <label className={labelClass}>Localidad <span className="text-rose-600">*</span>
-              <input required value={values.locality} onChange={(event) => update("locality", event.target.value)} className={inputClass} placeholder="Localidad" />
-            </label>
-            <label className={labelClass}>Provincia
-              <input value={values.province} onChange={(event) => update("province", event.target.value)} className={inputClass} />
-            </label>
+            {values.type === "Comercio" && <p className="text-sm text-gray-600 sm:col-span-2">El saldo se calcula automáticamente con los pedidos y pagos de cada mes. Las facturas incluyen el descuento del 15% para comercios.</p>}
             <label className={`${labelClass} sm:col-span-2`}>Observaciones
               <textarea rows={3} value={values.notes} onChange={(event) => update("notes", event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
             </label>
           </div>
+          <ClientAddressesEditor addresses={values.addresses} onChange={addresses => setValues(current => ({ ...current, addresses }))} disabled={pending} />
           <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
             <button type="button" disabled={pending} onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
             <button type="submit" disabled={pending} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">{pending ? "Guardando…" : "Guardar cliente"}</button>
@@ -145,20 +132,26 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
 }
 
 function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: Client; orders: Order[]; onClose: () => void; onEdit: () => void; canEdit: boolean }) {
+  const { invoices, receipts } = useLoaderData<typeof loader>();
+  const months = getClientMonthlyAccount(client, orders, invoices, receipts);
   const activity = orders.filter((order) => order.clientId === client.id).sort((a, b) => b.date.localeCompare(a.date));
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" aria-labelledby="client-detail-title" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
+    <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={`Cliente ${client.name}`} onCancel={onClose} />
+      <section aria-labelledby="client-detail-title" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-          <div><p className="text-xs font-medium uppercase tracking-wide text-gray-500">{client.code} · {client.type}</p><h2 id="client-detail-title" className="mt-1 text-xl font-bold text-gray-900">{client.name}</h2></div>
-          <div className="flex gap-2">{canEdit && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}<button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button></div>
+          <div><p className="text-xs font-medium uppercase tracking-wide text-gray-500">{client.code} · {client.type}</p><h2 id="client-detail-title" className="mt-1 text-lg font-semibold text-gray-900">Datos del cliente</h2></div>
+          {canEdit && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar cliente</button>}
         </div>
         <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Información del cliente</h3>
             <dl className="mt-3 space-y-3 text-sm">
-              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Domicilio", formatClientAddress(client)], ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección completa", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
             </dl>
+            {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
+            <h3 className="mt-5 text-sm font-semibold text-gray-900">Direcciones guardadas</h3>
+            <ul className="mt-2 space-y-2 text-sm text-gray-700">{getClientAddresses(client).map((address, index) => <li key={address.id}><strong>{address.label}{index === 0 ? " · Principal" : ""}</strong><p>{formatClientAddress(address)}</p></li>)}</ul>
             {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 text-sm text-amber-900">{client.notes}</p></div>}
           </div>
           <div>
@@ -217,6 +210,14 @@ export default function Clientes() {
     formData.set("client", JSON.stringify(client));
     if (client.id) formData.set("id", client.id);
     fetcher.submit(formData, { method: "post" });
+  }
+
+  if (editingClient !== undefined) {
+    return <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} pending={fetcher.state !== "idle"} serverError={serverError || ""} canChangeClientType={canChangeClientType} />;
+  }
+
+  if (selectedClient) {
+    return <ClientDetails client={selectedClient} orders={orders} canEdit onClose={() => setSelectedClient(null)} onEdit={() => { setEditingClient(selectedClient); setSelectedClient(null); }} />;
   }
 
   return (
@@ -278,8 +279,6 @@ export default function Clientes() {
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Incluye cuentas registradas en Compras y clientes de muestra de Ventas.</div>
       </section>
 
-      {editingClient !== undefined && <ClientForm client={editingClient} onCancel={() => setEditingClient(undefined)} onSave={saveClient} pending={fetcher.state !== "idle"} serverError={serverError || ""} canChangeClientType={canChangeClientType} />}
-      {selectedClient && <ClientDetails client={selectedClient} orders={orders} canEdit onClose={() => setSelectedClient(null)} onEdit={() => { setEditingClient(selectedClient); setSelectedClient(null); }} />}
     </div>
   );
 }

@@ -1,21 +1,13 @@
-import { useState } from "react";
+import { useNavigate } from "react-router";
 
-import Modal from "~/components/Modal";
-import RemitoProveedorDetallePage from "~/components/RemitoProveedorDetallePage";
 import {
   getCantidadTotalRemito,
-  getRemitoPorId,
   REMITOS,
 } from "~/data/remitos";
 import { formatFecha, getOrdenes, getProveedorPorId } from "~/data/ordenes";
 
 export default function RemitosProveedorListPage() {
-  const [detalleId, setDetalleId] = useState<number | null>(null);
-
-  const remitoSeleccionado = detalleId !== null ? getRemitoPorId(detalleId) : undefined;
-  const proveedorSeleccionado = remitoSeleccionado
-    ? getProveedorPorId(remitoSeleccionado.idProveedor)
-    : undefined;
+  const navigate = useNavigate();
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -82,7 +74,7 @@ export default function RemitosProveedorListPage() {
                     <td className="px-5 py-4 text-right">
                       <button
                         type="button"
-                        onClick={() => setDetalleId(remito.id)}
+                        onClick={() => navigate(`/compras/remito-proveedor/${remito.id}`)}
                         className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
                       >
                         Ver detalle
@@ -108,21 +100,6 @@ export default function RemitosProveedorListPage() {
         </div>
       </div>
 
-      {remitoSeleccionado && (
-        <Modal
-          title={remitoSeleccionado.numero}
-          subtitle={`Remito recibido del proveedor ${
-            proveedorSeleccionado?.nombre ?? "—"
-          }.`}
-          onClose={() => setDetalleId(null)}
-          wide
-        >
-          <RemitoProveedorDetallePage
-            remitoId={String(remitoSeleccionado.id)}
-            onClose={() => setDetalleId(null)}
-          />
-        </Modal>
-      )}
     </div>
   );
 }

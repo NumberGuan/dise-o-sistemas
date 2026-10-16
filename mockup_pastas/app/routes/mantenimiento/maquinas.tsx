@@ -1,5 +1,7 @@
+import RecordPage, { RecordNotFound } from "~/components/RecordPage";
+import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, useSearchParams } from "react-router";
+import { Link } from "react-router";
 import { MACHINE_STATUSES, SAMPLE_MACHINES, SAMPLE_MAINTENANCES, type Machine, type MachineStatus } from "~/data/maintenance";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
@@ -29,58 +31,55 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <section role="dialog" aria-modal="true" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{machine ? "Editar máquina" : "Nueva máquina"}</h2>
-            <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
-          </div>
-          <button type="button" onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
+    <RecordPage onBack={onCancel}>
+      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{machine ? "Editar máquina" : "Nueva máquina"}</h1>
+          <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
-        <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
-          {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelClass}>Código
-              <input value={code} readOnly className={`${field} bg-gray-100`} />
-            </label>
-            <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
-              <input autoFocus value={name} onChange={(e) => setName(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
-              <input value={type} onChange={(e) => setType(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Marca
-              <input value={brand} onChange={(e) => setBrand(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Modelo
-              <input value={model} onChange={(e) => setModel(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Número de serie <span className="text-rose-600">*</span>
-              <input value={serial} onChange={(e) => setSerial(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Ubicación
-              <input value={location} onChange={(e) => setLocation(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Fecha de adquisición <span className="text-rose-600">*</span>
-              <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Estado
-              <select value={status} onChange={(e) => setStatus(e.target.value as MachineStatus)} className={field}>
-                {MACHINE_STATUSES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            </label>
-            <label className={`${labelClass} sm:col-span-2`}>Observaciones
-              <textarea rows={3} value={observations} onChange={(e) => setObservations(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
-            </label>
-          </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
-            <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar máquina</button>
-          </div>
-        </form>
-      </section>
-    </div>
+      </div>
+      <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
+        {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={labelClass}>Código
+            <input value={code} readOnly className={`${field} bg-gray-100`} />
+          </label>
+          <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
+            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
+            <input value={type} onChange={(e) => setType(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Marca
+            <input value={brand} onChange={(e) => setBrand(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Modelo
+            <input value={model} onChange={(e) => setModel(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Número de serie <span className="text-rose-600">*</span>
+            <input value={serial} onChange={(e) => setSerial(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Ubicación
+            <input value={location} onChange={(e) => setLocation(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Fecha de adquisición <span className="text-rose-600">*</span>
+            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Estado
+            <select value={status} onChange={(e) => setStatus(e.target.value as MachineStatus)} className={field}>
+              {MACHINE_STATUSES.map((s) => <option key={s}>{s}</option>)}
+            </select>
+          </label>
+          <label className={`${labelClass} sm:col-span-2`}>Observaciones
+            <textarea rows={3} value={observations} onChange={(e) => setObservations(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
+          </label>
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
+          <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar máquina</button>
+        </div>
+      </form>
+    </RecordPage>
   );
 }
 
@@ -90,95 +89,91 @@ function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine:
   const next = [...history].reverse().find((x) => x.status === "Programado");
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
-      <section role="dialog" aria-modal="true" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{machine.code} · {machine.type}</p>
-            <div className="flex items-center gap-3 mt-1">
-              <h2 className="text-xl font-bold text-gray-900">{machine.name}</h2>
-              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(machine.status)}`}>{machine.status}</span>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
-            <button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button>
+    <RecordPage onBack={onClose}>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{machine.code} · {machine.type}</p>
+          <div className="flex items-center gap-3 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900">{machine.name}</h1>
+            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(machine.status)}`}>{machine.status}</span>
           </div>
         </div>
-        <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Información de la máquina</h3>
-            <dl className="mt-3 space-y-3 text-sm">
-              {[
-                ["Tipo", machine.type],
-                ["Marca / modelo", `${machine.brand} ${machine.model}`],
-                ["N.º de serie", machine.serialNumber],
-                ["Ubicación", machine.location || "—"],
-                ["Fecha de adquisición", machine.acquisitionDate],
-                ["Mantenimientos", String(history.length)],
-                ["Último mantenimiento", last?.endDate ?? "Sin registros"],
-                ["Próximo mantenimiento", next?.estimatedDate ?? "Sin programar"]
-              ].map(([label, value]) => (
-                <div key={label}>
-                  <dt className="text-xs text-gray-500">{label}</dt>
-                  <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
-                </div>
-              ))}
-            </dl>
-            {machine.observations && (
-              <div className="mt-4 rounded-lg bg-amber-50 p-3">
-                <p className="text-xs font-semibold text-amber-900">Observaciones</p>
-                <p className="mt-1 text-sm text-amber-900">{machine.observations}</p>
+        <div className="flex gap-2">
+          <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
+
+        </div>
+      </div>
+      <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Información de la máquina</h3>
+          <dl className="mt-3 space-y-3 text-sm">
+            {[
+              ["Tipo", machine.type],
+              ["Marca / modelo", `${machine.brand} ${machine.model}`],
+              ["N.º de serie", machine.serialNumber],
+              ["Ubicación", machine.location || "—"],
+              ["Fecha de adquisición", machine.acquisitionDate],
+              ["Mantenimientos", String(history.length)],
+              ["Último mantenimiento", last?.endDate ?? "Sin registros"],
+              ["Próximo mantenimiento", next?.estimatedDate ?? "Sin programar"]
+            ].map(([label, value]) => (
+              <div key={label}>
+                <dt className="text-xs text-gray-500">{label}</dt>
+                <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
               </div>
-            )}
-            
-            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-2">
-               <button onClick={onToggleStatus} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                 {machine.status === "Inactiva" ? "Activar máquina" : "Desactivar máquina"}
-               </button>
-               <Link to={`/mantenimiento/mantenimientos?maquina=${machine.id}`} className="text-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">
-                 Programar mantenimiento
-               </Link>
+            ))}
+          </dl>
+          {machine.observations && (
+            <div className="mt-4 rounded-lg bg-amber-50 p-3">
+              <p className="text-xs font-semibold text-amber-900">Observaciones</p>
+              <p className="mt-1 text-sm text-amber-900">{machine.observations}</p>
             </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Historial de mantenimientos</h3>
-            <ol className="mt-4 divide-y divide-gray-100">
-              {history.length === 0 ? (
-                 <p className="text-sm text-gray-500">No hay mantenimientos registrados.</p>
-              ) : history.map((x) => {
-                const itemData = x.items.find(i => i.machineId === machine.id);
-                return (
-                  <li key={x.id} className="py-3 first:pt-0">
-                    <Link to={`/mantenimiento/mantenimientos?mantenimiento=${x.id}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
-                      <span>
-                        <span className="text-xs font-medium text-gray-500">{x.number}</span>
-                        <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{itemData?.type}</span>
-                        <span className="mt-1 block text-xs text-gray-500">
-                          {x.status === "Programado" ? `Para el ${x.estimatedDate}` : x.status === "Finalizado" ? `Completado el ${x.endDate}` : `Iniciado el ${x.startDate}`}
-                        </span>
-                      </span>
-                      <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${x.status === "Programado" ? "bg-amber-100 text-amber-800" : x.status === "En curso" ? "bg-sky-100 text-sky-800" : x.status === "Finalizado" ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>{x.status}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ol>
+          )}
+
+          <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-2">
+             <button onClick={onToggleStatus} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
+               {machine.status === "Inactiva" ? "Activar máquina" : "Desactivar máquina"}
+             </button>
+             <Link to={`/mantenimiento/mantenimientos?maquina=${machine.id}`} className="text-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">
+               Programar mantenimiento
+             </Link>
           </div>
         </div>
-      </section>
-    </div>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Historial de mantenimientos</h3>
+          <ol className="mt-4 divide-y divide-gray-100">
+            {history.length === 0 ? (
+               <p className="text-sm text-gray-500">No hay mantenimientos registrados.</p>
+            ) : history.map((x) => {
+              const itemData = x.items.find(i => i.machineId === machine.id);
+              return (
+                <li key={x.id} className="py-3 first:pt-0">
+                  <Link to={`/mantenimiento/mantenimientos?mantenimiento=${x.id}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
+                    <span>
+                      <span className="text-xs font-medium text-gray-500">{x.number}</span>
+                      <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{itemData?.type}</span>
+                      <span className="mt-1 block text-xs text-gray-500">
+                        {x.status === "Programado" ? `Para el ${x.estimatedDate}` : x.status === "Finalizado" ? `Completado el ${x.endDate}` : `Iniciado el ${x.startDate}`}
+                      </span>
+                    </span>
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${x.status === "Programado" ? "bg-amber-100 text-amber-800" : x.status === "En curso" ? "bg-sky-100 text-sky-800" : x.status === "Finalizado" ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>{x.status}</span>
+                  </Link>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      </div>
+    </RecordPage>
   );
 }
 
 export default function Maquinas() {
-  const [params, setParams] = useSearchParams();
   const [machines, setMachines] = useState(() => [...SAMPLE_MACHINES]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Todos");
   const [type, setType] = useState("Todos");
-  const [editing, setEditing] = useState<Machine | null | undefined>();
-  const [selected, setSelected] = useState<Machine | null>(null);
+  const { editing, setEditing, selected, setSelected, closeScreen, missing, params } = useRecordScreen(machines, item => item.id, "maquina");
 
   const types = [...new Set(machines.map((m) => m.type))];
   const filtered = useMemo(() => machines.filter((m) => {
@@ -189,14 +184,9 @@ export default function Maquinas() {
   }), [machines, search, status, type]);
 
   useEffect(() => {
-    const id = params.get("maquina");
-    if (id) setSelected(SAMPLE_MACHINES.find((m) => m.id === id) ?? null);
-  }, [params]);
-
-  useEffect(() => {
     if (editing === undefined && selected === null) return;
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") { setEditing(undefined); setSelected(null); }
+      if (event.key === "Escape") { closeScreen(); }
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
@@ -207,9 +197,12 @@ export default function Maquinas() {
     if (i >= 0) SAMPLE_MACHINES[i] = m;
     else SAMPLE_MACHINES.unshift(m);
     setMachines([...SAMPLE_MACHINES]);
-    setEditing(undefined);
     setSelected(m);
   }
+
+  if (missing) return <RecordNotFound onBack={closeScreen} />;
+  if (editing !== undefined) return <MachineForm key={params.toString()} machine={editing} onCancel={() => setEditing(undefined)} onSave={save} />;
+  if (selected) return <MachineDetails machine={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); }} onToggleStatus={() => save({ ...selected, status: selected.status === "Inactiva" ? "Activa" : "Inactiva" })} />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -294,9 +287,6 @@ export default function Maquinas() {
           </>
         )}
       </section>
-      
-      {editing !== undefined && <MachineForm machine={editing} onCancel={() => setEditing(undefined)} onSave={save} />}
-      {selected && <MachineDetails machine={selected} onClose={() => setSelected(null)} onEdit={() => { setEditing(selected); setSelected(null); }} onToggleStatus={() => save({ ...selected, status: selected.status === "Inactiva" ? "Activa" : "Inactiva" })} />}
     </div>
   );
 }

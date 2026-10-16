@@ -1,6 +1,7 @@
+import BackToListButton from "~/components/BackToListButton";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import {
   SAMPLE_CLIENTS,
@@ -107,10 +108,7 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">{isNew ? "Nuevo Presupuesto" : `Editar Presupuesto ${budget.number}`}</h1>
-        <button type="button" onClick={onCancel} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver</button>
-      </div>
+      <SalesFormHeader title={isNew ? "Nuevo Presupuesto" : `Editar Presupuesto ${budget.number}`} onCancel={onCancel} />
 
       {errorMsg && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
@@ -331,10 +329,10 @@ function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrde
   const [employeeId, setEmployeeId] = useState("");
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex items-center justify-between">
+    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
         <h1 className="text-2xl font-bold text-gray-900">Presupuesto {budget.number}</h1>
-        <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
+        <BackToListButton onClick={onClose} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

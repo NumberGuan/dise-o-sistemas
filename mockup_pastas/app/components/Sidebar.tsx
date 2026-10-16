@@ -145,7 +145,7 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
       )}
       <aside
         aria-label="Menú lateral"
-        className={`fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white shadow-xl transition-[width,transform] duration-300 lg:static lg:translate-x-0 lg:shadow-none ${
+        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-64 shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-xl transition-[width,transform] duration-300 lg:sticky lg:top-0 lg:translate-x-0 lg:shadow-none ${
           open ? "translate-x-0 lg:w-64" : "-translate-x-full lg:w-20"
         }`}
       >
@@ -265,7 +265,7 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
         </nav>
 
         {canLogout && (
-          <div className="shrink-0 px-3 pb-4">
+          <div className="mt-auto shrink-0 border-t border-gray-100 bg-white px-3 pt-3 pb-4">
             <div
               className={`mb-3 rounded-xl border border-amber-100 bg-amber-50/70 ${
                 open ? "flex items-center gap-3 px-3 py-3" : "flex flex-col items-center gap-1.5 px-1 py-2"

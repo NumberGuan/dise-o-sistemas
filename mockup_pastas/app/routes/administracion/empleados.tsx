@@ -1,3 +1,5 @@
+import RecordPage, { RecordNotFound } from "~/components/RecordPage";
+import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useMemo, useState, type FormEvent, useEffect } from "react";
 
 import {
@@ -137,67 +139,64 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onCancel(); }}>
-      <section role="dialog" aria-modal="true" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-2xl sm:rounded-2xl">
-        <div className="sticky top-0 flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{isNew ? "Nuevo empleado" : `Editar ${employee.name}`}</h2>
-            <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
-          </div>
-          <button type="button" onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
+    <RecordPage onBack={onCancel}>
+      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{isNew ? "Nuevo empleado" : `Editar ${employee.name}`}</h1>
+          <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
-        <form onSubmit={handleSubmit} noValidate className="space-y-5 p-5 sm:p-6">
-          {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label htmlFor="employee-code" className={labelClass}>Código</label>
-              <input id="employee-code" value={code} readOnly aria-readonly="true" className={`${inputClassName} cursor-not-allowed bg-gray-100 text-gray-600`} />
-            </div>
-            <div>
-              <label htmlFor="employee-name" className={labelClass}>Nombre completo <span className="text-rose-600">*</span></label>
-              <input id="employee-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Nombre y apellido" className={inputClassName} />
-            </div>
-            <div>
-              <label htmlFor="employee-email" className={labelClass}>Email <span className="text-rose-600">*</span></label>
-              <input id="employee-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="empleado@ejemplo.com" className={inputClassName} />
-            </div>
-            <div>
-              <label htmlFor="employee-dni" className={labelClass}>DNI <span className="text-rose-600">*</span></label>
-              <input id="employee-dni" inputMode="numeric" value={dni} onChange={(event) => setDni(event.target.value)} autoComplete="off" placeholder="12345678" className={inputClassName} />
-            </div>
-            <div>
-              <label htmlFor="employee-role" className={labelClass}>Cargo <span className="text-rose-600">*</span></label>
-              <select id="employee-role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole | "")} className={inputClassName}>
-                <option value="">Seleccionar cargo...</option>
-                {EMPLOYEE_ROLES.map((employeeRole) => <option key={employeeRole} value={employeeRole}>{employeeRole}</option>)}
-              </select>
-            </div>
-            <div>
-              <label htmlFor="employee-hire-date" className={labelClass}>Fecha de ingreso <span className="text-rose-600">*</span></label>
-              <input id="employee-hire-date" type="date" value={hireDate} onChange={(event) => setHireDate(event.target.value)} className={inputClassName} />
-            </div>
-            <div>
-              <label htmlFor="employee-hours" className={labelClass}>Horas trabajadas <span className="text-rose-600">*</span></label>
-              <input id="employee-hours" type="number" min="0" step="0.5" value={hoursWorked} onChange={(event) => setHoursWorked(event.target.value)} className={inputClassName} />
-            </div>
-            <div>
-              <label htmlFor="employee-salary" className={labelClass}>Sueldo <span className="text-rose-600">*</span></label>
-              <input id="employee-salary" type="number" min="0" step="0.01" value={salary} onChange={(event) => setSalary(event.target.value)} className={inputClassName} />
-            </div>
-            <div>
-              <label htmlFor="employee-status" className={labelClass}>Estado <span className="text-rose-600">*</span></label>
-              <select id="employee-status" value={status} onChange={(event) => setStatus(event.target.value as EmployeeStatus)} className={inputClassName}>
-                {EMPLOYEE_STATUSES.map((employeeStatus) => <option key={employeeStatus} value={employeeStatus}>{employeeStatus}</option>)}
-              </select>
-            </div>
+      </div>
+      <form onSubmit={handleSubmit} noValidate className="space-y-5 p-5 sm:p-6">
+        {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="employee-code" className={labelClass}>Código</label>
+            <input id="employee-code" value={code} readOnly aria-readonly="true" className={`${inputClassName} cursor-not-allowed bg-gray-100 text-gray-600`} />
           </div>
-          <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
-            <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
-            <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">{isNew ? "Guardar empleado" : "Guardar cambios"}</button>
+          <div>
+            <label htmlFor="employee-name" className={labelClass}>Nombre completo <span className="text-rose-600">*</span></label>
+            <input id="employee-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Nombre y apellido" className={inputClassName} />
           </div>
-        </form>
-      </section>
-    </div>
+          <div>
+            <label htmlFor="employee-email" className={labelClass}>Email <span className="text-rose-600">*</span></label>
+            <input id="employee-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="empleado@ejemplo.com" className={inputClassName} />
+          </div>
+          <div>
+            <label htmlFor="employee-dni" className={labelClass}>DNI <span className="text-rose-600">*</span></label>
+            <input id="employee-dni" inputMode="numeric" value={dni} onChange={(event) => setDni(event.target.value)} autoComplete="off" placeholder="12345678" className={inputClassName} />
+          </div>
+          <div>
+            <label htmlFor="employee-role" className={labelClass}>Cargo <span className="text-rose-600">*</span></label>
+            <select id="employee-role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole | "")} className={inputClassName}>
+              <option value="">Seleccionar cargo...</option>
+              {EMPLOYEE_ROLES.map((employeeRole) => <option key={employeeRole} value={employeeRole}>{employeeRole}</option>)}
+            </select>
+          </div>
+          <div>
+            <label htmlFor="employee-hire-date" className={labelClass}>Fecha de ingreso <span className="text-rose-600">*</span></label>
+            <input id="employee-hire-date" type="date" value={hireDate} onChange={(event) => setHireDate(event.target.value)} className={inputClassName} />
+          </div>
+          <div>
+            <label htmlFor="employee-hours" className={labelClass}>Horas trabajadas <span className="text-rose-600">*</span></label>
+            <input id="employee-hours" type="number" min="0" step="0.5" value={hoursWorked} onChange={(event) => setHoursWorked(event.target.value)} className={inputClassName} />
+          </div>
+          <div>
+            <label htmlFor="employee-salary" className={labelClass}>Sueldo <span className="text-rose-600">*</span></label>
+            <input id="employee-salary" type="number" min="0" step="0.01" value={salary} onChange={(event) => setSalary(event.target.value)} className={inputClassName} />
+          </div>
+          <div>
+            <label htmlFor="employee-status" className={labelClass}>Estado <span className="text-rose-600">*</span></label>
+            <select id="employee-status" value={status} onChange={(event) => setStatus(event.target.value as EmployeeStatus)} className={inputClassName}>
+              {EMPLOYEE_STATUSES.map((employeeStatus) => <option key={employeeStatus} value={employeeStatus}>{employeeStatus}</option>)}
+            </select>
+          </div>
+        </div>
+        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
+          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
+          <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">{isNew ? "Guardar empleado" : "Guardar cambios"}</button>
+        </div>
+      </form>
+    </RecordPage>
   );
 }
 
@@ -210,65 +209,63 @@ type EmployeeDetailProps = {
 
 function EmployeeDetail({ employee, onBack, onEdit, onToggleStatus }: EmployeeDetailProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onBack(); }}>
-      <section role="dialog" aria-modal="true" className="max-h-[95vh] w-full overflow-y-auto rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{employee.code}</p>
-            <div className="flex items-center gap-3 mt-1">
-              <h2 className="text-xl font-bold text-gray-900">{employee.name}</h2>
-              <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${employeeStatusClass(employee.status)}`}>{employee.status}</span>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
-            <button type="button" onClick={onBack} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button>
+    <RecordPage onBack={onBack}>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{employee.code}</p>
+          <div className="flex items-center gap-3 mt-1">
+            <h1 className="text-2xl font-bold text-gray-900">{employee.name}</h1>
+            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${employeeStatusClass(employee.status)}`}>{employee.status}</span>
           </div>
         </div>
-        <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Información de contacto</h3>
-            <dl className="mt-3 space-y-3 text-sm">
-              <div>
-                <dt className="text-xs text-gray-500">DNI</dt>
-                <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.dni}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-500">Email</dt>
-                <dd className="mt-0.5 break-all font-medium text-gray-800">{employee.email}</dd>
-              </div>
-            </dl>
-            
-            <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-2">
-               <button onClick={onToggleStatus} className={`rounded-lg border px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 ${employee.status === "Activo" ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 focus-visible:outline-red-600" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-emerald-600"}`}>
-                 {employee.status === "Activo" ? "Desactivar empleado" : "Activar empleado"}
-               </button>
+        <div className="flex gap-2">
+          <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
+
+        </div>
+      </div>
+      <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Información de contacto</h3>
+          <dl className="mt-3 space-y-3 text-sm">
+            <div>
+              <dt className="text-xs text-gray-500">DNI</dt>
+              <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.dni}</dd>
             </div>
-          </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Datos laborales</h3>
-            <dl className="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2 text-sm">
-              <div>
-                <dt className="text-xs text-gray-500">Cargo</dt>
-                <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.role}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-500">Fecha de ingreso</dt>
-                <dd className="mt-0.5 break-words font-medium text-gray-800">{formatDate(employee.hireDate)}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-500">Horas trabajadas</dt>
-                <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.hoursWorked.toLocaleString("es-AR")}</dd>
-              </div>
-              <div>
-                <dt className="text-xs text-gray-500">Sueldo base</dt>
-                <dd className="mt-0.5 break-words font-medium text-gray-800">{formatCurrency(employee.salary)}</dd>
-              </div>
-            </dl>
+            <div>
+              <dt className="text-xs text-gray-500">Email</dt>
+              <dd className="mt-0.5 break-all font-medium text-gray-800">{employee.email}</dd>
+            </div>
+          </dl>
+
+          <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-2">
+             <button onClick={onToggleStatus} className={`rounded-lg border px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 ${employee.status === "Activo" ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 focus-visible:outline-red-600" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-emerald-600"}`}>
+               {employee.status === "Activo" ? "Desactivar empleado" : "Activar empleado"}
+             </button>
           </div>
         </div>
-      </section>
-    </div>
+        <div>
+          <h3 className="text-sm font-semibold text-gray-900">Datos laborales</h3>
+          <dl className="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2 text-sm">
+            <div>
+              <dt className="text-xs text-gray-500">Cargo</dt>
+              <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.role}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-gray-500">Fecha de ingreso</dt>
+              <dd className="mt-0.5 break-words font-medium text-gray-800">{formatDate(employee.hireDate)}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-gray-500">Horas trabajadas</dt>
+              <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.hoursWorked.toLocaleString("es-AR")}</dd>
+            </div>
+            <div>
+              <dt className="text-xs text-gray-500">Sueldo base</dt>
+              <dd className="mt-0.5 break-words font-medium text-gray-800">{formatCurrency(employee.salary)}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </RecordPage>
   );
 }
 
@@ -277,14 +274,13 @@ export default function Empleados() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<EmployeeRole | "Todos los cargos">("Todos los cargos");
   const [statusFilter, setStatusFilter] = useState<EmployeeStatus | "Todos los estados">("Todos los estados");
-  const [editingEmployee, setEditingEmployee] = useState<Employee | null | undefined>(undefined);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
+  const { editing: editingEmployee, setEditing: setEditingEmployee, selected: selectedEmployee, setSelected: setSelectedEmployee, closeScreen, missing, params } = useRecordScreen(employees, item => item.id, "empleado");
   const [notice, setNotice] = useState("");
 
   useEffect(() => {
     if (editingEmployee === undefined && selectedEmployee === null) return;
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") { setEditingEmployee(undefined); setSelectedEmployee(null); }
+      if (event.key === "Escape") { closeScreen(); }
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
@@ -313,7 +309,6 @@ export default function Empleados() {
     }
     setEmployees([...SAMPLE_EMPLOYEES]);
     setSelectedEmployee(employee);
-    setEditingEmployee(undefined);
   }
 
   function toggleEmployeeStatus(employee: Employee) {
@@ -327,6 +322,10 @@ export default function Empleados() {
     setSelectedEmployee(updated);
     setNotice(`${updated.name} ahora está ${updated.status.toLocaleLowerCase("es")}.`);
   }
+
+  if (missing) return <RecordNotFound onBack={closeScreen} />;
+  if (editingEmployee !== undefined) return <EmployeeForm key={params.toString()} employee={editingEmployee} employees={employees} onCancel={() => setEditingEmployee(undefined)} onSave={saveEmployee} />;
+  if (selectedEmployee) return <EmployeeDetail employee={selectedEmployee} onBack={() => setSelectedEmployee(null)} onEdit={() => { setEditingEmployee(selectedEmployee); }} onToggleStatus={() => toggleEmployeeStatus(selectedEmployee)} />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -424,9 +423,6 @@ export default function Empleados() {
           </>
         )}
       </section>
-
-      {editingEmployee !== undefined && <EmployeeForm employee={editingEmployee} employees={employees} onCancel={() => setEditingEmployee(undefined)} onSave={saveEmployee} />}
-      {selectedEmployee && <EmployeeDetail employee={selectedEmployee} onBack={() => setSelectedEmployee(null)} onEdit={() => { setEditingEmployee(selectedEmployee); setSelectedEmployee(null); }} onToggleStatus={() => toggleEmployeeStatus(selectedEmployee)} />}
     </div>
   );
 }
