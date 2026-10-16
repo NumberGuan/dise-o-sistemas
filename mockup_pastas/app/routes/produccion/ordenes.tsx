@@ -1,6 +1,8 @@
+import RecordPage, { RecordNotFound } from "~/components/RecordPage";
+import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { Link, useSearchParams } from "react-router";
+import { Link } from "react-router";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import { SAMPLE_MACHINES } from "~/data/maintenance";
 import {
@@ -8,7 +10,7 @@ import {
   codigo, formatCantidad, getProducto, getReceta, getUnidad, siguienteId,
   type DetalleOrdenProduccion, type EstadoOrdenProduccion, type OrdenProduccion,
 } from "~/data/produccion";
-import { AnimatedBadge, Collapse, Dialog, EASE_OUT, HoldToConfirm, rowMotion, toast } from "~/components/motion";
+import { AnimatedBadge, Collapse, EASE_OUT, HoldToConfirm, rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
@@ -42,72 +44,71 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
   }
 
   return (
-    <Dialog onClose={onCancel} className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-3xl sm:rounded-2xl">
-        <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">{order ? "Editar orden de producción" : "Nueva orden de producción"}</h2>
-            <p className="mt-1 text-sm text-gray-500">{codigo("OP", id, 4)}</p>
-          </div>
-          <button type="button" onClick={onCancel} aria-label="Cerrar formulario" className="rounded-lg p-2 text-gray-500 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">✕</button>
+    <RecordPage onBack={onCancel}>
+      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">{order ? "Editar orden de producción" : "Nueva orden de producción"}</h1>
+          <p className="mt-1 text-sm text-gray-500">{codigo("OP", id, 4)}</p>
+        </div>
+      </div>
+
+      <form id="production-order-form" onSubmit={submit} className="flex-1 p-5 sm:p-6">
+        {error && <p role="alert" className="mb-5 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className={labelClass}>Fecha de emisión <span className="text-rose-600">*</span>
+            <input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} className={field} />
+          </label>
+          <label className={labelClass}>Número de lote <span className="text-rose-600">*</span>
+            <input type="number" min="1" value={lote} onChange={(e) => setLote(e.target.value)} className={field} />
+          </label>
+          <label className={`${labelClass} sm:col-span-2`}>Empleado responsable <span className="text-rose-600">*</span>
+            <select value={idEmpleado} onChange={(e) => setIdEmpleado(e.target.value)} className={field}>
+              <option value="">Seleccionar empleado...</option>
+              {SAMPLE_EMPLOYEES.filter((x) => x.status === "Activo").map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
+            </select>
+          </label>
         </div>
 
-        <form id="production-order-form" onSubmit={submit} className="flex-1 overflow-y-auto p-5 sm:p-6">
-          {error && <p role="alert" className="mb-5 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className={labelClass}>Fecha de emisión <span className="text-rose-600">*</span>
-              <input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} className={field} />
-            </label>
-            <label className={labelClass}>Número de lote <span className="text-rose-600">*</span>
-              <input type="number" min="1" value={lote} onChange={(e) => setLote(e.target.value)} className={field} />
-            </label>
-            <label className={`${labelClass} sm:col-span-2`}>Empleado responsable <span className="text-rose-600">*</span>
-              <select value={idEmpleado} onChange={(e) => setIdEmpleado(e.target.value)} className={field}>
-                <option value="">Seleccionar empleado...</option>
-                {SAMPLE_EMPLOYEES.filter((x) => x.status === "Activo").map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
-              </select>
-            </label>
+        <div className="mt-8">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-900">Productos a elaborar</h3>
+            <button type="button" onClick={() => setProductos([...productos, { key: `p-${Date.now()}`, idProducto: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar producto</button>
           </div>
-
-          <div className="mt-8">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Productos a elaborar</h3>
-              <button type="button" onClick={() => setProductos([...productos, { key: `p-${Date.now()}`, idProducto: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar producto</button>
-            </div>
-            <div className="mt-4">
-              {productos.length === 0 && <p className="text-sm text-gray-500">No hay productos agregados a esta orden.</p>}
-              <AnimatePresence initial={false}>
-              {productos.map((p, idx) => {
-                const receta = p.idProducto ? getReceta(getProducto(Number(p.idProducto))?.idReceta ?? 0) : undefined;
-                return (
-                  <Collapse key={p.key} className="pb-3">
-                  <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
-                    <button type="button" onClick={() => setProductos(productos.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar producto">✕</button>
-                    <div className="grid gap-4 pr-6 sm:grid-cols-2">
-                      <label className={labelClass}>Producto <span className="text-rose-600">*</span>
-                        <select value={p.idProducto} onChange={(e) => setProductos(productos.map((x, i) => i === idx ? { ...x, idProducto: e.target.value } : x))} className={field}>
-                          <option value="">Seleccionar...</option>
-                          {PRODUCTOS_PRODUCCION.map((x) => <option key={x.idProducto} value={x.idProducto}>{x.nombre}</option>)}
-                        </select>
-                      </label>
-                      <div>
-                        <p className={labelClass}>Receta</p>
-                        <p className="mt-1 flex h-10 items-center text-sm text-gray-700">{receta?.nombre ?? "—"}</p>
-                      </div>
+          <div className="mt-4">
+            {productos.length === 0 && <p className="text-sm text-gray-500">No hay productos agregados a esta orden.</p>}
+            <AnimatePresence initial={false}>
+            {productos.map((p, idx) => {
+              const receta = p.idProducto ? getReceta(getProducto(Number(p.idProducto))?.idReceta ?? 0) : undefined;
+              return (
+                <Collapse key={p.key} className="pb-3">
+                <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
+                  <button type="button" onClick={() => setProductos(productos.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar producto">✕</button>
+                  <div className="grid gap-4 pr-6 sm:grid-cols-2">
+                    <label className={labelClass}>Producto <span className="text-rose-600">*</span>
+                      <select value={p.idProducto} onChange={(e) => setProductos(productos.map((x, i) => i === idx ? { ...x, idProducto: e.target.value } : x))} className={field}>
+                        <option value="">Seleccionar...</option>
+                        {PRODUCTOS_PRODUCCION.map((x) => <option key={x.idProducto} value={x.idProducto}>{x.nombre}</option>)}
+                      </select>
+                    </label>
+                    <div>
+                      <p className={labelClass}>Receta</p>
+                      <p className="mt-1 flex h-10 items-center text-sm text-gray-700">{receta?.nombre ?? "—"}</p>
                     </div>
                   </div>
-                  </Collapse>
-                );
-              })}
-              </AnimatePresence>
-            </div>
+                </div>
+                </Collapse>
+              );
+            })}
+            </AnimatePresence>
           </div>
-        </form>
-
-        <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
-          <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
-          <button type="submit" form="production-order-form" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar orden</button>
         </div>
-    </Dialog>
+      </form>
+
+      <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+        <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
+        <button type="submit" form="production-order-form" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Guardar orden</button>
+      </div>
+    </RecordPage>
   );
 }
 
@@ -124,132 +125,125 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
   const handleTransition = (next: EstadoOrdenProduccion) => setError(onTransition(next, cantidades, fechaFin) ?? "");
 
   return (
-    <Dialog onClose={onClose} className="flex max-h-[95vh] w-full flex-col overflow-hidden rounded-t-2xl bg-white shadow-xl sm:max-w-4xl sm:rounded-2xl">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
+    <RecordPage onBack={onClose}>
+      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
+        <div>
+          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Orden {numero(order)}</p>
+          <div className="mt-1 flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-gray-900">Lote {order.nmrLote}</h1>
+            <AnimatedBadge value={order.estado} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.estado)}`} />
+          </div>
+        </div>
+        <div className="flex gap-2">
+          {order.estado === "Pendiente" && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}
+
+        </div>
+      </div>
+
+      <div className="flex-1 p-5 sm:p-6">
+        <div className="grid gap-7 md:grid-cols-[1fr_300px]">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Orden {numero(order)}</p>
-            <div className="mt-1 flex items-center gap-3">
-              <h2 className="text-xl font-bold text-gray-900">Lote {order.nmrLote}</h2>
-              <AnimatedBadge value={order.estado} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.estado)}`} />
+            <h3 className="text-sm font-semibold text-gray-900">Productos a elaborar</h3>
+            <div className="mt-3 space-y-4">
+              {order.detalle.map((d) => {
+                const producto = getProducto(d.idProducto);
+                const receta = producto ? getReceta(producto.idReceta) : undefined;
+                const maquinas = (receta?.maquinas ?? []).map((m) => SAMPLE_MACHINES.find((x) => x.id === m.idMaquina)?.name).filter(Boolean).join(", ");
+                return (
+                  <div key={d.idProducto} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
+                      <div>
+                        <span className="text-xs font-semibold text-gray-500">{codigo("PRO", d.idProducto)}</span>
+                        <span className="ml-2 font-semibold text-gray-900">{producto?.nombre ?? "—"}</span>
+                      </div>
+                      {receta && <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="rounded border bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:text-amber-800">{receta.nombre}</Link>}
+                    </div>
+                    <div className="space-y-3 p-4">
+                      <div>
+                        <p className="text-xs text-gray-500">Máquinas de la receta</p>
+                        <p className="mt-1 text-sm text-gray-900">{maquinas || "Sin máquinas asignadas"}</p>
+                      </div>
+                      {order.estado === "En proceso" ? (
+                        <label className={labelClass}>Cantidad real generada {producto && <span className="font-normal text-gray-500">({getUnidad(producto.idUnidad)})</span>} <span className="text-rose-600">*</span>
+                          <input type="number" min="0" step="0.01" value={cantidades[d.idProducto] ?? ""} onChange={(e) => setCantidades({ ...cantidades, [d.idProducto]: e.target.value })} className={field} />
+                        </label>
+                      ) : order.estado === "Finalizada" && (
+                        <div>
+                          <p className="text-xs text-gray-500">Cantidad real generada</p>
+                          <p className="mt-1 font-medium text-gray-900">{d.cantidadRealGenerada != null && producto ? formatCantidad(d.cantidadRealGenerada, producto.idUnidad) : "—"}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
-          <div className="flex gap-2">
-            {order.estado === "Pendiente" && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}
-            <button type="button" onClick={onClose} aria-label="Cerrar detalle" className="rounded-lg border border-gray-300 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">Cerrar</button>
-          </div>
-        </div>
 
-        <div className="flex-1 overflow-y-auto p-5 sm:p-6">
-          <div className="grid gap-7 md:grid-cols-[1fr_300px]">
+          <div className="space-y-6">
             <div>
-              <h3 className="text-sm font-semibold text-gray-900">Productos a elaborar</h3>
-              <div className="mt-3 space-y-4">
-                {order.detalle.map((d) => {
-                  const producto = getProducto(d.idProducto);
-                  const receta = producto ? getReceta(producto.idReceta) : undefined;
-                  const maquinas = (receta?.maquinas ?? []).map((m) => SAMPLE_MACHINES.find((x) => x.id === m.idMaquina)?.name).filter(Boolean).join(", ");
-                  return (
-                    <div key={d.idProducto} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3">
-                        <div>
-                          <span className="text-xs font-semibold text-gray-500">{codigo("PRO", d.idProducto)}</span>
-                          <span className="ml-2 font-semibold text-gray-900">{producto?.nombre ?? "—"}</span>
-                        </div>
-                        {receta && <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="rounded border bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:text-amber-800">{receta.nombre}</Link>}
-                      </div>
-                      <div className="space-y-3 p-4">
-                        <div>
-                          <p className="text-xs text-gray-500">Máquinas de la receta</p>
-                          <p className="mt-1 text-sm text-gray-900">{maquinas || "Sin máquinas asignadas"}</p>
-                        </div>
-                        {order.estado === "En proceso" ? (
-                          <label className={labelClass}>Cantidad real generada {producto && <span className="font-normal text-gray-500">({getUnidad(producto.idUnidad)})</span>} <span className="text-rose-600">*</span>
-                            <input type="number" min="0" step="0.01" value={cantidades[d.idProducto] ?? ""} onChange={(e) => setCantidades({ ...cantidades, [d.idProducto]: e.target.value })} className={field} />
-                          </label>
-                        ) : order.estado === "Finalizada" && (
-                          <div>
-                            <p className="text-xs text-gray-500">Cantidad real generada</p>
-                            <p className="mt-1 font-medium text-gray-900">{d.cantidadRealGenerada != null && producto ? formatCantidad(d.cantidadRealGenerada, producto.idUnidad) : "—"}</p>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+              <h3 className="text-sm font-semibold text-gray-900">Información de la orden</h3>
+              <dl className="mt-3 space-y-3 text-sm">
+                {[
+                  ["Empleado responsable", empleado(order.idEmpleado)],
+                  ["Fecha de emisión", order.fechaEmision],
+                  ["Fecha de inicio", order.fechaInicio ?? "—"],
+                  ["Fecha de finalización", order.fechaFinalizacion ?? "—"],
+                ].map(([label, value]) => (
+                  <div key={label}>
+                    <dt className="text-xs text-gray-500">{label}</dt>
+                    <dd className="mt-0.5 font-medium text-gray-800">{value}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
 
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900">Información de la orden</h3>
-                <dl className="mt-3 space-y-3 text-sm">
-                  {[
-                    ["Empleado responsable", empleado(order.idEmpleado)],
-                    ["Fecha de emisión", order.fechaEmision],
-                    ["Fecha de inicio", order.fechaInicio ?? "—"],
-                    ["Fecha de finalización", order.fechaFinalizacion ?? "—"],
-                  ].map(([label, value]) => (
-                    <div key={label}>
-                      <dt className="text-xs text-gray-500">{label}</dt>
-                      <dd className="mt-0.5 font-medium text-gray-800">{value}</dd>
-                    </div>
-                  ))}
-                </dl>
-              </div>
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+              <h3 className="text-sm font-semibold text-gray-900">Acciones de estado</h3>
+              {error && <p role="alert" className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800">{error}</p>}
 
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-                <h3 className="text-sm font-semibold text-gray-900">Acciones de estado</h3>
-                {error && <p role="alert" className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800">{error}</p>}
+              <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={order.estado} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: EASE_OUT }}>
+              {order.estado === "Pendiente" && (
+                <div className="mt-3 flex flex-col gap-2">
+                  <button type="button" onClick={() => handleTransition("En proceso")} className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">Iniciar producción</button>
+                  <HoldToConfirm label="Mantené presionado para cancelar" holdingLabel="Seguí presionando..." onConfirm={() => handleTransition("Cancelada")} className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 select-none" />
+                </div>
+              )}
 
-                <AnimatePresence mode="wait" initial={false}>
-                <motion.div key={order.estado} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.18, ease: EASE_OUT }}>
-                {order.estado === "Pendiente" && (
-                  <div className="mt-3 flex flex-col gap-2">
-                    <button type="button" onClick={() => handleTransition("En proceso")} className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">Iniciar producción</button>
-                    <HoldToConfirm label="Mantené presionado para cancelar" holdingLabel="Seguí presionando..." onConfirm={() => handleTransition("Cancelada")} className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 select-none" />
-                  </div>
-                )}
+              {order.estado === "En proceso" && (
+                <div className="mt-3 space-y-3">
+                  <label className={labelClass}>Fecha de finalización <span className="text-rose-600">*</span>
+                    <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} className={field} />
+                  </label>
+                  <p className="text-xs text-gray-500">Al finalizar, la cantidad generada se suma al stock de cada producto.</p>
+                  <button type="button" onClick={() => handleTransition("Finalizada")} className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Finalizar orden</button>
+                </div>
+              )}
 
-                {order.estado === "En proceso" && (
-                  <div className="mt-3 space-y-3">
-                    <label className={labelClass}>Fecha de finalización <span className="text-rose-600">*</span>
-                      <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} className={field} />
-                    </label>
-                    <p className="text-xs text-gray-500">Al finalizar, la cantidad generada se suma al stock de cada producto.</p>
-                    <button type="button" onClick={() => handleTransition("Finalizada")} className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Finalizar orden</button>
-                  </div>
-                )}
-
-                {(order.estado === "Finalizada" || order.estado === "Cancelada") && (
-                  <p className="mt-2 text-xs text-gray-500">La orden está {order.estado.toLowerCase()} y no admite cambios.</p>
-                )}
-                </motion.div>
-                </AnimatePresence>
-              </div>
+              {(order.estado === "Finalizada" || order.estado === "Cancelada") && (
+                <p className="mt-2 text-xs text-gray-500">La orden está {order.estado.toLowerCase()} y no admite cambios.</p>
+              )}
+              </motion.div>
+              </AnimatePresence>
             </div>
           </div>
         </div>
-    </Dialog>
+      </div>
+    </RecordPage>
   );
 }
 
 export default function OrdenesProduccion() {
-  const [params, setParams] = useSearchParams();
   const [orders, setOrders] = useState(() => [...ORDENES_PRODUCCION]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");
-  const [editing, setEditing] = useState<OrdenProduccion | null | undefined>();
-  const [selected, setSelected] = useState<OrdenProduccion | null>(null);
-
-  useEffect(() => {
-    const id = params.get("orden");
-    if (id) setSelected(ORDENES_PRODUCCION.find((o) => String(o.idOrdenProduccion) === id) ?? null);
-  }, [params]);
+  const { editing, setEditing, selected, setSelected, closeScreen, missing, params } = useRecordScreen(orders, item => item.idOrdenProduccion, "orden");
 
   useEffect(() => {
     if (editing === undefined && selected === null) return;
     function handleEscape(event: KeyboardEvent) {
-      if (event.key === "Escape") { setEditing(undefined); setSelected(null); setParams({}); }
+      if (event.key === "Escape") { closeScreen(); }
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
@@ -273,8 +267,6 @@ export default function OrdenesProduccion() {
     const isNew = !ORDENES_PRODUCCION.some((o) => o.idOrdenProduccion === order.idOrdenProduccion);
     persist(order);
     toast(`La orden ${numero(order)} se ${isNew ? "creó" : "actualizó"} correctamente.`);
-    setEditing(undefined);
-    setParams({ orden: String(order.idOrdenProduccion) });
   }
 
   function transition(next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string) {
@@ -303,6 +295,10 @@ export default function OrdenesProduccion() {
       if (producto) toast(`Stock de ${producto.nombre}: +${formatCantidad(d.cantidadRealGenerada, producto.idUnidad)}`);
     });
   }
+
+  if (missing) return <RecordNotFound onBack={closeScreen} />;
+  if (editing !== undefined) return <ProductionOrderForm order={editing} onCancel={() => { setEditing(undefined); }} onSave={save} key={params.toString()} />;
+  if (selected) return <ProductionOrderDetails key={params.toString()} order={selected} onClose={() => { setSelected(null); }} onEdit={() => { setEditing(selected); }} onTransition={transition} />;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -378,7 +374,7 @@ export default function OrdenesProduccion() {
                       <AnimatedBadge value={o.estado} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(o.estado)}`} />
                     </div>
                     <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:justify-center lg:border-0 lg:pt-0">
-                      <button type="button" onClick={() => { setSelected(o); setParams({ orden: String(o.idOrdenProduccion) }); }} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Consultar</button>
+                      <button type="button" onClick={() => { setSelected(o); }} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Consultar</button>
                     </div>
                   </motion.article>
                 );
@@ -388,11 +384,6 @@ export default function OrdenesProduccion() {
           </>
         )}
       </section>
-
-      <AnimatePresence>
-        {editing !== undefined && <ProductionOrderForm order={editing} onCancel={() => { setEditing(undefined); setParams({}); }} onSave={save} key="form" />}
-        {selected && <ProductionOrderDetails key="detail" order={selected} onClose={() => { setSelected(null); setParams({}); }} onEdit={() => { setEditing(selected); setSelected(null); }} onTransition={transition} />}
-      </AnimatePresence>
     </div>
   );
 }
