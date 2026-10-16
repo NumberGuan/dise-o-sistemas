@@ -1,16 +1,3 @@
-import type { NavItem } from "~/data/navigation";
-
-export const SALES_PAGES = [
-  { label: "Resumen", to: "/ventas" },
-  { label: "Clientes", to: "/ventas/clientes" },
-  { label: "Presupuestos", to: "/ventas/presupuestos" },
-  { label: "Pedidos", to: "/ventas/pedidos" },
-  { label: "Comprobantes", to: "/ventas/comprobantes" },
-  { label: "Recibos", to: "/ventas/recibos" },
-  { label: "Remitos", to: "/ventas/remitos" },
-  { label: "Devoluciones", to: "/ventas/devoluciones" },
-] as const satisfies readonly NavItem[];
-
 export type ClientStatus = "Activo" | "Inactivo";
 
 // Opciones de referencia para la maqueta; no representan un catálogo fiscal oficial.

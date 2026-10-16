@@ -1,33 +1,7 @@
-import { NavLink, Outlet } from "react-router";
-
-import { SALES_PAGES } from "~/data/sales";
+import { Outlet } from "react-router";
 
 export function SalesLayout() {
-  return (
-    <>
-      <nav className="border-b border-gray-200 bg-white" aria-label="Navegación de Ventas">
-        <div className="mx-auto flex max-w-7xl gap-1 overflow-x-auto px-4 sm:px-6 lg:px-8">
-          {SALES_PAGES.map((page) => (
-            <NavLink
-              key={page.to}
-              to={page.to}
-              end
-              className={({ isActive }) =>
-                `shrink-0 border-b-2 px-3 py-3 text-sm transition ${
-                  isActive
-                    ? "border-amber-600 font-semibold text-amber-800"
-                    : "border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-800"
-                }`
-              }
-            >
-              {page.label}
-            </NavLink>
-          ))}
-        </div>
-      </nav>
-      <Outlet />
-    </>
-  );
+  return <Outlet />;
 }
 
 type SalesPageHeaderProps = {
