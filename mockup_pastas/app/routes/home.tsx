@@ -7,7 +7,7 @@ const CENTER_CARDS = [
     accent: "bg-emerald-100 text-emerald-700",
   },
   {
-    label: "Pedidos de clientes",
+    label: "Pedidos Clientes",
     value: "32",
     note: "5 pendientes de entrega",
     accent: "bg-sky-100 text-sky-700",

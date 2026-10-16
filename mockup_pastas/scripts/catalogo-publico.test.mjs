@@ -38,7 +38,21 @@ test("Catálogo público, carrito de visitante y acceso para comprar", async t =
     });
     await t.test("Se puede consultar y filtrar sin cuenta", async () => {
       const data = await catalog.loader({ request: request("/catalogo") });
-      assert.equal(data.products.length, 6);
+      assert.equal(data.products.length, 20);
+      assert.equal(new Set(data.products.map(product => product.id)).size, 20);
+      for (const product of data.products) assert.match(product.name, / x (500|250)g$/);
+      const pastas = await catalog.loader({ request: request("/catalogo?category=Pastas") });
+      assert.equal(pastas.products.length, 13);
+      assert.ok(pastas.products.every(product => product.category === "Pastas"));
+      const sauces = await catalog.loader({ request: request("/catalogo?category=Salsas") });
+      assert.equal(sauces.products.length, 7);
+      assert.ok(sauces.products.every(product => product.category === "Salsas"));
+      const combined = await catalog.loader({ request: request("/catalogo?category=Salsas&q=quesos&availability=available&sort=price-asc") });
+      assert.deepEqual(combined.products.map(product => product.id), ["s-4"]);
+      const excluded = await catalog.loader({ request: request("/catalogo?category=Pastas&q=fileto") });
+      assert.equal(excluded.products.length, 0);
+      const invalidCategory = await catalog.loader({ request: request("/catalogo?category=desconocida") });
+      assert.equal(invalidCategory.products.length, 20);
       assert.deepEqual(data.favorites, []);
       assert.deepEqual(data.cart, []);
       const filtered = await catalog.loader({ request: request("/catalogo?q=noquis") });
@@ -55,6 +69,11 @@ test("Catálogo público, carrito de visitante y acceso para comprar", async t =
       assert.equal((await cart.loader({ request: request("/carrito", cookie) })).total, 6000);
       cookie = cookieOf(await guest.updateGuestCart(request("/carrito", cookie, { intent: "remove-item", productId: "p-1" })));
       assert.deepEqual(await guest.getGuestCart(request("/carrito", cookie)), []);
+      cookie = cookieOf(await guest.updateGuestCart(request("/catalogo", cookie, { intent: "add-to-cart", productId: "s-1" })));
+      const sauceCart = await cart.loader({ request: request("/carrito", cookie) });
+      assert.equal(sauceCart.total, 1800);
+      assert.equal(sauceCart.cart[0].product.name, "Salsa fileto x 250g");
+      cookie = cookieOf(await guest.updateGuestCart(request("/carrito", cookie, { intent: "remove-item", productId: "s-1" })));
       for (const quantity of ["-1", "1.5", "1001", "", "NaN"]) {
         const invalid = await guest.updateGuestCart(request("/carrito", cookie, { intent: "update-quantity", productId: "p-1", quantity }));
         assert.equal(invalid.init.status, 400);

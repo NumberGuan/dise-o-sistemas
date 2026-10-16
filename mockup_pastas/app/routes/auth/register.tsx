@@ -82,7 +82,7 @@ export default function Register() {
       title="Crear cuenta de cliente"
       subtitle="Creá tu cuenta para confirmar pedidos y guardar favoritos."
     >
-      <Form method="post" className="space-y-6">
+      <Form noValidate method="post" className="space-y-6">
         <input type="hidden" name="redirectTo" value={params.get("redirectTo") ?? ""} />
         <div className="space-y-4">
           <div>

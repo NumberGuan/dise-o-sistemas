@@ -9,13 +9,16 @@ export function getCatalogData(request: Request, favorites: string[] = [], cart:
   const url = new URL(request.url);
   const query = (url.searchParams.get("q") ?? "").slice(0, 100);
   const availability = url.searchParams.get("availability") === "available" ? "available" : "all";
+  const requestedCategory = url.searchParams.get("category");
+  const category = requestedCategory === "Pastas" || requestedCategory === "Salsas" ? requestedCategory : "all";
   const requestedSort = url.searchParams.get("sort") ?? "";
   const sort = ["name", "price-asc", "price-desc"].includes(requestedSort) ? requestedSort : "default";
   const normalizedQuery = normalizeSearch(query);
   const products = SAMPLE_PRODUCTS.filter((product) => {
     const matchesQuery = !normalizedQuery || normalizeSearch(product.name).includes(normalizedQuery);
     const matchesAvailability = availability !== "available" || product.stock === "Disponible";
-    return matchesQuery && matchesAvailability;
+    const matchesCategory = category === "all" || product.category === category;
+    return matchesQuery && matchesAvailability && matchesCategory;
   });
 
   if (sort === "name") products.sort((a, b) => a.name.localeCompare(b.name, "es-AR"));
@@ -28,6 +31,7 @@ export function getCatalogData(request: Request, favorites: string[] = [], cart:
     cart,
     query,
     availability,
+    category,
     sort,
     totalProducts: SAMPLE_PRODUCTS.length,
   };

@@ -65,7 +65,7 @@ export default function Login() {
       title="Iniciar sesión"
       subtitle="Ingresá para comprar, guardar favoritos y consultar tus pedidos."
     >
-      <Form method="post" className="space-y-6">
+      <Form noValidate method="post" className="space-y-6">
         <input type="hidden" name="redirectTo" value={searchParams.get("redirectTo") ?? undefined} />
         
         <div className="space-y-4">

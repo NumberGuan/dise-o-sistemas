@@ -49,11 +49,11 @@ export default function CustomerProductCard({
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
         <div className="min-h-16">
-          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">Producto</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">{product.category}</p>
           <h2 className="mt-1.5 text-base font-semibold leading-6 text-gray-900">{product.name}</h2>
         </div>
         <div className="mt-4 flex items-end justify-between gap-3 border-t border-[#f0e7dd] pt-4">
-          <span className="text-xs text-gray-500">Precio de referencia</span>
+          <span className="text-xs text-gray-500">Precio por envase</span>
           <span className="text-lg font-bold tracking-tight text-gray-900">{currency.format(product.price)}</span>
         </div>
         <cartFetcher.Form method="post" action={action} className="mt-4">

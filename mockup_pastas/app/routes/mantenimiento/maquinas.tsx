@@ -38,17 +38,17 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
           <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
       </div>
-      <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
+      <form noValidate onSubmit={submit} className="space-y-5 p-5 sm:p-6">
         {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>Código
             <input value={code} readOnly className={`${field} bg-gray-100`} />
           </label>
           <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
-            <input autoFocus value={name} onChange={(e) => setName(e.target.value)} className={field} />
+            <input autoFocus required value={name} onChange={(e) => setName(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
-            <input value={type} onChange={(e) => setType(e.target.value)} className={field} />
+            <input required value={type} onChange={(e) => setType(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Marca
             <input value={brand} onChange={(e) => setBrand(e.target.value)} className={field} />
@@ -57,13 +57,13 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
             <input value={model} onChange={(e) => setModel(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Número de serie <span className="text-rose-600">*</span>
-            <input value={serial} onChange={(e) => setSerial(e.target.value)} className={field} />
+            <input required value={serial} onChange={(e) => setSerial(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Ubicación
             <input value={location} onChange={(e) => setLocation(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Fecha de adquisición <span className="text-rose-600">*</span>
-            <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={field} />
+            <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Estado
             <select value={status} onChange={(e) => setStatus(e.target.value as MachineStatus)} className={field}>

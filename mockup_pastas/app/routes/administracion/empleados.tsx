@@ -146,7 +146,7 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
           <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
       </div>
-      <form onSubmit={handleSubmit} noValidate className="space-y-5 p-5 sm:p-6">
+      <form noValidate onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
         {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <div>
@@ -155,34 +155,34 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
           </div>
           <div>
             <label htmlFor="employee-name" className={labelClass}>Nombre completo <span className="text-rose-600">*</span></label>
-            <input id="employee-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Nombre y apellido" className={inputClassName} />
+            <input required id="employee-name" value={name} onChange={(event) => setName(event.target.value)} autoComplete="name" placeholder="Nombre y apellido" className={inputClassName} />
           </div>
           <div>
             <label htmlFor="employee-email" className={labelClass}>Email <span className="text-rose-600">*</span></label>
-            <input id="employee-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="empleado@ejemplo.com" className={inputClassName} />
+            <input required id="employee-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" placeholder="empleado@ejemplo.com" className={inputClassName} />
           </div>
           <div>
             <label htmlFor="employee-dni" className={labelClass}>DNI <span className="text-rose-600">*</span></label>
-            <input id="employee-dni" inputMode="numeric" value={dni} onChange={(event) => setDni(event.target.value)} autoComplete="off" placeholder="12345678" className={inputClassName} />
+            <input required id="employee-dni" inputMode="numeric" value={dni} onChange={(event) => setDni(event.target.value)} autoComplete="off" placeholder="12345678" className={inputClassName} />
           </div>
           <div>
             <label htmlFor="employee-role" className={labelClass}>Cargo <span className="text-rose-600">*</span></label>
-            <select id="employee-role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole | "")} className={inputClassName}>
+            <select required id="employee-role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole | "")} className={inputClassName}>
               <option value="">Seleccionar cargo...</option>
               {EMPLOYEE_ROLES.map((employeeRole) => <option key={employeeRole} value={employeeRole}>{employeeRole}</option>)}
             </select>
           </div>
           <div>
             <label htmlFor="employee-hire-date" className={labelClass}>Fecha de ingreso <span className="text-rose-600">*</span></label>
-            <input id="employee-hire-date" type="date" value={hireDate} onChange={(event) => setHireDate(event.target.value)} className={inputClassName} />
+            <input required id="employee-hire-date" type="date" value={hireDate} onChange={(event) => setHireDate(event.target.value)} className={inputClassName} />
           </div>
           <div>
             <label htmlFor="employee-hours" className={labelClass}>Horas trabajadas <span className="text-rose-600">*</span></label>
-            <input id="employee-hours" type="number" min="0" step="0.5" value={hoursWorked} onChange={(event) => setHoursWorked(event.target.value)} className={inputClassName} />
+            <input required id="employee-hours" type="number" min="0" step="0.5" value={hoursWorked} onChange={(event) => setHoursWorked(event.target.value)} className={inputClassName} />
           </div>
           <div>
             <label htmlFor="employee-salary" className={labelClass}>Sueldo <span className="text-rose-600">*</span></label>
-            <input id="employee-salary" type="number" min="0" step="0.01" value={salary} onChange={(event) => setSalary(event.target.value)} className={inputClassName} />
+            <input required id="employee-salary" type="number" min="0" step="0.01" value={salary} onChange={(event) => setSalary(event.target.value)} className={inputClassName} />
           </div>
           <div>
             <label htmlFor="employee-status" className={labelClass}>Estado <span className="text-rose-600">*</span></label>
