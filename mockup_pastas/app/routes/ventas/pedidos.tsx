@@ -412,16 +412,10 @@ type OrderDetailsProps = {
 function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderDetailsProps) {
   const activeRemit = SAMPLE_REMITS.find(remit => remit.orderId === order.id && remit.status !== "Anulado");
   return (
-    <div className="fixed inset-0 z-50 flex justify-end bg-gray-900/50 backdrop-blur-sm transition-opacity">
-      <div className="flex w-full max-w-md flex-col bg-white shadow-2xl h-full animate-slide-left overflow-hidden">
-        <div className="flex items-center justify-between border-b border-gray-100 px-6 py-4 bg-gray-50">
-          <h2 className="text-lg font-semibold text-gray-900">Pedido {order.number}</h2>
-          <button type="button" onClick={onClose} className="rounded-full p-2 text-gray-400 hover:bg-gray-200 hover:text-gray-700 transition">
-            <span className="sr-only">Cerrar</span>✕
-          </button>
-        </div>
-        
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={`Pedido ${order.number}`} onCancel={onClose} />
+      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="space-y-6 p-5 sm:p-6">
           <div className="flex justify-between items-center">
             <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClass(order.status)}`}>
               {order.status}
@@ -627,6 +621,19 @@ export default function Pedidos() {
     </>;
   }
 
+  if (selectedOrder) {
+    return <>
+      {actionError && <p role="alert" className="mx-auto mt-6 max-w-4xl rounded-lg bg-red-50 p-4 text-sm text-red-800">{actionError}</p>}
+      <OrderDetails
+        order={selectedOrder}
+        client={clients.find(client => client.id === selectedOrder.clientId)}
+        onClose={closeOrderDetails}
+        onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(); }}
+        onChangeStatus={changeOrderStatus}
+      />
+    </>;
+  }
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <SalesPageHeader 
@@ -728,15 +735,7 @@ export default function Pedidos() {
       </section>
 
 
-      {selectedOrder && (
-        <OrderDetails 
-          order={selectedOrder} 
-          client={clients.find(c => c.id === selectedOrder.clientId)}
-          onClose={closeOrderDetails}
-          onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(); }}
-          onChangeStatus={changeOrderStatus}
-        />
-      )}
+
     </div>
   );
 }
