@@ -445,7 +445,7 @@ type ReceiptDetailProps = {
 };
 
 function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: ReceiptDetailProps) {
-  const { clients } = useLoaderData<typeof loader>();
+  const { clients, orders } = useLoaderData<typeof loader>();
   const client = clients.find(c => c.id === receipt.clientId);
 
   return (
@@ -455,6 +455,7 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
         <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
       </div>
       {receipt.accountMonth && <p className="mb-4 text-sm font-semibold text-amber-800">Pago del mes de {monthLabel(receipt.accountMonth)}</p>}
+      {receipt.advanceOrderId && <p className="mb-4 text-sm font-semibold text-amber-800">Seña del evento {orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId}. {receipt.invoices.length === 0 ? "Se aplicará al emitir la factura del pedido." : "Aplicada a la factura del pedido."}</p>}
       {notice && <div role="alert" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{notice}</div>}
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -569,7 +570,7 @@ export default function Recibos() {
   const [params, setParams] = useSearchParams();
   const requestedClient = params.get("cliente");
   const requestedMonth = params.get("mes");
-  const { receipts, invoices, clients } = useLoaderData<typeof loader>();
+  const { receipts, invoices, clients, orders } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
   const serverError = fetcher.data && "error" in fetcher.data ? fetcher.data.error : "";
   const [search, setSearch] = useState("");
@@ -734,7 +735,7 @@ export default function Recibos() {
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="text-xs font-medium text-gray-500 lg:hidden">Comprobantes</p>
                     <p className="mt-1 break-words text-sm text-emerald-700 font-medium lg:mt-0">
-                      {receipt.invoices.map(i => i.invoiceNumber).join(", ") || "Ninguno"}
+                      {receipt.invoices.map(i => i.invoiceNumber).join(", ") || (receipt.advanceOrderId ? `Seña de evento ${orders.find(order => order.id === receipt.advanceOrderId)?.number ?? ""}` : "Ninguno")}
                     </p>
                   </div>
                   <div className="min-w-0 lg:text-center text-left">

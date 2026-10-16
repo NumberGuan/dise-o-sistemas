@@ -27,9 +27,13 @@ export function invoiceAmounts(items: InvoiceItem[], clientType: Client["type"],
   return { items: lines, subtotal, discount, taxableBase, tax, total: money(taxableBase + tax), commercialDiscountRate: clientType === "Comercio" ? 15 : 0 };
 }
 
+export function currentSalesDate(date = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(date);
+  return `${parts.find(part => part.type === "year")!.value}-${parts.find(part => part.type === "month")!.value}-${parts.find(part => part.type === "day")!.value}`;
+}
+
 export function currentSalesMonth(date = new Date()) {
-  const parts = new Intl.DateTimeFormat("en-CA", { timeZone: "America/Argentina/Buenos_Aires", year: "numeric", month: "2-digit" }).formatToParts(date);
-  return `${parts.find(part => part.type === "year")!.value}-${parts.find(part => part.type === "month")!.value}`;
+  return currentSalesDate(date).slice(0, 7);
 }
 
 export function nextSalesMonth(month: string) {
@@ -50,7 +54,7 @@ export function getClientMonthlyAccount(client: Client, orders: Order[], invoice
     const group = groups.get(month) ?? { month, orderCount: 0, total: 0, paid: 0, balance: 0, unbilled: 0, invoiceIds: [], payableFrom: nextSalesMonth(month) };
     const invoice = invoices.find(invoice => invoice.orderId === order.id && invoice.clientId === client.id && invoice.status === "Emitido" && invoice.type !== "Nota de Crédito");
     const amount = invoice ? invoice.total : invoiceAmounts(order.items, client.type, order.discount).total;
-    const paid = invoice ? getInvoicePaymentSummary(invoice, undefined, receipts).paid : 0;
+    const paid = invoice ? getInvoicePaymentSummary(invoice, undefined, receipts).paid : receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
     group.orderCount += 1;
     group.total = money(group.total + amount);
     group.paid = money(group.paid + paid);

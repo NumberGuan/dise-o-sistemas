@@ -78,6 +78,12 @@ export type Client = {
   notes: string;
 };
 
+export const COUNTER_CLIENT: Client = {
+  id: "consumidor-final", code: "MOSTRADOR", type: "Particular", name: "Consumidor final (Mostrador)",
+  documentType: "Otro", cuitCuil: "", ivaType: "Consumidor final", phone: "", email: "",
+  street: "", streetNumber: "", locality: "", province: "", balance: 0, addresses: [], status: "Activo", notes: "",
+};
+
 // Compatibilidad con las direcciones guardadas antes de separar calle y altura.
 export function splitClientAddress(address: string) {
   const match = address.trim().match(/^(.*?)\s+(\d+[A-Za-z]?)$/);
@@ -138,6 +144,8 @@ export const SAMPLE_PRODUCTS: Product[] = [
 
 export const ORDER_STATUSES = ["Pendiente", "En preparación", "Listo para remito", "Facturado", "Cancelado"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
+export const ORDER_KINDS = ["Regular", "Mostrador", "Evento"] as const;
+export type OrderKind = (typeof ORDER_KINDS)[number];
 
 export type OrderItem = {
   id: string;
@@ -152,6 +160,9 @@ export type Order = {
   id: string;
   number: string;
   clientId: string;
+  kind?: OrderKind;
+  fulfillment?: "Retiro en local" | "Envío";
+  deliveryTime?: string;
   employeeId?: string;
   date: string;
   deliveryDate: string;
@@ -502,6 +513,7 @@ export type Receipt = {
   status: ReceiptStatus;
   observations: string;
   accountMonth?: string;
+  advanceOrderId?: string;
 };
 
 export const SAMPLE_RECEIPTS: Receipt[] = [

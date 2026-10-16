@@ -91,7 +91,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
           number = `PC-WEB-${String(sequence).padStart(6, "0")}`;
           id = `web-order-${String(sequence).padStart(6, "0")}`;
         }
-        const order = { id, number, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, deliveryAddressId: selectedAddress.id, deliveryAddress: formatClientAddress(selectedAddress), items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
+        const order = { id, number, kind: "Regular" as const, fulfillment: "Envío" as const, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, deliveryAddressId: selectedAddress.id, deliveryAddress: formatClientAddress(selectedAddress), items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
         current.customerOrders = [...(current.customerOrders ?? []), order];
         current.cart = [];
         created = true;

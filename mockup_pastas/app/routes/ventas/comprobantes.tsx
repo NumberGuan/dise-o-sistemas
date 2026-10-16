@@ -1,4 +1,4 @@
-import { invoiceAmounts } from "~/data/billing";
+import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useLoaderData, useFetcher } from "react-router";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
@@ -64,14 +64,14 @@ type InvoiceFormProps = {
 };
 
 function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: InvoiceFormProps) {
-  const { clients, orders } = useLoaderData<typeof loader>();
+  const { clients, orders, receipts } = useLoaderData<typeof loader>();
   const initialOrder = orders.find(order => order.id === (invoice?.orderId || initialOrderId));
   const isNew = !invoice;
   const [orderId, setOrderId] = useState(invoice?.orderId || initialOrder?.id || "");
   const [clientId, setClientId] = useState(invoice?.clientId || initialOrder?.clientId || "");
   const [type, setType] = useState<InvoiceType>(invoice?.type || "Factura A");
-  const [date, setDate] = useState(invoice?.date || new Date().toISOString().split("T")[0]);
-  const [dueDate, setDueDate] = useState(invoice?.dueDate || "");
+  const [date, setDate] = useState(invoice?.date || currentSalesDate());
+  const [dueDate, setDueDate] = useState(invoice?.dueDate || (initialOrder?.kind === "Mostrador" ? currentSalesDate() : ""));
   const [items, setItems] = useState<InvoiceItem[]>(invoice?.items || initialOrder?.items || []);
   const [orderDiscount, setOrderDiscount] = useState(invoice?.discount ?? initialOrder?.discount ?? 0);
   const [observations, setObservations] = useState(invoice?.observations || "");
@@ -95,6 +95,7 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
 
   const amounts = invoiceAmounts(items, selectedClient?.type ?? "Particular", orderDiscount);
   const { subtotal, discount, taxableBase, tax, total } = amounts;
+  const deposit = receipts.filter(receipt => receipt.advanceOrderId === orderId && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
 
   const availableOrders = useMemo(() => {
     const invoicedOrderIds = new Set(invoices.filter(i => i.id !== invoice?.id && i.status !== "Anulado").map(i => i.orderId));
@@ -309,6 +310,10 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
                   <span>Total</span>
                   <span>{formatCurrency(total)}</span>
                 </div>
+                {deposit > 0 && <>
+                  <div className="flex justify-between text-sm text-emerald-800"><span>Seña ya cobrada</span><span>{formatCurrency(deposit)}</span></div>
+                  <div className="flex justify-between text-sm font-semibold"><span>Saldo a pagar</span><span>{formatCurrency(Math.max(0, total - deposit))}</span></div>
+                </>}
               </div>
             </div>
 

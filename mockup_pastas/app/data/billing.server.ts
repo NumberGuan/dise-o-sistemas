@@ -3,7 +3,7 @@ import { mutateSalesData } from "~/data/sales.server";
 import { customerAsClient } from "~/data/customer.server";
 import { getUsers } from "~/utils/db.server";
 import { invoiceAmounts, getClientMonthlyAccount, money } from "~/data/billing";
-import { getInvoicePaymentSummary, INVOICE_STATUSES, INVOICE_TYPES, RECEIPT_STATUSES, PAYMENT_METHODS, type Client, type Invoice, type Receipt } from "~/data/sales";
+import { getInvoicePaymentSummary, COUNTER_CLIENT, INVOICE_STATUSES, INVOICE_TYPES, RECEIPT_STATUSES, PAYMENT_METHODS, type Client, type Invoice, type Receipt } from "~/data/sales";
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Los datos enviados no son válidos.");
@@ -41,7 +41,7 @@ export async function saveSalesInvoice(input: unknown, id?: string) {
     }
     if (status === "Anulado") throw new Error("No se puede crear una factura anulada.");
     const users = await getUsers();
-    const clients = [...data.clients, ...users.map(customerAsClient).filter((client): client is Client => client !== null)];
+    const clients = [...data.clients, COUNTER_CLIENT, ...users.map(customerAsClient).filter((client): client is Client => client !== null)];
     const orders = [...data.orders, ...users.flatMap(user => user.customerOrders ?? [])];
     const orderId = string(row.orderId, 120);
     const order = orders.find(order => order.id === orderId && order.status !== "Cancelado");
@@ -54,6 +54,13 @@ export async function saveSalesInvoice(input: unknown, id?: string) {
     const totals = invoiceAmounts(order.items, client.type, order.discount);
     amount(totals.total);
     const invoice: Invoice = { ...totals, id: previous?.id ?? `inv-${crypto.randomUUID()}`, number: previous?.number ?? `FC-0001-${String(Math.max(0, ...data.invoices.map(invoice => Number(invoice.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, clientId: client.id, orderId, date: invoiceDate, dueDate, type: choice(row.type, INVOICE_TYPES), status, observations: string(row.observations ?? "") };
+    if (order.kind === "Evento" && invoice.type === "Nota de Crédito") throw new Error("Facturá el evento con una factura o nota de débito.");
+    if (order.kind === "Evento" && status === "Emitido") {
+      const deposits = data.receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado");
+      const paid = money(deposits.reduce((sum, receipt) => sum + receipt.total, 0));
+      if (Math.round(paid * 100) < Math.ceil(Math.round(invoice.total * 100) / 2) || paid > invoice.total) throw new Error("El evento requiere una seña registrada de al menos el 50% del total a facturar.");
+      for (const deposit of deposits) deposit.invoices = [{ invoiceId: invoice.id, invoiceNumber: invoice.number, amountApplied: deposit.total }];
+    }
     if (previous) data.invoices[data.invoices.indexOf(previous)] = invoice;
     else data.invoices.unshift(invoice);
   });
@@ -72,7 +79,7 @@ export async function saveSalesReceipt(input: unknown, id?: string) {
     }
     if (status === "Anulado") throw new Error("No se puede crear un recibo anulado.");
     const users = await getUsers();
-    const clients = [...data.clients, ...users.map(customerAsClient).filter((client): client is Client => client !== null)];
+    const clients = [...data.clients, COUNTER_CLIENT, ...users.map(customerAsClient).filter((client): client is Client => client !== null)];
     const clientId = string(row.clientId, 120);
     const client = clients.find(client => client.id === clientId);
     if (!client) throw new Error("Seleccioná un cliente existente.");
