@@ -1,3 +1,5 @@
+import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
+import { getClientMonthlyAccount } from "~/data/billing";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 
@@ -113,9 +115,7 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
             <label className={labelClass}>Correo electrónico
               <input type="email" value={values.email} disabled={Boolean(client?.id.startsWith("customer-"))} onChange={(event) => update("email", event.target.value)} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`} placeholder="nombre@comercio.com" />
             </label>
-            {values.type === "Comercio" && <label className={labelClass}>Saldo ($)
-              <input type="number" step="0.01" min="-999999999.99" max="999999999.99" required value={values.balance} onChange={(event) => update("balance", Number(event.target.value))} className={inputClass} />
-            </label>}
+            {values.type === "Comercio" && <p className="text-sm text-gray-600 sm:col-span-2">El saldo se calcula automáticamente con los pedidos y pagos de cada mes. Las facturas incluyen el descuento del 15% para comercios.</p>}
             <label className={`${labelClass} sm:col-span-2`}>Observaciones
               <textarea rows={3} value={values.notes} onChange={(event) => update("notes", event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
             </label>
@@ -132,6 +132,8 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
 }
 
 function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: Client; orders: Order[]; onClose: () => void; onEdit: () => void; canEdit: boolean }) {
+  const { invoices, receipts } = useLoaderData<typeof loader>();
+  const months = getClientMonthlyAccount(client, orders, invoices, receipts);
   const activity = orders.filter((order) => order.clientId === client.id).sort((a, b) => b.date.localeCompare(a.date));
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-gray-950/40 p-0 sm:items-center sm:p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}>
@@ -146,6 +148,7 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
             <dl className="mt-3 space-y-3 text-sm">
               {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección completa", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
             </dl>
+            {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
             <h3 className="mt-5 text-sm font-semibold text-gray-900">Direcciones guardadas</h3>
             <ul className="mt-2 space-y-2 text-sm text-gray-700">{getClientAddresses(client).map((address, index) => <li key={address.id}><strong>{address.label}{index === 0 ? " · Principal" : ""}</strong><p>{formatClientAddress(address)}</p></li>)}</ul>
             {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 text-sm text-amber-900">{client.notes}</p></div>}

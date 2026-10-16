@@ -233,6 +233,8 @@ export type InvoiceItem = {
   quantity: number;
   unitPrice: number;
   subtotal: number;
+  discount?: number;
+  netSubtotal?: number;
 };
 
 export type Invoice = {
@@ -249,6 +251,7 @@ export type Invoice = {
   tax: number;
   total: number;
   status: InvoiceStatus;
+  commercialDiscountRate?: number;
   observations: string;
 
 };
@@ -498,6 +501,7 @@ export type Receipt = {
   total: number;
   status: ReceiptStatus;
   observations: string;
+  accountMonth?: string;
 };
 
 export const SAMPLE_RECEIPTS: Receipt[] = [
@@ -519,8 +523,8 @@ export const SAMPLE_RECEIPTS: Receipt[] = [
 ];
 
 // Solo los recibos registrados afectan el saldo. Un borrador no representa un cobro.
-export function getInvoicePaymentSummary(invoice: Invoice, excludingReceiptId?: string) {
-  const paid = SAMPLE_RECEIPTS
+export function getInvoicePaymentSummary(invoice: Invoice, excludingReceiptId?: string, receipts: Receipt[] = SAMPLE_RECEIPTS) {
+  const paid = receipts
     .filter(receipt => receipt.status === "Registrado" && receipt.id !== excludingReceiptId && receipt.clientId === invoice.clientId)
     .flatMap(receipt => receipt.invoices)
     .filter(detail => detail.invoiceId === invoice.id)

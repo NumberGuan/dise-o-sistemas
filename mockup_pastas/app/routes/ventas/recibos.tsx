@@ -1,18 +1,42 @@
+import { getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
+import { useLoaderData, useFetcher, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import {
-  SAMPLE_CLIENTS,
-  SAMPLE_INVOICES,
-  SAMPLE_RECEIPTS,
   RECEIPT_STATUSES,
   PAYMENT_METHODS,
   getInvoicePaymentSummary,
+  type Invoice,
   type Receipt,
   type ReceiptStatus,
   type ReceiptPaymentDetail,
   type ReceiptInvoiceDetail,
   type PaymentMethod
 } from "~/data/sales";
+
+import { getSalesData } from "~/data/sales.server";
+import { saveSalesReceipt } from "~/data/billing.server";
+import { requireUserAndRole } from "~/utils/session.server";
+import type { Route } from "./+types/recibos";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  return getSalesData();
+};
+
+export const action = async ({ request }: Route.ActionArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  try {
+    const data = await request.formData();
+    const raw = data.get("document");
+    const id = data.get("id");
+    if (typeof raw !== "string" || raw.length > 200000 || (id !== null && (typeof id !== "string" || id.length > 120))) throw new Error("Los datos enviados no son validos.");
+    await saveSalesReceipt(JSON.parse(raw), typeof id === "string" ? id : undefined);
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No se pudo guardar el documento." };
+  }
+};
 
 function getStatusClass(status: ReceiptStatus) {
   switch (status) {
@@ -27,16 +51,16 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
 }
 
-function receiptValidationError(receipt: Receipt, requireComplete = receipt.status === "Registrado"): string | null {
+function receiptValidationError(receipt: Receipt, invoices: Invoice[], receipts: Receipt[], requireComplete = receipt.status === "Registrado"): string | null {
   if (!receipt.clientId) return "Selecciona un cliente.";
   if (!receipt.date) return "Selecciona una fecha.";
   if (receipt.payments.some(payment => !Number.isFinite(payment.amount) || payment.amount <= 0 || Math.abs(payment.amount * 100 - Math.round(payment.amount * 100)) > 0.000001)) return "Cada pago debe ser positivo y tener como máximo dos decimales.";
   if (new Set(receipt.invoices.map(detail => detail.invoiceId)).size !== receipt.invoices.length) return "Un comprobante no puede imputarse dos veces en el mismo recibo.";
   for (const detail of receipt.invoices) {
-    const invoice = SAMPLE_INVOICES.find(item => item.id === detail.invoiceId);
+    const invoice = invoices.find(item => item.id === detail.invoiceId);
     if (!invoice || invoice.clientId !== receipt.clientId || invoice.status !== "Emitido") return "Selecciona comprobantes emitidos del cliente.";
     if (!Number.isFinite(detail.amountApplied) || detail.amountApplied <= 0 || Math.abs(detail.amountApplied * 100 - Math.round(detail.amountApplied * 100)) > 0.000001) return "Cada importe aplicado debe ser positivo y tener como máximo dos decimales.";
-    if (Math.round(detail.amountApplied * 100) > Math.round(getInvoicePaymentSummary(invoice, receipt.id).balance * 100)) return `El importe aplicado a ${invoice.number} supera el saldo pendiente.`;
+    if (Math.round(detail.amountApplied * 100) > Math.round(getInvoicePaymentSummary(invoice, receipt.id, receipts).balance * 100)) return `El importe aplicado a ${invoice.number} supera el saldo pendiente.`;
   }
   const paymentsInCents = Math.round(receipt.payments.reduce((sum, payment) => sum + payment.amount, 0) * 100);
   const appliedInCents = Math.round(receipt.invoices.reduce((sum, detail) => sum + detail.amountApplied, 0) * 100);
@@ -53,8 +77,11 @@ type ReceiptFormProps = {
 };
 
 function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) {
+  const { clients, invoices, orders } = useLoaderData<typeof loader>();
+  const [params] = useSearchParams();
+  const [accountMonth, setAccountMonth] = useState(receipt?.accountMonth ?? params.get("mes") ?? "");
   const isNew = !receipt;
-  const [clientId, setClientId] = useState(receipt?.clientId || "");
+  const [clientId, setClientId] = useState(receipt?.clientId || params.get("cliente") || "");
   const [date, setDate] = useState(receipt?.date || new Date().toISOString().split("T")[0]);
   const [invoicesState, setInvoicesState] = useState<ReceiptInvoiceDetail[]>(() => receipt?.invoices.map(detail => ({ ...detail })) || []);
   const [payments, setPayments] = useState<ReceiptPaymentDetail[]>(() => receipt?.payments.map(payment => ({ ...payment })) || []);
@@ -68,13 +95,25 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   // Comprobantes del cliente seleccionado que tienen saldo > 0 (o que ya están en este recibo)
   const clientInvoices = useMemo(() => {
     if (!clientId) return [];
-    return SAMPLE_INVOICES.filter(inv => {
+    return invoices.filter(inv => {
       if (inv.clientId !== clientId || inv.status === "Anulado" || inv.status === "Borrador") return false;
-      const bal = getInvoicePaymentSummary(inv, receipt?.id).balance;
+      const bal = getInvoicePaymentSummary(inv, receipt?.id, receipts).balance;
       const isIncluded = invoicesState.some(i => i.invoiceId === inv.id);
       return bal > 0 || isIncluded;
     });
-  }, [clientId, receipt?.id, invoicesState]);
+  }, [clientId, receipt?.id, invoicesState, invoices, receipts]);
+
+  const selectedClient = clients.find(client => client.id === clientId);
+  const months = selectedClient ? getClientMonthlyAccount(selectedClient, orders, invoices, receipts.filter(candidate => candidate.id !== receipt?.id)) : [];
+  useEffect(() => {
+    if (!accountMonth) return;
+    const client = clients.find(client => client.id === clientId);
+    const month = client ? getClientMonthlyAccount(client, orders, invoices, receipts.filter(candidate => candidate.id !== receipt?.id)).find(month => month.month === accountMonth) : undefined;
+    if (!month || month.unbilled > 0) return;
+    const details = invoices.filter(invoice => month.invoiceIds.includes(invoice.id)).map(invoice => ({ invoiceId: invoice.id, invoiceNumber: invoice.number, amountApplied: getInvoicePaymentSummary(invoice, receipt?.id, receipts).balance }));
+    setInvoicesState(details);
+    setPayAmount(money(details.reduce((sum, detail) => sum + detail.amountApplied, 0)));
+  }, [accountMonth, clientId, clients, orders, invoices, receipts, receipt?.id]);
 
   const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
   const totalApplied = invoicesState.reduce((sum, i) => sum + i.amountApplied, 0);
@@ -135,8 +174,9 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
       total: totalPayments,
       status,
       observations,
+      accountMonth: accountMonth || undefined,
     };
-    const error = receiptValidationError(nextReceipt, status === "Registrado");
+    const error = receiptValidationError(nextReceipt, invoices, receipts, status === "Registrado");
     if (error) return setErrorMsg(error);
     onSave(nextReceipt);
   }
@@ -166,6 +206,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                 value={clientId}
                 onChange={e => {
                   setClientId(e.target.value);
+                  setAccountMonth("");
                   setInvoicesState([]);
                   setPayments([]);
                   setPayAmount(0);
@@ -175,7 +216,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                 className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50"
               >
                 <option value="">Seleccionar...</option>
-                {SAMPLE_CLIENTS.map(c => (
+                {clients.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
@@ -196,6 +237,18 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
             </div>
           </div>
         </div>
+
+        {selectedClient?.type === "Comercio" && <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+          <h2 className="font-semibold text-gray-900">Pago mensual del comercio</h2>
+          <label className="mt-3 block text-sm font-medium text-gray-700">Mes a saldar
+            <select value={accountMonth} onChange={event => { setAccountMonth(event.target.value); setInvoicesState([]); setPayments([]); setPayAmount(0); }} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3">
+              <option value="">Seleccionar facturas individualmente</option>
+              {months.filter(month => month.balance > 0).map(month => <option key={month.month} value={month.month} disabled={month.unbilled > 0 || month.month >= currentSalesMonth()}>{monthLabel(month.month)} · {formatCurrency(month.balance)}{month.unbilled ? " · Faltan facturar pedidos" : month.month >= currentSalesMonth() ? " · En curso" : ""}</option>)}
+            </select>
+          </label>
+          <p className="mt-2 text-sm text-gray-600">Al elegir un mes cerrado se incluyen todas sus facturas pendientes en este recibo. Agregá el medio de pago y registrá el cobro.</p>
+          {accountMonth && <p className="mt-2 font-semibold text-amber-900">Saldo a cancelar: {formatCurrency(totalApplied)}</p>}
+        </section>}
 
         {/* Medios de Pago */}
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
@@ -305,7 +358,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {clientInvoices.map(inv => {
-                      const { paid, balance } = getInvoicePaymentSummary(inv, receipt?.id);
+                      const { paid, balance } = getInvoicePaymentSummary(inv, receipt?.id, receipts);
                       const applied = invoicesState.find(i => i.invoiceId === inv.id)?.amountApplied || "";
                       return (
                         <tr key={inv.id} className="bg-white hover:bg-gray-50 transition">
@@ -384,7 +437,8 @@ type ReceiptDetailProps = {
 };
 
 function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: ReceiptDetailProps) {
-  const client = SAMPLE_CLIENTS.find(c => c.id === receipt.clientId);
+  const { clients } = useLoaderData<typeof loader>();
+  const client = clients.find(c => c.id === receipt.clientId);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
@@ -392,6 +446,7 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
         <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
         <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
       </div>
+      {receipt.accountMonth && <p className="mb-4 text-sm font-semibold text-amber-800">Pago del mes de {monthLabel(receipt.accountMonth)}</p>}
       {notice && <div role="alert" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{notice}</div>}
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -503,7 +558,12 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
 }
 
 export default function Recibos() {
-  const [receipts, setReceipts] = useState<Receipt[]>(() => [...SAMPLE_RECEIPTS]);
+  const [params, setParams] = useSearchParams();
+  const requestedClient = params.get("cliente");
+  const requestedMonth = params.get("mes");
+  const { receipts, invoices, clients } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const serverError = fetcher.data && "error" in fetcher.data ? fetcher.data.error : "";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos los estados");
   const [notice, setNotice] = useState("");
@@ -511,10 +571,14 @@ export default function Recibos() {
   const [editingReceipt, setEditingReceipt] = useState<Receipt | null | undefined>(undefined);
   const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
 
+  useEffect(() => {
+    if (requestedClient && requestedMonth) setEditingReceipt(null);
+  }, [requestedClient, requestedMonth]);
+
   const filteredReceipts = useMemo(() => {
     return receipts.filter(rec => {
       const matchesStatus = statusFilter === "Todos los estados" || rec.status === statusFilter;
-      const client = SAMPLE_CLIENTS.find(c => c.id === rec.clientId);
+      const client = clients.find(c => c.id === rec.clientId);
       const searchLower = search.trim().toLowerCase();
       const matchesSearch = !searchLower ||
         rec.number.toLowerCase().includes(searchLower) ||
@@ -523,7 +587,7 @@ export default function Recibos() {
 
       return matchesStatus && matchesSearch;
     });
-  }, [receipts, search, statusFilter]);
+  }, [receipts, clients, search, statusFilter]);
 
   useEffect(() => {
     if (editingReceipt === undefined && selectedReceipt === null) return;
@@ -537,30 +601,24 @@ export default function Recibos() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [editingReceipt, selectedReceipt]);
 
-  function saveReceipt(rec: Receipt) {
-    const previousReceipt = SAMPLE_RECEIPTS.find(r => r.id === rec.id);
-    const isNew = !previousReceipt;
-    if (isNew) {
-      SAMPLE_RECEIPTS.unshift(rec);
-      setNotice(rec.status === "Registrado" ? "Pago registrado en memoria; los saldos se actualizaron hasta recargar la aplicación." : "Borrador guardado en memoria; no afecta los saldos y se pierde al recargar la aplicación.");
-    } else {
-      const idx = SAMPLE_RECEIPTS.findIndex(r => r.id === rec.id);
-      if (idx >= 0) SAMPLE_RECEIPTS[idx] = rec;
-      if (previousReceipt.status === "Registrado" && rec.status === "Anulado") {
-        setNotice("Recibo anulado en memoria; sus importes dejaron de afectar los saldos hasta recargar la aplicación.");
-      } else if (previousReceipt.status === "Borrador" && rec.status === "Registrado") {
-        setNotice("Pago registrado en memoria; los saldos se actualizaron hasta recargar la aplicación.");
-      } else {
-        setNotice("Borrador actualizado en memoria; los cambios se pierden al recargar la aplicación.");
-      }
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data && "success" in fetcher.data) {
+      closeReceiptForm(); setSelectedReceipt(null); setNotice("Recibo guardado. Los saldos se actualizaron.");
     }
-    setReceipts([...SAMPLE_RECEIPTS]);
+  }, [fetcher.data, fetcher.state]);
+
+  function closeReceiptForm() {
     setEditingReceipt(undefined);
-    if (selectedReceipt && selectedReceipt.id === rec.id) {
-        setSelectedReceipt(rec);
-    } else {
-        setSelectedReceipt(null);
+    if (requestedClient || requestedMonth) {
+      const next = new URLSearchParams(params);
+      next.delete("cliente"); next.delete("mes");
+      setParams(next, { replace: true });
     }
+  }
+
+  function saveReceipt(rec: Receipt) {
+    if (fetcher.state !== "idle") return;
+    fetcher.submit({ document: JSON.stringify(rec), ...(receipts.some(receipt => receipt.id === rec.id) ? { id: rec.id } : {}) }, { method: "post" });
   }
 
   function changeReceiptStatus(status: ReceiptStatus) {
@@ -574,7 +632,7 @@ export default function Recibos() {
     }
     const updated = { ...selectedReceipt, status };
     if (status === "Registrado") {
-      const error = receiptValidationError(updated);
+      const error = receiptValidationError(updated, invoices, receipts);
       if (error) {
         setNotice(error);
         return;
@@ -584,11 +642,11 @@ export default function Recibos() {
   }
 
   if (editingReceipt !== undefined) {
-    return <ReceiptForm receipt={editingReceipt} receipts={receipts} onCancel={() => setEditingReceipt(undefined)} onSave={saveReceipt} />;
+    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="mx-auto mt-4 max-w-4xl text-red-700">{serverError}</p>}<ReceiptForm receipt={editingReceipt} receipts={receipts} onCancel={closeReceiptForm} onSave={saveReceipt} /></fieldset>;
   }
 
   if (selectedReceipt) {
-    return <ReceiptDetail receipt={selectedReceipt} notice={notice} onClose={() => setSelectedReceipt(null)} onEdit={() => setEditingReceipt(selectedReceipt)} onChangeStatus={changeReceiptStatus} />;
+    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="p-4 text-red-700">{serverError}</p>}<ReceiptDetail receipt={selectedReceipt} notice={notice} onClose={() => setSelectedReceipt(null)} onEdit={() => setEditingReceipt(selectedReceipt)} onChangeStatus={changeReceiptStatus} /></fieldset>;
   }
 
   return (
@@ -654,7 +712,7 @@ export default function Recibos() {
             </div>
             <div className="divide-y divide-gray-100">
             {filteredReceipts.map(receipt => {
-              const client = SAMPLE_CLIENTS.find(c => c.id === receipt.clientId);
+              const client = clients.find(c => c.id === receipt.clientId);
               return (
                 <article key={receipt.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
                   <div className="min-w-0 text-left lg:text-center">

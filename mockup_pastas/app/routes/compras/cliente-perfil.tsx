@@ -1,7 +1,9 @@
+import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
+import { getClientMonthlyAccount } from "~/data/billing";
 import { useState } from "react";
 import ClientAddressesEditor from "~/components/ClientAddressesEditor";
 import { customerAsClient } from "~/data/customer.server";
-import { preserveOrderAddresses } from "~/data/sales.server";
+import { getSalesData, preserveOrderAddresses } from "~/data/sales.server";
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 
 import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, getClientAddresses, validateClientAddresses } from "~/data/sales";
@@ -12,7 +14,9 @@ export { default as ErrorBoundary } from "~/components/CustomerErrorBoundary";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const user = await requireUserAndRole(request, ["Cliente"]);
-  return { profile: {
+  const sales = await getSalesData();
+  const client = sales.clients.find(client => client.id === `customer-${user.id}`)!;
+  return { account: getClientMonthlyAccount(client, sales.orders, sales.invoices, sales.receipts), profile: {
     name: user.name, email: user.email, phone: user.phone ?? "", address: user.address ?? "",
     type: user.customerData?.type ?? "Particular", documentType: user.customerData?.documentType ?? "DNI",
     cuitCuil: user.customerData?.cuitCuil ?? "", ivaType: user.customerData?.ivaType ?? "",
@@ -55,7 +59,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 };
 
 export default function ClientePerfil() {
-  const { profile } = useLoaderData<typeof loader>();
+  const { profile, account } = useLoaderData<typeof loader>();
   const [addresses, setAddresses] = useState(profile.addresses);
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
@@ -65,6 +69,7 @@ export default function ClientePerfil() {
 
   return <div className="mx-auto max-w-3xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
     <div className="mb-6"><p className="text-xs font-semibold uppercase tracking-[0.16em] text-amber-800">Tu cuenta</p><h1 className="mt-2 text-2xl font-semibold tracking-tight text-gray-900 sm:text-3xl">Mi perfil</h1><p className="mt-2 text-sm text-gray-600">Estos datos se comparten con Ventas y se usan para asociar tus pedidos.</p></div>
+    {profile.type === "Comercio" && <ClientMonthlyAccount months={account} />}
     <section className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm"><Form key={JSON.stringify(profile)} method="post" className="space-y-6 p-5 sm:p-7" autoComplete="on">
       {actionData?.error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionData.error}</p>}
       {actionData?.success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Los datos del cliente se guardaron correctamente.</p>}

@@ -13,6 +13,10 @@ import {
   SAMPLE_CLIENTS,
   SAMPLE_ORDERS,
   SAMPLE_PRODUCTS,
+  SAMPLE_INVOICES,
+  SAMPLE_RECEIPTS,
+  type Invoice,
+  type Receipt,
   type Client,
   type Order,
   type OrderItem,
@@ -21,8 +25,9 @@ import {
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import { customerAsClient } from "~/data/customer.server";
 import { getUsers, mutateUser, type Role } from "~/utils/db.server";
+import { getClientMonthlyAccount, money } from "~/data/billing";
 
-type SalesData = { clients: Client[]; orders: Order[] };
+type SalesData = { clients: Client[]; orders: Order[]; invoices: Invoice[]; receipts: Receipt[] };
 const SALES_PATH = path.join(process.cwd(), "data", "sales.json");
 let writeQueue: Promise<unknown> = Promise.resolve();
 
@@ -41,10 +46,10 @@ async function readSalesData(): Promise<SalesData> {
       throw new Error("El archivo de Ventas tiene un formato inválido.");
     }
     const data = parsed as SalesData;
-    return { ...data, clients: data.clients.map(normalizeClient) };
+    return { ...data, clients: data.clients.map(normalizeClient), invoices: data.invoices ?? structuredClone(SAMPLE_INVOICES), receipts: data.receipts ?? structuredClone(SAMPLE_RECEIPTS) };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw new Error("No se pudieron leer los datos de Ventas; se preservó el archivo existente.");
-    const initial = { clients: structuredClone(SAMPLE_CLIENTS), orders: structuredClone(SAMPLE_ORDERS) };
+    const initial = { clients: structuredClone(SAMPLE_CLIENTS), orders: structuredClone(SAMPLE_ORDERS), invoices: structuredClone(SAMPLE_INVOICES), receipts: structuredClone(SAMPLE_RECEIPTS) };
     await writeSalesData(initial);
     return initial;
   }
@@ -61,11 +66,22 @@ async function writeSalesData(data: SalesData) {
   }
 }
 
+export async function mutateSalesData<T>(operation: (data: SalesData) => Promise<T>) {
+  return serialize(async () => {
+    const data = await readSalesData();
+    const result = await operation(data);
+    await writeSalesData(data);
+    return result;
+  });
+}
+
 export async function getSalesData() {
   const [data, users] = await Promise.all([serialize(readSalesData), getUsers()]);
   const registeredClients = users.map(customerAsClient).filter((client): client is Client => client !== null);
   const registeredOrders = users.flatMap((user) => user.customerOrders ?? []);
-  return { clients: [...registeredClients, ...data.clients], orders: [...registeredOrders, ...data.orders] };
+  const orders = [...registeredOrders, ...data.orders].map(order => order.status !== "Cancelado" && data.invoices.some(invoice => invoice.orderId === order.id && invoice.status === "Emitido" && invoice.type !== "Nota de Crédito") ? { ...order, status: "Facturado" as const } : order);
+  const clients = [...registeredClients, ...data.clients].map(client => ({ ...client, balance: money(getClientMonthlyAccount(client, orders, data.invoices, data.receipts).reduce((sum, month) => sum + month.balance, 0)) }));
+  return { clients, orders, invoices: data.invoices, receipts: data.receipts };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -94,8 +110,7 @@ function validateClient(value: unknown): Omit<Client, "id" | "code"> | null {
   const email = text(row.email, 254);
   const street = text(primary?.street ?? row.street, 160);
   const streetNumber = text(primary?.streetNumber ?? row.streetNumber, 20);
-  const balance = row.type === "Comercio" ? row.balance : 0;
-  if (typeof balance !== "number" || !Number.isFinite(balance) || Math.abs(balance) > 999999999.99 || Math.abs(balance * 100 - Math.round(balance * 100)) > 0.0001) return null;
+  const balance = 0;
   const floor = text(primary?.floor ?? row.floor ?? "", 20);
   const apartment = text(primary?.apartment ?? row.apartment ?? "", 20);
   const locality = text(primary?.locality ?? row.locality, 100);
@@ -244,6 +259,8 @@ export async function saveSalesOrder(input: unknown, id?: string) {
 }
 
 export async function changeSalesOrderStatus(id: string, status: unknown) {
+  const { invoices } = await getSalesData();
+  if (invoices.some(invoice => invoice.orderId === id && invoice.status === "Emitido")) throw new Error("El pedido ya está facturado. Anulá su comprobante antes de modificar el estado.");
   if (!isOneOf(status, ORDER_STATUSES)) throw new Error("El estado solicitado no es válido.");
   const allowed: Record<OrderStatus, readonly OrderStatus[]> = {
     "Pendiente": ["En preparación", "Cancelado"],

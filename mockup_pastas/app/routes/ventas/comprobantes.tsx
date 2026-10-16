@@ -1,18 +1,41 @@
+import { invoiceAmounts } from "~/data/billing";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router";
+import { useSearchParams, useLoaderData, useFetcher } from "react-router";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import {
-  SAMPLE_CLIENTS,
-  SAMPLE_ORDERS,
-  SAMPLE_INVOICES,
   INVOICE_STATUSES,
   INVOICE_TYPES,
   getInvoicePaymentSummary,
+  type Receipt,
   type Invoice,
   type InvoiceStatus,
   type InvoiceItem,
   type InvoiceType
 } from "~/data/sales";
+
+import { getSalesData } from "~/data/sales.server";
+import { saveSalesInvoice } from "~/data/billing.server";
+import { requireUserAndRole } from "~/utils/session.server";
+import type { Route } from "./+types/comprobantes";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  return getSalesData();
+};
+
+export const action = async ({ request }: Route.ActionArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  try {
+    const data = await request.formData();
+    const raw = data.get("document");
+    const id = data.get("id");
+    if (typeof raw !== "string" || raw.length > 200000 || (id !== null && (typeof id !== "string" || id.length > 120))) throw new Error("Los datos enviados no son validos.");
+    await saveSalesInvoice(JSON.parse(raw), typeof id === "string" ? id : undefined);
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No se pudo guardar el documento." };
+  }
+};
 
 function getStatusClass(status: InvoiceStatus) {
   switch (status) {
@@ -27,8 +50,8 @@ function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
 }
 
-function getPaymentStatus(invoice: Invoice) {
-  const { paid, balance } = getInvoicePaymentSummary(invoice);
+function getPaymentStatus(invoice: Invoice, receipts: Receipt[]) {
+  const { paid, balance } = getInvoicePaymentSummary(invoice, undefined, receipts);
   return balance === 0 ? "Pagado" : paid > 0 ? "Pago parcial" : "Pendiente";
 }
 
@@ -40,48 +63,41 @@ type InvoiceFormProps = {
 };
 
 function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) {
+  const { clients, orders } = useLoaderData<typeof loader>();
   const isNew = !invoice;
   const [orderId, setOrderId] = useState(invoice?.orderId || "");
   const [clientId, setClientId] = useState(invoice?.clientId || "");
   const [type, setType] = useState<InvoiceType>(invoice?.type || "Factura A");
   const [date, setDate] = useState(invoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(invoice?.dueDate || "");
-  const [tax, setTax] = useState(invoice?.tax || 0);
   const [items, setItems] = useState<InvoiceItem[]>(invoice?.items || []);
-  const [discount, setDiscount] = useState(invoice?.discount || 0);
+  const [orderDiscount, setOrderDiscount] = useState(invoice?.discount || 0);
   const [observations, setObservations] = useState(invoice?.observations || "");
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
-    if (orderId && isNew) {
-      const order = SAMPLE_ORDERS.find(o => o.id === orderId);
+    if (orderId) {
+      const order = orders.find(o => o.id === orderId);
       if (order) {
         setClientId(order.clientId);
         setItems(order.items.map(item => ({ ...item })));
-        setDiscount(order.discount);
+        setOrderDiscount(order.discount);
       }
     } else if (!orderId && isNew) {
       setItems([]);
-      setDiscount(0);
+      setOrderDiscount(0);
     }
-  }, [orderId, isNew]);
+  }, [orderId, isNew, orders]);
 
-  const selectedClient = SAMPLE_CLIENTS.find(c => c.id === clientId);
+  const selectedClient = clients.find(c => c.id === clientId);
 
-  const subtotal = useMemo(() => items.reduce((acc, item) => acc + item.subtotal, 0), [items]);
-  const taxableBase = Math.max(0, subtotal - discount);
-  const total = taxableBase + tax;
-  const usesAutomaticTax = isNew || invoice?.status === "Borrador";
-
-  useEffect(() => {
-    if (!usesAutomaticTax) return;
-    setTax(Math.round(taxableBase * 21) / 100);
-  }, [taxableBase, usesAutomaticTax]);
+  const amounts = invoiceAmounts(items, selectedClient?.type ?? "Particular", orderDiscount);
+  const { subtotal, discount, taxableBase, tax, total } = amounts;
 
   const availableOrders = useMemo(() => {
     const invoicedOrderIds = new Set(invoices.filter(i => i.id !== invoice?.id && i.status !== "Anulado").map(i => i.orderId));
-    return SAMPLE_ORDERS.filter(o => o.status !== "Cancelado" && o.status !== "Facturado" && !invoicedOrderIds.has(o.id));
-  }, [invoice?.id, invoices]);
+    return orders.filter(o => o.status !== "Cancelado" && !invoicedOrderIds.has(o.id));
+  }, [invoice?.id, invoices, orders]);
 
   function handleSubmit(status: InvoiceStatus) {
     if (!orderId) return setErrorMsg("Selecciona un pedido para crear la factura.");
@@ -104,7 +120,8 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
       dueDate,
       clientId,
       orderId: orderId || undefined,
-      items,
+      items: amounts.items,
+      commercialDiscountRate: amounts.commercialDiscountRate,
       subtotal,
       discount,
       tax,
@@ -140,11 +157,11 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
                   required
                   value={clientId}
                   onChange={e => setClientId(e.target.value)}
-                  disabled={!!orderId && isNew}
+                  disabled={Boolean(orderId)}
                   className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50 disabled:text-gray-700"
                 >
                   <option value="">Seleccionar cliente...</option>
-                  {SAMPLE_CLIENTS.map(c => (
+                  {clients.map(c => (
                     <option key={c.id} value={c.id}>{c.name}</option>
                   ))}
                 </select>
@@ -166,10 +183,10 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
                 >
                   <option value="">Ninguno</option>
                   {orderId && !availableOrders.some(o => o.id === orderId) && (
-                    <option value={orderId}>{SAMPLE_ORDERS.find(o => o.id === orderId)?.number ?? "Pedido asociado"}</option>
+                    <option value={orderId}>{orders.find(o => o.id === orderId)?.number ?? "Pedido asociado"}</option>
                   )}
                   {availableOrders.map(o => (
-                    <option key={o.id} value={o.id}>{o.number} · {SAMPLE_CLIENTS.find(c => c.id === o.clientId)?.name} · {formatCurrency(o.total)}</option>
+                    <option key={o.id} value={o.id}>{o.number} · {clients.find(c => c.id === o.clientId)?.name} · {formatCurrency(o.total)}</option>
                   ))}
                 </select>
               </div>
@@ -241,7 +258,7 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
                         <td className="px-4 py-2">{item.productName}</td>
                         <td className="px-4 py-2 text-right">{item.quantity}</td>
                         <td className="px-4 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                        <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCurrency(item.subtotal)}</td>
+                        <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCurrency(item.subtotal)}{amounts.commercialDiscountRate === 15 && <small className="block text-emerald-700">15%: -{formatCurrency(amounts.items.find(line => line.id === item.id)?.discount ?? 0)}</small>}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -256,7 +273,7 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
                   <span>{formatCurrency(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Descuento</span>
+                  <span>{amounts.commercialDiscountRate === 15 ? "Descuento Comercio (15%)" : "Descuento"}</span>
                   <span>- {formatCurrency(discount)}</span>
                 </div>
                 <div className="flex justify-between border-t border-gray-200 pt-3 text-sm font-medium text-gray-700">
@@ -303,7 +320,7 @@ function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) 
         <div className="flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">Cancelar</button>
           <button type="button" onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar como borrador</button>
-          <button type="button" onClick={() => handleSubmit("Emitido")} className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir Factura (simulada)</button>
+          <button type="button" onClick={() => handleSubmit("Emitido")} className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir Factura</button>
         </div>
       </form>
     </div>
@@ -318,9 +335,10 @@ type InvoiceDetailProps = {
 };
 
 function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDetailProps) {
-  const client = SAMPLE_CLIENTS.find(c => c.id === invoice.clientId);
-  const order = SAMPLE_ORDERS.find(o => o.id === invoice.orderId);
-  const payment = getInvoicePaymentSummary(invoice);
+  const { clients, orders, receipts } = useLoaderData<typeof loader>();
+  const client = clients.find(c => c.id === invoice.clientId);
+  const order = orders.find(o => o.id === invoice.orderId);
+  const payment = getInvoicePaymentSummary(invoice, undefined, receipts);
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
@@ -354,7 +372,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
                       <td className="px-4 py-3">{item.productName}</td>
                       <td className="px-4 py-3 text-right">{item.quantity}</td>
                       <td className="px-4 py-3 text-right">{formatCurrency(item.unitPrice)}</td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}</td>
+                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}{invoice.commercialDiscountRate === 15 && <small className="block text-emerald-700">15%: -{formatCurrency(item.discount ?? 0)}</small>}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -369,7 +387,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
                 </div>
                 {invoice.discount > 0 && (
                   <div className="flex justify-between text-sm text-gray-600">
-                    <span>Descuento</span>
+                    <span>{invoice.commercialDiscountRate === 15 ? "Descuento Comercio (15%)" : "Descuento"}</span>
                     <span>- {formatCurrency(invoice.discount)}</span>
                   </div>
                 )}
@@ -403,7 +421,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
               {invoice.status === "Emitido" && (
                 <div>
                   <dt className="text-gray-600">Estado de pago</dt>
-                  <dd className="font-medium text-gray-900">{getPaymentStatus(invoice)}</dd>
+                  <dd className="font-medium text-gray-900">{getPaymentStatus(invoice, receipts)}</dd>
                 </div>
               )}
               <div className={invoice.status === "Emitido" ? "border-t border-gray-100 pt-3" : undefined}>
@@ -442,11 +460,11 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
               {invoice.status === "Borrador" && (
                 <>
                   <button type="button" onClick={onEdit} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Editar borrador</button>
-                  <button type="button" onClick={() => onStatusChange("Emitido")} className="w-full rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir (simulada)</button>
+                  <button type="button" onClick={() => onStatusChange("Emitido")} className="w-full rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir</button>
                 </>
               )}
               {invoice.status === "Emitido" && payment.paid === 0 && (
-                <button type="button" onClick={() => { if(confirm("¿Estás seguro de anular esta factura simulada?")) onStatusChange("Anulado"); }} className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50">Anular factura</button>
+                <button type="button" onClick={() => { if(confirm("¿Estás seguro de anular esta factura?")) onStatusChange("Anulado"); }} className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50">Anular factura</button>
               )}
               {invoice.status === "Emitido" && payment.paid > 0 && <p className="text-xs leading-5 text-gray-700">Para anular esta factura, primero anulá los recibos registrados.</p>}
               <p className="text-xs leading-5 text-gray-500">La descarga e impresión todavía no están disponibles.</p>
@@ -460,7 +478,9 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
 
 export default function Comprobantes() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [invoices, setInvoices] = useState<Invoice[]>(() => [...SAMPLE_INVOICES]);
+  const { invoices, clients, orders, receipts } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const serverError = fetcher.data && "error" in fetcher.data ? fetcher.data.error : "";
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos los estados");
   const [typeFilter, setTypeFilter] = useState("Todos los tipos");
@@ -472,9 +492,9 @@ export default function Comprobantes() {
 
   useEffect(() => {
     if (!requestedInvoiceId) return;
-    const requested = SAMPLE_INVOICES.find(invoice => invoice.id === requestedInvoiceId);
+    const requested = invoices.find(invoice => invoice.id === requestedInvoiceId);
     if (requested) setSelectedInvoice(requested);
-  }, [requestedInvoiceId]);
+  }, [requestedInvoiceId, invoices]);
 
   function closeDetail() {
     setSelectedInvoice(null);
@@ -488,9 +508,9 @@ export default function Comprobantes() {
     return invoices.filter(inv => {
       const matchesStatus = statusFilter === "Todos los estados" || inv.status === statusFilter;
       const matchesType = typeFilter === "Todos los tipos" || inv.type === typeFilter;
-      const client = SAMPLE_CLIENTS.find(c => c.id === inv.clientId);
+      const client = clients.find(c => c.id === inv.clientId);
       const searchLower = search.trim().toLowerCase();
-      const order = SAMPLE_ORDERS.find(o => o.id === inv.orderId);
+      const order = orders.find(o => o.id === inv.orderId);
       const matchesSearch = !searchLower ||
         inv.number.toLowerCase().includes(searchLower) ||
         (client?.name.toLowerCase().includes(searchLower)) ||
@@ -498,7 +518,7 @@ export default function Comprobantes() {
 
       return matchesStatus && matchesType && matchesSearch;
     });
-  }, [invoices, search, statusFilter, typeFilter]);
+  }, [invoices, clients, orders, search, statusFilter, typeFilter]);
 
   useEffect(() => {
     if (editingInvoice === undefined && selectedInvoice === null) return;
@@ -512,33 +532,20 @@ export default function Comprobantes() {
     return () => window.removeEventListener("keydown", handleEscape);
   }, [editingInvoice, selectedInvoice]);
 
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data && "success" in fetcher.data) {
+      setEditingInvoice(undefined); setSelectedInvoice(null); setNotice("Comprobante guardado correctamente.");
+    }
+  }, [fetcher.data, fetcher.state]);
+
   function saveInvoice(inv: Invoice) {
-    const isNew = !SAMPLE_INVOICES.some(i => i.id === inv.id);
-    if (isNew) {
-      SAMPLE_INVOICES.unshift(inv);
-      setNotice("Factura simulada guardada en memoria hasta recargar la aplicación.");
-    } else {
-      const invoiceIndex = SAMPLE_INVOICES.findIndex(i => i.id === inv.id);
-      if (invoiceIndex >= 0) SAMPLE_INVOICES[invoiceIndex] = inv;
-      setNotice("Factura simulada actualizada en memoria hasta recargar la aplicación.");
-    }
-    setInvoices([...SAMPLE_INVOICES]);
-    if (inv.orderId && inv.status === "Emitido") {
-      const orderIndex = SAMPLE_ORDERS.findIndex(o => o.id === inv.orderId);
-      if (orderIndex >= 0) SAMPLE_ORDERS[orderIndex].status = "Facturado";
-    }
-    setEditingInvoice(undefined);
-    if (selectedInvoice && selectedInvoice.id === inv.id) {
-        setSelectedInvoice(inv);
-    } else {
-        setSelectedInvoice(null);
-    }
-    setTimeout(() => setNotice(""), 3000);
+    if (fetcher.state !== "idle") return;
+    fetcher.submit({ document: JSON.stringify(inv), ...(invoices.some(invoice => invoice.id === inv.id) ? { id: inv.id } : {}) }, { method: "post" });
   }
 
   function changeInvoiceStatus(status: InvoiceStatus) {
     if (!selectedInvoice) return;
-    if (status === "Anulado" && getInvoicePaymentSummary(selectedInvoice).paid > 0) {
+    if (status === "Anulado" && getInvoicePaymentSummary(selectedInvoice, undefined, receipts).paid > 0) {
       setNotice("Anulá los recibos registrados antes de anular la factura.");
       return;
     }
@@ -547,18 +554,18 @@ export default function Comprobantes() {
   }
 
   if (editingInvoice !== undefined) {
-    return <InvoiceForm invoice={editingInvoice} invoices={invoices} onCancel={() => setEditingInvoice(undefined)} onSave={saveInvoice} />;
+    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="mx-auto mt-4 max-w-4xl text-red-700">{serverError}</p>}<InvoiceForm invoice={editingInvoice} invoices={invoices} onCancel={() => setEditingInvoice(undefined)} onSave={saveInvoice} /></fieldset>;
   }
 
   if (selectedInvoice) {
-    return <InvoiceDetail invoice={selectedInvoice} onClose={closeDetail} onEdit={() => setEditingInvoice(selectedInvoice)} onStatusChange={changeInvoiceStatus} />;
+    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="p-4 text-red-700">{serverError}</p>}<InvoiceDetail invoice={selectedInvoice} onClose={closeDetail} onEdit={() => setEditingInvoice(selectedInvoice)} onStatusChange={changeInvoiceStatus} /></fieldset>;
   }
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <SalesPageHeader
         title="Facturación de Ventas"
-        description="Gestión simulada de comprobantes vinculados a pedidos de clientes."
+        description="Gestión de comprobantes vinculados a pedidos de clientes."
         action={
           <button
             type="button"
@@ -626,7 +633,7 @@ export default function Comprobantes() {
             </div>
             <div className="divide-y divide-gray-100">
             {filteredInvoices.map(invoice => {
-              const client = SAMPLE_CLIENTS.find(c => c.id === invoice.clientId);
+              const client = clients.find(c => c.id === invoice.clientId);
               return (
                 <article key={invoice.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
                   <div className="min-w-0 text-left lg:text-center">
@@ -641,19 +648,19 @@ export default function Comprobantes() {
                   </div>
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="text-xs font-medium text-gray-500 lg:hidden">Pedido</p>
-                    <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{SAMPLE_ORDERS.find(o => o.id === invoice.orderId)?.number || "Sin pedido"}</p>
+                    <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{orders.find(o => o.id === invoice.orderId)?.number || "Sin pedido"}</p>
                   </div>
                   <div className="min-w-0 lg:text-center text-left">
                     <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
                     <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(invoice.total)}</p>
-                    {invoice.status === "Emitido" && <p className="mt-1 text-xs font-medium text-gray-700">Saldo: {formatCurrency(getInvoicePaymentSummary(invoice).balance)}</p>}
+                    {invoice.status === "Emitido" && <p className="mt-1 text-xs font-medium text-gray-700">Saldo: {formatCurrency(getInvoicePaymentSummary(invoice, undefined, receipts).balance)}</p>}
                   </div>
                   <div className="flex flex-col items-start gap-1 lg:items-center">
                     <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
                     <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(invoice.status)}`}>
                       {invoice.status}
                     </span>
-                    {invoice.status === "Emitido" && <span className="text-xs font-medium text-gray-700">{getPaymentStatus(invoice)}</span>}
+                    {invoice.status === "Emitido" && <span className="text-xs font-medium text-gray-700">{getPaymentStatus(invoice, receipts)}</span>}
                   </div>
                   <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
                     <button type="button" onClick={() => setSelectedInvoice(invoice)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
