@@ -1,7 +1,7 @@
 import BackToListButton from "~/components/BackToListButton";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
-import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import {
   SAMPLE_CLIENTS,
@@ -108,7 +108,7 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Nuevo Presupuesto" : `Editar Presupuesto ${budget.number}`} onCancel={onCancel} />
+      <SalesFormHeader title={isNew ? "Nuevo presupuesto" : `Editar presupuesto ${budget.number}`} onCancel={onCancel} />
 
       {errorMsg && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
@@ -620,51 +620,40 @@ export default function Presupuestos() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <SalesPageHeader
-        title="Presupuestos de Clientes"
-        description="Gestión simulada de presupuestos para clientes."
+        title="Presupuestos Clientes"
+        description="Creación, seguimiento y aprobación de presupuestos para clientes."
         action={
           <button
             type="button"
             onClick={() => setEditingBudget(null)}
-            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700"
+            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
           >
-            + Nuevo Presupuesto
+            + Nuevo presupuesto
           </button>
         }
       />
 
       {notice && (
-        <div className="mb-6 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 border border-emerald-200">
+        <div role="status" className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {notice}
         </div>
       )}
 
-      <section className="mt-8">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-medium text-gray-900">Todos los presupuestos</h2>
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-            <input
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por número o cliente..."
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:w-64"
-            />
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:w-auto"
-            >
-              <option>Todos los estados</option>
-              {BUDGET_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-
+      <SalesListPanel
+        title="Listado de presupuestos"
+        summary={`${filteredBudgets.length} ${filteredBudgets.length === 1 ? "presupuesto encontrado" : "presupuestos encontrados"}`}
+        filters={<>
+          <label className="sr-only" htmlFor="budget-search">Buscar presupuestos</label>
+          <input id="budget-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar por número o cliente..." className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 lg:w-64" />
+          <label className="sr-only" htmlFor="budget-status-filter">Filtrar presupuestos por estado</label>
+          <select id="budget-status-filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100">
+            <option>Todos los estados</option>
+            {BUDGET_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </>}
+      >
         {filteredBudgets.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-            <p className="text-sm text-gray-500">No se encontraron presupuestos que coincidan con la búsqueda.</p>
-          </div>
+          <SalesEmptyState entity="presupuestos" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} />
         ) : (
           <>
             <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -682,7 +671,7 @@ export default function Presupuestos() {
                 <article key={budget.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="mb-1 text-xs font-medium text-gray-500">{budget.date}</p>
-                    <h3 className="font-semibold leading-5 text-gray-900">{budget.number}</h3>
+                    <h3 className="break-words font-semibold leading-5 text-gray-900">{budget.number}</h3>
                   </div>
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
@@ -702,7 +691,7 @@ export default function Presupuestos() {
                       {budget.status}
                     </span>
                   </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                  <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
                     <button type="button" onClick={() => setSelectedBudget(budget)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
                     {(budget.status === "Borrador" || budget.status === "Enviado") && (
                       <button type="button" onClick={() => setEditingBudget(budget)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
@@ -714,7 +703,7 @@ export default function Presupuestos() {
             </div>
           </>
         )}
-      </section>
+      </SalesListPanel>
     </div>
   );
 }

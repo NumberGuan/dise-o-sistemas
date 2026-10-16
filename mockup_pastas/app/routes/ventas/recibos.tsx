@@ -2,7 +2,7 @@ import BackToListButton from "~/components/BackToListButton";
 import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
 import { useLoaderData, useFetcher, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
-import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
 import {
   RECEIPT_STATUSES,
   PAYMENT_METHODS,
@@ -189,7 +189,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Nuevo Recibo" : `Editar Recibo ${receipt.number}`} onCancel={onCancel} />
+      <SalesFormHeader title={isNew ? "Nuevo recibo" : `Editar recibo ${receipt.number}`} onCancel={onCancel} />
 
       {errorMsg && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
@@ -430,7 +430,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
         <div className="flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancelar</button>
           <button type="button" data-validate-form onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
-          <button type="button" data-validate-form data-validate-complete onClick={() => handleSubmit("Registrado")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">Registrar Pago</button>
+          <button type="button" data-validate-form data-validate-complete onClick={() => handleSubmit("Registrado")} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700">Registrar Pago</button>
         </div>
       </form>
     </div>
@@ -662,54 +662,40 @@ export default function Recibos() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <SalesPageHeader
-        title="Recibos de Pago"
+        title="Recibos de Pago Clientes"
         description="Registro de cobranzas e imputaciones de comprobantes."
         action={
           <button
             type="button"
             onClick={() => setEditingReceipt(null)}
-            className="rounded-lg bg-amber-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800"
+            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
           >
-            + Nuevo Recibo
+            + Nuevo recibo
           </button>
         }
       />
 
       {notice && (
-        <div className="mb-6 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 border border-emerald-200">
+        <div role="status" className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {notice}
         </div>
       )}
 
-      <section className="mt-8">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-lg font-medium text-gray-900">Todos los recibos</h2>
-            <p className="mt-1 text-sm text-gray-600">{filteredReceipts.length} {filteredReceipts.length === 1 ? "recibo encontrado" : "recibos encontrados"}</p>
-          </div>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <input
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por número, cliente o factura..."
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:w-64"
-            />
-            <select
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
-            >
-              <option>Todos los estados</option>
-              {RECEIPT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-
+      <SalesListPanel
+        title="Listado de recibos"
+        summary={`${filteredReceipts.length} ${filteredReceipts.length === 1 ? "recibo encontrado" : "recibos encontrados"}`}
+        filters={<>
+          <label className="sr-only" htmlFor="receipt-search">Buscar recibos</label>
+          <input id="receipt-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar por número, cliente o factura..." className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 lg:w-64" />
+          <label className="sr-only" htmlFor="receipt-status-filter">Filtrar recibos por estado</label>
+          <select id="receipt-status-filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100">
+            <option>Todos los estados</option>
+            {RECEIPT_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </>}
+      >
         {filteredReceipts.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-            <p className="text-sm text-gray-500">No se encontraron recibos que coincidan con la búsqueda.</p>
-          </div>
+          <SalesEmptyState entity="recibos" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} />
         ) : (
           <>
             <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
@@ -727,7 +713,7 @@ export default function Recibos() {
                 <article key={receipt.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="mb-1 text-xs font-medium text-gray-500">{receipt.date}</p>
-                    <h3 className="font-semibold leading-5 text-gray-900">{receipt.number}</h3>
+                    <h3 className="break-words font-semibold leading-5 text-gray-900">{receipt.number}</h3>
                   </div>
                   <div className="min-w-0 text-left lg:text-center">
                     <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
@@ -749,7 +735,7 @@ export default function Recibos() {
                       {receipt.status}
                     </span>
                   </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                  <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
                     <button type="button" onClick={() => setSelectedReceipt(receipt)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
                     {receipt.status === "Borrador" && (
                       <button type="button" onClick={() => setEditingReceipt(receipt)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
@@ -761,7 +747,7 @@ export default function Recibos() {
             </div>
           </>
         )}
-      </section>
+      </SalesListPanel>
     </div>
   );
 }

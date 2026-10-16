@@ -714,7 +714,7 @@ export default function Pedidos() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <SalesPageHeader 
-        title="Pedidos de Clientes" 
+        title="Pedidos Clientes"
         description="Alta, seguimiento y preparación de pedidos realizados por clientes." 
         action={
           <button 

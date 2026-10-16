@@ -1,7 +1,7 @@
 import BackToListButton from "~/components/BackToListButton";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
-import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
+import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
 import {
   SAMPLE_CLIENTS,
   SAMPLE_CUSTOMER_RETURNS,
@@ -95,7 +95,7 @@ function RemitForm({ remit, remits, initialOrderId, onCancel, onSave }: RemitFor
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Nuevo Remito" : `Editar Remito ${remit.number}`} onCancel={onCancel} />
+      <SalesFormHeader title={isNew ? "Nuevo remito" : `Editar remito ${remit.number}`} onCancel={onCancel} />
 
       {errorMsg && (
         <div role="alert" className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
@@ -473,55 +473,40 @@ export default function Remitos() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
       <SalesPageHeader
-        title="Remitos de Clientes"
-        description="Gestión simulada de entregas y remitos asociados a pedidos."
+        title="Remitos Cliente"
+        description="Seguimiento de entregas y remitos asociados a pedidos de clientes."
         action={
           <button
             type="button"
             onClick={() => setEditingRemit(null)}
-            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700"
+            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
           >
-            + Nuevo Remito
+            + Nuevo remito
           </button>
         }
       />
 
       {notice && (
-        <div role="status" className="mb-6 rounded-lg bg-emerald-50 p-4 text-sm text-emerald-800 border border-emerald-200">
+        <div role="status" className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
           {notice}
         </div>
       )}
 
-      <section className="mt-8">
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h2 className="text-lg font-medium text-gray-900">Todos los remitos</h2>
-          <div className="grid w-full gap-3 sm:w-auto sm:grid-cols-2">
-            <label className="sr-only" htmlFor="remit-search">Buscar remitos</label>
-            <input
-              id="remit-search"
-              type="search"
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Buscar por número, pedido o cliente..."
-              className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 sm:w-64"
-            />
-            <label className="sr-only" htmlFor="remit-status-filter">Filtrar por estado</label>
-            <select
-              id="remit-status-filter"
-              value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
-              className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
-            >
-              <option>Todos los estados</option>
-              {REMIT_STATUSES.map(s => <option key={s} value={s}>{s}</option>)}
-            </select>
-          </div>
-        </div>
-
+      <SalesListPanel
+        title="Listado de remitos"
+        summary={`${filteredRemits.length} ${filteredRemits.length === 1 ? "remito encontrado" : "remitos encontrados"}`}
+        filters={<>
+          <label className="sr-only" htmlFor="remit-search">Buscar remitos</label>
+          <input id="remit-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar por número, pedido o cliente..." className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 lg:w-64" />
+          <label className="sr-only" htmlFor="remit-status-filter">Filtrar remitos por estado</label>
+          <select id="remit-status-filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100">
+            <option>Todos los estados</option>
+            {REMIT_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </>}
+      >
         {filteredRemits.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 bg-white p-12 text-center">
-            <p className="text-sm text-gray-500">No se encontraron remitos que coincidan con la búsqueda.</p>
-          </div>
+          <SalesEmptyState entity="remitos" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} />
         ) : (
           <>
             <div className="hidden lg:grid lg:grid-cols-5 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -555,7 +540,7 @@ export default function Remitos() {
                       {remit.status}
                     </span>
                   </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                  <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
                     <button type="button" onClick={() => setSelectedRemit(remit)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
                     {remit.status === "Borrador" && (
                       <button type="button" onClick={() => setEditingRemit(remit)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
@@ -567,7 +552,7 @@ export default function Remitos() {
             </div>
           </>
         )}
-      </section>
+      </SalesListPanel>
     </div>
   );
 }
