@@ -1,4 +1,4 @@
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useSearchParams } from "react-router";
 import { Logo } from "~/components/icons";
 
 type AuthLayoutProps = {
@@ -10,6 +10,8 @@ type AuthLayoutProps = {
 export default function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   const { pathname } = useLocation();
   const isLogin = pathname === "/login";
+  const [params] = useSearchParams();
+  const authQuery = params.get("redirectTo") ? `?${new URLSearchParams({ redirectTo: params.get("redirectTo")! })}` : "";
 
   return (
     <div className="min-h-screen flex w-full bg-white">
@@ -39,7 +41,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
           </div>
 
           <p className="mt-6 text-lg text-gray-600">
-            Iniciá sesión para consultar el catálogo, guardar favoritos y revisar tus pedidos.
+            Explorá el catálogo y armá tu carrito. Iniciá sesión para comprar, guardar favoritos y revisar tus pedidos.
           </p>
         </div>
 
@@ -57,7 +59,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
         <div className="mx-auto w-full max-w-sm lg:max-w-md">
           <div className="flex rounded-xl bg-gray-100 p-1 mb-10 shadow-inner">
             <Link
-              to="/login"
+              to={`/login${authQuery}`}
               className={`flex-1 flex justify-center rounded-lg py-2.5 text-sm font-semibold transition-all ${
                 isLogin
                   ? "bg-white text-amber-700 shadow border border-gray-200"
@@ -67,7 +69,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
               Ingresar
             </Link>
             <Link
-              to="/register"
+              to={`/register${authQuery}`}
               className={`flex-1 flex justify-center rounded-lg py-2.5 text-sm font-semibold transition-all ${
                 !isLogin
                   ? "bg-white text-amber-700 shadow border border-gray-200"
@@ -85,6 +87,7 @@ export default function AuthLayout({ children, title, subtitle }: AuthLayoutProp
 
           <div className="mt-8">
             {children}
+            <Link to="/catalogo" className="mt-4 flex min-h-11 w-full items-center justify-center rounded-md border border-gray-300 bg-white px-4 py-3 text-sm font-semibold text-black shadow-sm transition hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Explorar catálogo</Link>
           </div>
 
         </div>

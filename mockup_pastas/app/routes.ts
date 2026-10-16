@@ -4,6 +4,10 @@ export default [
   route("login", "routes/auth/login.tsx"),
   route("register", "routes/auth/register.tsx"),
   route("logout", "routes/auth/logout.tsx"),
+  layout("routes/tienda-publica.tsx", [
+    route("catalogo", "routes/catalogo-publico.tsx"),
+    route("carrito", "routes/carrito-publico.tsx"),
+  ]),
   
   route("", "routes/protected.tsx", [
     layout("components/Layout.tsx", [

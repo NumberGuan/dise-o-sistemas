@@ -3,6 +3,7 @@ import { createUserSession } from "~/utils/session.server";
 import { getUserByEmail, verifyPassword } from "~/utils/db.server";
 import type { Route } from "./+types/login";
 import { getUser } from "~/utils/session.server";
+import { localRedirect } from "~/utils/redirect";
 
 export const meta: Route.MetaFunction = () => {
   return [
@@ -23,13 +24,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
   const emailInput = formData.get("email");
   const password = formData.get("password");
   const requestedRedirect = formData.get("redirectTo");
-  const redirectTo =
-    typeof requestedRedirect === "string" &&
-    requestedRedirect.startsWith("/") &&
-    !requestedRedirect.startsWith("//") &&
-    !requestedRedirect.includes("\\")
-      ? requestedRedirect
-      : "/";
+  const redirectTo = localRedirect(requestedRedirect);
 
   if (typeof emailInput !== "string" || typeof password !== "string") {
     return { error: "Ingresá tu correo electrónico y contraseña." };
@@ -50,7 +45,11 @@ export const action = async ({ request }: Route.ActionArgs) => {
     return { error: "Credenciales incorrectas" };
   }
 
-  return createUserSession(user.id, redirectTo);
+  try {
+    return await createUserSession(user.id, redirectTo, request);
+  } catch {
+    return { error: "No pudimos recuperar tu carrito. Intentá ingresar nuevamente." };
+  }
 };
 
 import AuthLayout from "~/components/AuthLayout";
@@ -64,7 +63,7 @@ export default function Login() {
   return (
     <AuthLayout
       title="Iniciar sesión"
-      subtitle="Ingresá a tu cuenta para consultar el catálogo y tus pedidos."
+      subtitle="Ingresá para comprar, guardar favoritos y consultar tus pedidos."
     >
       <Form method="post" className="space-y-6">
         <input type="hidden" name="redirectTo" value={searchParams.get("redirectTo") ?? undefined} />

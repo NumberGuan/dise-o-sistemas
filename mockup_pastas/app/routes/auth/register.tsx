@@ -1,4 +1,5 @@
-import { Form, Link, useActionData, useNavigation } from "react-router";
+import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
+import { localRedirect } from "~/utils/redirect";
 import crypto from "node:crypto";
 import { createUserSession } from "~/utils/session.server";
 import { getUserByEmail, saveUser, hashPassword } from "~/utils/db.server";
@@ -61,7 +62,11 @@ export const action = async ({ request }: Route.ActionArgs) => {
     return { error: "No pudimos guardar tu cuenta. Intentá nuevamente más tarde." };
   }
 
-  return createUserSession(user.id, "/");
+  try {
+    return await createUserSession(user.id, localRedirect(formData.get("redirectTo")), request);
+  } catch {
+    return { error: "Tu cuenta fue creada. Ingresá desde Iniciar sesión para recuperar el carrito y continuar." };
+  }
 };
 
 import AuthLayout from "~/components/AuthLayout";
@@ -69,14 +74,16 @@ import AuthLayout from "~/components/AuthLayout";
 export default function Register() {
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
+  const [params] = useSearchParams();
   const isSubmitting = navigation.state === "submitting";
 
   return (
     <AuthLayout
       title="Crear cuenta de cliente"
-      subtitle="Registrate para consultar el catálogo y administrar tus compras."
+      subtitle="Creá tu cuenta para confirmar pedidos y guardar favoritos."
     >
       <Form method="post" className="space-y-6">
+        <input type="hidden" name="redirectTo" value={params.get("redirectTo") ?? ""} />
         <div className="space-y-4">
           <div>
             <label htmlFor="name" className="block text-sm font-medium text-gray-700">

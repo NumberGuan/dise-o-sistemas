@@ -10,11 +10,15 @@ export default function CustomerProductCard({
   isFavorite,
   cartQuantity,
   action,
+  allowFavorites = true,
+  cartDisabled = false,
 }: {
   product: Product;
   isFavorite: boolean;
   cartQuantity: number;
   action: string;
+  allowFavorites?: boolean;
+  cartDisabled?: boolean;
 }) {
   const favoriteFetcher = useFetcher<CustomerMutationResult>();
   const cartFetcher = useFetcher<CustomerMutationResult>();
@@ -27,7 +31,7 @@ export default function CustomerProductCard({
         <span className={`absolute left-3 top-3 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm ${stockAvailable ? "border-emerald-200 bg-emerald-50/95 text-emerald-800" : "border-amber-200 bg-amber-50/95 text-amber-900"}`}>
           {product.stock}
         </span>
-        <favoriteFetcher.Form method="post" action={action} className="absolute right-3 top-3">
+        {allowFavorites && <favoriteFetcher.Form method="post" action={action} className="absolute right-3 top-3">
           <input type="hidden" name="productId" value={product.id} />
           <button
             type="submit"
@@ -40,7 +44,7 @@ export default function CustomerProductCard({
           >
             <svg viewBox="0 0 24 24" fill={isFavorite ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" className="h-5 w-5" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7a4.5 4.5 0 0 1 8-2.8 4.5 4.5 0 0 1 8 2.8Z" /></svg>
           </button>
-        </favoriteFetcher.Form>
+        </favoriteFetcher.Form>}
       </div>
 
       <div className="flex flex-1 flex-col p-4 sm:p-5">
@@ -58,7 +62,7 @@ export default function CustomerProductCard({
             type="submit"
             name="intent"
             value="add-to-cart"
-            disabled={cartFetcher.state !== "idle"}
+            disabled={cartDisabled || cartFetcher.state !== "idle"}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-900 disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4L20 8H6" /><circle cx="9.5" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /><path d="M12 8v5m-2.5-2.5h5" /></svg>
