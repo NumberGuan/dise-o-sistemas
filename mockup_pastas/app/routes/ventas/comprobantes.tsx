@@ -98,8 +98,8 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
 
   const availableOrders = useMemo(() => {
     const invoicedOrderIds = new Set(invoices.filter(i => i.id !== invoice?.id && i.status !== "Anulado").map(i => i.orderId));
-    return orders.filter(o => o.status !== "Cancelado" && !invoicedOrderIds.has(o.id));
-  }, [invoice?.id, invoices, orders]);
+    return orders.filter(o => o.clientId === clientId && o.status !== "Cancelado" && !invoicedOrderIds.has(o.id));
+  }, [clientId, invoice?.id, invoices, orders]);
 
   function handleSubmit(status: InvoiceStatus) {
     if (!orderId) return setErrorMsg("Selecciona un pedido para crear la factura.");
@@ -158,7 +158,13 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
                   id="invoice-client"
                   required
                   value={clientId}
-                  onChange={e => setClientId(e.target.value)}
+                  onChange={e => {
+                    const nextClientId = e.target.value;
+                    setClientId(nextClientId);
+                    if (orderId && orders.find(order => order.id === orderId)?.clientId !== nextClientId) {
+                      setOrderId("");
+                    }
+                  }}
                   disabled={Boolean(orderId)}
                   className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50 disabled:text-gray-700"
                 >
