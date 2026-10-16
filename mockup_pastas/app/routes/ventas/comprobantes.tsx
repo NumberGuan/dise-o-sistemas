@@ -356,7 +356,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
         <div className="flex min-w-0 items-center gap-3">
           <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">{invoice.type} {invoice.number}</h1>
           <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(invoice.status)}`}>

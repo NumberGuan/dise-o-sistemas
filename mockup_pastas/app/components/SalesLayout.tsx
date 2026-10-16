@@ -26,7 +26,7 @@ export function SalesPageHeader({ title, description, action }: SalesPageHeaderP
 
 export function SalesFormHeader({ title, onCancel, pending = false }: { title: string; onCancel: () => void; pending?: boolean }) {
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+    <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
       <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
       <BackToListButton onClick={onCancel} disabled={pending} />
     </div>
