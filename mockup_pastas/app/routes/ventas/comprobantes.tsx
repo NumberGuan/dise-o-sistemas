@@ -58,20 +58,22 @@ function getPaymentStatus(invoice: Invoice, receipts: Receipt[]) {
 type InvoiceFormProps = {
   invoice: Invoice | null;
   invoices: Invoice[];
+  initialOrderId?: string;
   onCancel: () => void;
   onSave: (inv: Invoice) => void;
 };
 
-function InvoiceForm({ invoice, invoices, onCancel, onSave }: InvoiceFormProps) {
+function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: InvoiceFormProps) {
   const { clients, orders } = useLoaderData<typeof loader>();
+  const initialOrder = orders.find(order => order.id === (invoice?.orderId || initialOrderId));
   const isNew = !invoice;
-  const [orderId, setOrderId] = useState(invoice?.orderId || "");
-  const [clientId, setClientId] = useState(invoice?.clientId || "");
+  const [orderId, setOrderId] = useState(invoice?.orderId || initialOrder?.id || "");
+  const [clientId, setClientId] = useState(invoice?.clientId || initialOrder?.clientId || "");
   const [type, setType] = useState<InvoiceType>(invoice?.type || "Factura A");
   const [date, setDate] = useState(invoice?.date || new Date().toISOString().split("T")[0]);
   const [dueDate, setDueDate] = useState(invoice?.dueDate || "");
-  const [items, setItems] = useState<InvoiceItem[]>(invoice?.items || []);
-  const [orderDiscount, setOrderDiscount] = useState(invoice?.discount || 0);
+  const [items, setItems] = useState<InvoiceItem[]>(invoice?.items || initialOrder?.items || []);
+  const [orderDiscount, setOrderDiscount] = useState(invoice?.discount ?? initialOrder?.discount ?? 0);
   const [observations, setObservations] = useState(invoice?.observations || "");
   const [errorMsg, setErrorMsg] = useState("");
 
@@ -489,6 +491,24 @@ export default function Comprobantes() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [notice, setNotice] = useState("");
   const requestedInvoiceId = searchParams.get("comprobante") || "";
+  const requestedOrderId = searchParams.get("pedido") || "";
+
+  useEffect(() => {
+    if (!requestedOrderId || requestedInvoiceId) return;
+    const order = orders.find(order => order.id === requestedOrderId);
+    if (!order || order.status === "Cancelado") {
+      setNotice("El pedido no está disponible para generar una factura.");
+      return;
+    }
+    const existing = invoices.find(invoice => invoice.orderId === order.id && invoice.status !== "Anulado");
+    if (existing) {
+      setEditingInvoice(undefined);
+      setSelectedInvoice(existing);
+    } else {
+      setSelectedInvoice(null);
+      setEditingInvoice(null);
+    }
+  }, [requestedOrderId, requestedInvoiceId, orders, invoices]);
 
   useEffect(() => {
     if (!requestedInvoiceId) return;
@@ -497,10 +517,12 @@ export default function Comprobantes() {
   }, [requestedInvoiceId, invoices]);
 
   function closeDetail() {
+    setEditingInvoice(undefined);
     setSelectedInvoice(null);
-    if (!requestedInvoiceId) return;
+    if (!requestedInvoiceId && !requestedOrderId) return;
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("comprobante");
+    nextParams.delete("pedido");
     setSearchParams(nextParams, { replace: true });
   }
 
@@ -524,17 +546,16 @@ export default function Comprobantes() {
     if (editingInvoice === undefined && selectedInvoice === null) return;
     function handleEscape(e: KeyboardEvent) {
       if (e.key === "Escape") {
-        setEditingInvoice(undefined);
-        setSelectedInvoice(null);
+        closeDetail();
       }
     }
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
-  }, [editingInvoice, selectedInvoice]);
+  }, [editingInvoice, selectedInvoice, searchParams]);
 
   useEffect(() => {
     if (fetcher.state === "idle" && fetcher.data && "success" in fetcher.data) {
-      setEditingInvoice(undefined); setSelectedInvoice(null); setNotice("Comprobante guardado correctamente.");
+      closeDetail(); setNotice("Comprobante guardado correctamente.");
     }
   }, [fetcher.data, fetcher.state]);
 
@@ -554,7 +575,7 @@ export default function Comprobantes() {
   }
 
   if (editingInvoice !== undefined) {
-    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="mx-auto mt-4 max-w-4xl text-red-700">{serverError}</p>}<InvoiceForm invoice={editingInvoice} invoices={invoices} onCancel={() => setEditingInvoice(undefined)} onSave={saveInvoice} /></fieldset>;
+    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="mx-auto mt-4 max-w-4xl text-red-700">{serverError}</p>}<InvoiceForm key={editingInvoice?.id ?? requestedOrderId} invoice={editingInvoice} invoices={invoices} initialOrderId={requestedOrderId} onCancel={closeDetail} onSave={saveInvoice} /></fieldset>;
   }
 
   if (selectedInvoice) {

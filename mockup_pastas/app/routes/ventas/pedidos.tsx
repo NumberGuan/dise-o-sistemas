@@ -410,6 +410,8 @@ type OrderDetailsProps = {
 };
 
 function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderDetailsProps) {
+  const { invoices } = useLoaderData<typeof loader>();
+  const activeInvoice = invoices.find(invoice => invoice.orderId === order.id && invoice.status !== "Anulado");
   const activeRemit = SAMPLE_REMITS.find(remit => remit.orderId === order.id && remit.status !== "Anulado");
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
@@ -492,6 +494,11 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
         </div>
         
         <div className="border-t border-gray-100 p-5 bg-gray-50 space-y-3">
+          {(activeInvoice || order.status !== "Cancelado") && (
+            <Link to={activeInvoice ? `/ventas/comprobantes?comprobante=${encodeURIComponent(activeInvoice.id)}` : `/ventas/comprobantes?pedido=${encodeURIComponent(order.id)}`} className="block w-full rounded-lg bg-amber-700 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm hover:bg-amber-800">
+              {activeInvoice ? `Consultar factura ${activeInvoice.number}` : "Generar factura"}
+            </Link>
+          )}
           {(activeRemit || order.status === "Listo para remito" || order.status === "Facturado") && (
             <Link to={activeRemit ? `/ventas/remitos?remito=${encodeURIComponent(activeRemit.id)}` : `/ventas/remitos?pedido=${encodeURIComponent(order.id)}`} className="block w-full rounded-lg bg-amber-600 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm hover:bg-amber-700">
               {activeRemit ? `Consultar remito ${activeRemit.number}` : "Generar remito"}
