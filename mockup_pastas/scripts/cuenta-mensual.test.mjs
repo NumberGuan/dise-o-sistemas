@@ -39,6 +39,16 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
     const service = await server.ssrLoadModule("/app/data/billing.server.ts");
     const invoiceInput = id => ({ orderId: id, clientId: client.id, type: "Factura A", date: `${current}-01`, dueDate: `${current}-28`, status: "Emitido", observations: "", discount: 0, total: 1 });
     const receiptInput = (invoices, extras = {}) => ({ clientId: client.id, date: `${current}-10`, status: "Registrado", observations: "", invoices: invoices.map(invoice => ({ invoiceId: invoice.id, amountApplied: invoice.total })), payments: [{ method: "Transferencia", amount: billing.money(invoices.reduce((sum, invoice) => sum + invoice.total, 0)), reference: "Prueba" }], ...extras });
+    await t.test("Los medios de pago se acumulan y se aplican sin superar los saldos de las facturas", () => {
+      const pending = [{ id: "first", number: "FC-1", balance: 100.10 }, { id: "second", number: "FC-2", balance: 50.20 }];
+      const detail = (invoiceId, invoiceNumber, amountApplied) => ({ invoiceId, invoiceNumber, amountApplied });
+      assert.deepEqual(billing.allocateReceiptPayment(pending, 0), []);
+      assert.deepEqual(billing.allocateReceiptPayment(pending, 40), [detail("first", "FC-1", 40)]);
+      assert.deepEqual(billing.allocateReceiptPayment(pending, 40 + 30), [detail("first", "FC-1", 70)]);
+      assert.deepEqual(billing.allocateReceiptPayment(pending, 40 + 80), [detail("first", "FC-1", 100.10), detail("second", "FC-2", 19.90)]);
+      assert.deepEqual(billing.allocateReceiptPayment(pending, 200), [detail("first", "FC-1", 100.10), detail("second", "FC-2", 50.20)]);
+      assert.deepEqual(billing.allocateReceiptPayment(pending, 0.1 + 0.2), [detail("first", "FC-1", 0.30)]);
+    });
     await t.test("El 15% se aplica por producto, antes del IVA y sin acumular descuentos", () => {
       const amounts = billing.invoiceAmounts([item], "Comercio", 500);
       assert.equal(amounts.items[0].discount, 1500);
@@ -100,7 +110,9 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
     await t.test("Los borradores no cobran y un pago parcial solo resta el importe registrado", async () => {
       let data = await sales.getSalesData();
       const invoice = data.invoices.find(invoice => model.getInvoicePaymentSummary(invoice, undefined, data.receipts).balance > 0);
-      const partial = receiptInput([invoice], { status: "Borrador", invoices: [{ invoiceId: invoice.id, amountApplied: 1000 }], payments: [{ method: "Efectivo", amount: 1000 }] });
+      const payments = [{ method: "Efectivo", amount: 600 }, { method: "Transferencia", amount: 400 }];
+      const applied = billing.allocateReceiptPayment([{ id: invoice.id, number: invoice.number, balance: invoice.total }], payments.reduce((sum, payment) => sum + payment.amount, 0));
+      const partial = receiptInput([invoice], { status: "Borrador", invoices: applied, payments });
       await service.saveSalesReceipt(partial);
       data = await sales.getSalesData();
       assert.equal(data.clients[0].balance, 20570);
@@ -108,6 +120,7 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
       await service.saveSalesReceipt({ ...draft, status: "Registrado" }, draft.id);
       data = await sales.getSalesData();
       assert.equal(data.clients[0].balance, 19570);
+      assert.equal(model.getInvoicePaymentSummary(invoice, undefined, data.receipts).balance, invoice.total - 600 - 400);
       await assert.rejects(() => service.saveSalesReceipt(receiptInput([invoice])));
       await service.saveSalesReceipt({ status: "Anulado" }, draft.id);
       assert.equal((await sales.getSalesData()).clients[0].balance, 20570);

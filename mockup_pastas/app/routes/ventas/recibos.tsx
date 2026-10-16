@@ -1,4 +1,4 @@
-import { getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
+import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
 import { useLoaderData, useFetcher, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
@@ -92,32 +92,32 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   const [payAmount, setPayAmount] = useState<number | "">(0);
   const [payRef, setPayRef] = useState("");
 
-  // Comprobantes del cliente seleccionado que tienen saldo > 0 (o que ya están en este recibo)
+  const selectedClient = clients.find(client => client.id === clientId);
+  const months = useMemo(() => selectedClient ? getClientMonthlyAccount(selectedClient, orders, invoices, receipts.filter(candidate => candidate.id !== receipt?.id)) : [], [selectedClient, orders, invoices, receipts, receipt?.id]);
+
   const clientInvoices = useMemo(() => {
     if (!clientId) return [];
+    const month = accountMonth ? months.find(month => month.month === accountMonth) : undefined;
     return invoices.filter(inv => {
-      if (inv.clientId !== clientId || inv.status === "Anulado" || inv.status === "Borrador") return false;
-      const bal = getInvoicePaymentSummary(inv, receipt?.id, receipts).balance;
-      const isIncluded = invoicesState.some(i => i.invoiceId === inv.id);
-      return bal > 0 || isIncluded;
-    });
-  }, [clientId, receipt?.id, invoicesState, invoices, receipts]);
+      if (inv.clientId !== clientId || inv.status !== "Emitido" || inv.type === "Nota de Crédito") return false;
+      if (accountMonth && !month?.invoiceIds.includes(inv.id)) return false;
+      return getInvoicePaymentSummary(inv, receipt?.id, receipts).balance > 0;
+    }).sort((a, b) => a.date.localeCompare(b.date) || a.number.localeCompare(b.number));
+  }, [clientId, accountMonth, months, receipt?.id, invoices, receipts]);
 
-  const selectedClient = clients.find(client => client.id === clientId);
-  const months = selectedClient ? getClientMonthlyAccount(selectedClient, orders, invoices, receipts.filter(candidate => candidate.id !== receipt?.id)) : [];
+  const totalPayments = money(payments.reduce((sum, p) => sum + p.amount, 0));
+  const totalApplied = money(invoicesState.reduce((sum, i) => sum + i.amountApplied, 0));
+  const invoiceBalances = clientInvoices.map(invoice => ({ id: invoice.id, number: invoice.number, balance: getInvoicePaymentSummary(invoice, receipt?.id, receipts).balance }));
+  const totalBalance = money(invoiceBalances.reduce((sum, invoice) => sum + invoice.balance, 0));
+  const pendingDifference = money(totalBalance - totalPayments);
+
   useEffect(() => {
     if (!accountMonth) return;
-    const client = clients.find(client => client.id === clientId);
-    const month = client ? getClientMonthlyAccount(client, orders, invoices, receipts.filter(candidate => candidate.id !== receipt?.id)).find(month => month.month === accountMonth) : undefined;
+    const month = months.find(month => month.month === accountMonth);
     if (!month || month.unbilled > 0) return;
-    const details = invoices.filter(invoice => month.invoiceIds.includes(invoice.id)).map(invoice => ({ invoiceId: invoice.id, invoiceNumber: invoice.number, amountApplied: getInvoicePaymentSummary(invoice, receipt?.id, receipts).balance }));
-    setInvoicesState(details);
-    setPayAmount(money(details.reduce((sum, detail) => sum + detail.amountApplied, 0)));
-  }, [accountMonth, clientId, clients, orders, invoices, receipts, receipt?.id]);
-
-  const totalPayments = payments.reduce((sum, p) => sum + p.amount, 0);
-  const totalApplied = invoicesState.reduce((sum, i) => sum + i.amountApplied, 0);
-  const pendingDifference = Math.round((totalApplied - totalPayments) * 100) / 100;
+    setInvoicesState(allocateReceiptPayment(clientInvoices.map(invoice => ({ id: invoice.id, number: invoice.number, balance: getInvoicePaymentSummary(invoice, receipt?.id, receipts).balance })), totalPayments));
+    setPayAmount(money(Math.max(0, totalBalance - totalPayments)));
+  }, [accountMonth, months, clientInvoices, receipts, receipt?.id, totalPayments, totalBalance]);
 
   function suggestPaymentAmount(appliedTotal: number, paymentTotal: number) {
     const pending = Math.round(Math.max(0, appliedTotal - paymentTotal) * 100) / 100;
@@ -126,6 +126,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
 
   function handleAddPayment() {
     if (payAmount === "" || !Number.isFinite(payAmount) || payAmount <= 0) return setErrorMsg("El importe del pago debe ser positivo.");
+    if (Math.abs(payAmount * 100 - Math.round(payAmount * 100)) > 0.000001) return setErrorMsg("El importe del pago debe tener como máximo dos decimales.");
     const newPay: ReceiptPaymentDetail = {
       id: `pay-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
       method: payMethod,
@@ -134,7 +135,9 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
     };
     const nextPayments = [...payments, newPay];
     setPayments(nextPayments);
-    suggestPaymentAmount(totalApplied, nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
+    const nextTotal = money(nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
+    setInvoicesState(allocateReceiptPayment(invoiceBalances, nextTotal));
+    suggestPaymentAmount(totalBalance, nextTotal);
     setPayRef("");
     setErrorMsg("");
   }
@@ -142,7 +145,9 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   function handleRemovePayment(id: string) {
     const nextPayments = payments.filter(p => p.id !== id);
     setPayments(nextPayments);
-    suggestPaymentAmount(totalApplied, nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
+    const nextTotal = money(nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
+    setInvoicesState(allocateReceiptPayment(invoiceBalances, nextTotal));
+    suggestPaymentAmount(totalBalance, nextTotal);
     setErrorMsg("");
   }
 
@@ -247,7 +252,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
             </select>
           </label>
           <p className="mt-2 text-sm text-gray-600">Al elegir un mes cerrado se incluyen todas sus facturas pendientes en este recibo. Agregá el medio de pago y registrá el cobro.</p>
-          {accountMonth && <p className="mt-2 font-semibold text-amber-900">Saldo a cancelar: {formatCurrency(totalApplied)}</p>}
+          {accountMonth && <p className="mt-2 font-semibold text-amber-900">Saldo a cancelar: {formatCurrency(totalBalance)}</p>}
         </section>}
 
         {/* Medios de Pago */}
@@ -292,7 +297,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                   placeholder="$ 0.00"
                   className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-right text-gray-900 outline-none placeholder:text-gray-500 focus:border-amber-500"
                 />
-                <p className="mt-1 text-xs text-gray-500">Se calcula desde lo aplicado y puede modificarse.</p>
+                <p className="mt-1 text-xs text-gray-500">Podés dividir el pago entre varios medios.</p>
               </div>
               <button
                 type="button"
@@ -340,6 +345,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
             <span className="text-sm font-medium text-gray-500">Total aplicado: <span className="font-bold text-emerald-700">{formatCurrency(totalApplied)}</span></span>
           </div>
           <div className="p-5">
+            {clientInvoices.length > 0 && <p className="mb-4 text-sm text-gray-600">Los medios de pago se suman y se aplican automáticamente a las facturas más antiguas. Podés ajustar la distribución.</p>}
             {!clientId ? (
               <p className="text-sm text-gray-500">Selecciona un cliente para ver sus comprobantes.</p>
             ) : clientInvoices.length === 0 ? (
@@ -390,12 +396,14 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                 </table>
               </div>
             )}
-            <div className="mt-4 grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-3">
+            <div className="mt-4 grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div><p className="text-gray-500">Saldo antes de este pago</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalBalance)}</p></div>
               <div><p className="text-gray-500">Total imputado</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalApplied)}</p></div>
               <div><p className="text-gray-500">Total en medios de pago</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalPayments)}</p></div>
               <div><p className="text-gray-500">Diferencia pendiente</p><p className={`mt-1 font-bold ${pendingDifference === 0 ? "text-emerald-700" : "text-red-700"}`}>{formatCurrency(pendingDifference)}</p></div>
             </div>
-            {Math.abs(totalPayments - totalApplied) > 0.01 && totalPayments > 0 && (
+            <p className="mt-2 text-xs text-gray-500">La diferencia pendiente es el saldo de las facturas mostradas menos el total de este pago. El saldo ya descuenta los pagos anteriores.</p>
+            {money(totalPayments - totalApplied) !== 0 && totalPayments > 0 && (
               <div className="mt-3 text-right text-xs text-red-600 font-medium">
                 La aplicación difiere de los pagos por {formatCurrency(Math.abs(totalPayments - totalApplied))}.
               </div>

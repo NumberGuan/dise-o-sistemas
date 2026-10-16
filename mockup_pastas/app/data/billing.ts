@@ -1,6 +1,18 @@
-import { getInvoicePaymentSummary, type Client, type Invoice, type InvoiceItem, type Order, type Receipt } from "~/data/sales";
+import { getInvoicePaymentSummary, type Client, type Invoice, type InvoiceItem, type Order, type Receipt, type ReceiptInvoiceDetail } from "~/data/sales";
 
 export const money = (amount: number) => Math.round((amount + Number.EPSILON) * 100) / 100;
+
+export function allocateReceiptPayment(invoices: { id: string; number: string; balance: number }[], paymentTotal: number): ReceiptInvoiceDetail[] {
+  let remaining = Math.max(0, Math.round(paymentTotal * 100));
+  const details: ReceiptInvoiceDetail[] = [];
+  for (const invoice of invoices) {
+    const applied = Math.min(remaining, Math.max(0, Math.round(invoice.balance * 100)));
+    if (applied === 0) continue;
+    details.push({ invoiceId: invoice.id, invoiceNumber: invoice.number, amountApplied: applied / 100 });
+    remaining -= applied;
+  }
+  return details;
+}
 
 export function invoiceAmounts(items: InvoiceItem[], clientType: Client["type"], orderDiscount = 0) {
   const lines = items.map(item => {
