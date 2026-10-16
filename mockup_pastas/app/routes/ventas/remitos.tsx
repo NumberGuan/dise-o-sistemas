@@ -1,3 +1,4 @@
+import BackToListButton from "~/components/BackToListButton";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
@@ -229,7 +230,7 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0 break-all text-2xl font-bold text-gray-900">Remito {remit.number}</h1>
-        <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
+        <BackToListButton onClick={onClose} />
       </div>
 
       {notice && <p role="status" className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}

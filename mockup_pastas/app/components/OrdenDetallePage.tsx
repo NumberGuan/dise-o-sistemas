@@ -1,3 +1,4 @@
+import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
 import {
@@ -28,13 +29,7 @@ export default function OrdenDetallePage({
         <p className="mt-2 text-sm text-gray-500">
           No existe una orden de compra con ese identificador.
         </p>
-        <button
-          type="button"
-          onClick={irVolver}
-          className="mt-6 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
-        >
-          Volver a Órdenes
-        </button>
+        <BackToListButton onClick={irVolver} />
       </div>
     );
   }
@@ -158,13 +153,7 @@ export default function OrdenDetallePage({
             Orden de compra al proveedor {proveedor?.nombre ?? "—"}.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={irVolver}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-        >
-          Volver a Órdenes
-        </button>
+        <BackToListButton onClick={irVolver} />
       </div>
       {contenido}
     </div>

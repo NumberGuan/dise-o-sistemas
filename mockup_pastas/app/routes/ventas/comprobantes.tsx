@@ -1,3 +1,4 @@
+import BackToListButton from "~/components/BackToListButton";
 import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useLoaderData, useFetcher } from "react-router";
@@ -362,7 +363,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
             {invoice.status}
           </span>
         </div>
-        <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
+        <BackToListButton onClick={onClose} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

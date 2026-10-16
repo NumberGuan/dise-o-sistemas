@@ -1,3 +1,4 @@
+import BackToListButton from "~/components/BackToListButton";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
@@ -331,7 +332,7 @@ function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrde
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">Presupuesto {budget.number}</h1>
-        <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
+        <BackToListButton onClick={onClose} />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

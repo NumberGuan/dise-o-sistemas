@@ -1,3 +1,4 @@
+import BackToListButton from "~/components/BackToListButton";
 import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
 import { useLoaderData, useFetcher, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -452,7 +453,7 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
     <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
-        <button type="button" onClick={onClose} className="text-sm font-medium text-gray-500 hover:text-gray-700">Volver al listado</button>
+        <BackToListButton onClick={onClose} />
       </div>
       {receipt.accountMonth && <p className="mb-4 text-sm font-semibold text-amber-800">Pago del mes de {monthLabel(receipt.accountMonth)}</p>}
       {receipt.advanceOrderId && <p className="mb-4 text-sm font-semibold text-amber-800">Seña del evento {orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId}. {receipt.invoices.length === 0 ? "Se aplicará al emitir la factura del pedido." : "Aplicada a la factura del pedido."}</p>}

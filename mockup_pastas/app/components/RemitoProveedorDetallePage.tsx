@@ -1,3 +1,4 @@
+import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
 import { formatFecha, getOrdenes, getProveedorPorId } from "~/data/ordenes";
@@ -28,13 +29,7 @@ export default function RemitoProveedorDetallePage({
         <p className="mt-2 text-sm text-gray-500">
           No existe un remito con ese identificador.
         </p>
-        <button
-          type="button"
-          onClick={irVolver}
-          className="mt-6 rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
-        >
-          Volver a Remitos
-        </button>
+        <BackToListButton onClick={irVolver} />
       </div>
     );
   }
@@ -151,13 +146,7 @@ export default function RemitoProveedorDetallePage({
             Remito recibido del proveedor {proveedor?.nombre ?? "—"}.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={irVolver}
-          className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
-        >
-          Volver a Remitos
-        </button>
+        <BackToListButton onClick={irVolver} />
       </div>
       {contenido}
     </div>
