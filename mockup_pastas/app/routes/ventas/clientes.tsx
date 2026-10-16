@@ -78,7 +78,7 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <SalesFormHeader title={client ? "Editar cliente" : "Nuevo cliente"} onCancel={onCancel} pending={pending} />
       <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
-        <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
+        <form noValidate onSubmit={submit} className="space-y-5 p-5 sm:p-6">
           {(error || serverError) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error || serverError}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Tipo de cliente

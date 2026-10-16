@@ -15,6 +15,7 @@ Reúne las mejoras del circuito de ventas y pedidos:
 - Navegación de los módulos mediante el menú lateral, formularios y detalles en páginas, y un botón visible para volver al listado dentro del contenido.
 - Catálogo público para visitantes, con carrito. Para confirmar la compra o guardar favoritos hay que iniciar sesión o registrarse.
 - Catálogo con 13 variedades de pastas de 500 g y 7 salsas de 250 g. Cada nombre indica el contenido del envase y se puede filtrar por Pastas o Salsas, combinando categoría, búsqueda, disponibilidad y orden de precios.
+- Validación visual de formularios: al intentar guardar aparecen mensajes rojos debajo de los campos obligatorios pendientes, la vista se desplaza al primero y lo deja enfocado. Los avisos se quitan al corregir el dato. También se indican las secciones vacías, como productos, materias primas o medios de pago.
 
 ### `feature/pantallascliente`
 

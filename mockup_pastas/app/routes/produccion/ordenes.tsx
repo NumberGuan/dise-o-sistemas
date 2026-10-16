@@ -52,24 +52,24 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
         </div>
       </div>
 
-      <form id="production-order-form" onSubmit={submit} className="flex-1 p-5 sm:p-6">
+      <form noValidate id="production-order-form" onSubmit={submit} className="flex-1 p-5 sm:p-6">
         {error && <p role="alert" className="mb-5 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>Fecha de emisión <span className="text-rose-600">*</span>
-            <input type="date" value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} className={field} />
+            <input type="date" required value={fechaEmision} onChange={(e) => setFechaEmision(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Número de lote <span className="text-rose-600">*</span>
-            <input type="number" min="1" value={lote} onChange={(e) => setLote(e.target.value)} className={field} />
+            <input type="number" min="1" required value={lote} onChange={(e) => setLote(e.target.value)} className={field} />
           </label>
           <label className={`${labelClass} sm:col-span-2`}>Empleado responsable <span className="text-rose-600">*</span>
-            <select value={idEmpleado} onChange={(e) => setIdEmpleado(e.target.value)} className={field}>
+            <select required value={idEmpleado} onChange={(e) => setIdEmpleado(e.target.value)} className={field}>
               <option value="">Seleccionar empleado...</option>
               {SAMPLE_EMPLOYEES.filter((x) => x.status === "Activo").map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
             </select>
           </label>
         </div>
 
-        <div className="mt-8">
+        <div data-validation-message={productos.length ? "" : "Agregá al menos un producto a la orden."} className="mt-8">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Productos a elaborar</h3>
             <button type="button" onClick={() => setProductos([...productos, { key: `p-${Date.now()}`, idProducto: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar producto</button>
@@ -85,7 +85,7 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
                   <button type="button" onClick={() => setProductos(productos.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar producto">✕</button>
                   <div className="grid gap-4 pr-6 sm:grid-cols-2">
                     <label className={labelClass}>Producto <span className="text-rose-600">*</span>
-                      <select value={p.idProducto} onChange={(e) => setProductos(productos.map((x, i) => i === idx ? { ...x, idProducto: e.target.value } : x))} className={field}>
+                      <select required value={p.idProducto} onChange={(e) => setProductos(productos.map((x, i) => i === idx ? { ...x, idProducto: e.target.value } : x))} className={field}>
                         <option value="">Seleccionar...</option>
                         {PRODUCTOS_PRODUCCION.map((x) => <option key={x.idProducto} value={x.idProducto}>{x.nombre}</option>)}
                       </select>
@@ -140,7 +140,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
         </div>
       </div>
 
-      <div className="flex-1 p-5 sm:p-6">
+      <form id="production-completion-form" noValidate onSubmit={event => event.preventDefault()} className="flex-1 p-5 sm:p-6">
         <div className="grid gap-7 md:grid-cols-[1fr_300px]">
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Productos a elaborar</h3>
@@ -165,7 +165,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                       </div>
                       {order.estado === "En proceso" ? (
                         <label className={labelClass}>Cantidad real generada {producto && <span className="font-normal text-gray-500">({getUnidad(producto.idUnidad)})</span>} <span className="text-rose-600">*</span>
-                          <input type="number" min="0" step="0.01" value={cantidades[d.idProducto] ?? ""} onChange={(e) => setCantidades({ ...cantidades, [d.idProducto]: e.target.value })} className={field} />
+                          <input type="number" min="0" step="0.01" required value={cantidades[d.idProducto] ?? ""} onChange={(e) => setCantidades({ ...cantidades, [d.idProducto]: e.target.value })} className={field} />
                         </label>
                       ) : order.estado === "Finalizada" && (
                         <div>
@@ -214,10 +214,10 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
               {order.estado === "En proceso" && (
                 <div className="mt-3 space-y-3">
                   <label className={labelClass}>Fecha de finalización <span className="text-rose-600">*</span>
-                    <input type="date" value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} className={field} />
+                    <input type="date" required value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} className={field} />
                   </label>
                   <p className="text-xs text-gray-500">Al finalizar, la cantidad generada se suma al stock de cada producto.</p>
-                  <button type="button" onClick={() => handleTransition("Finalizada")} className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Finalizar orden</button>
+                  <button type="button" data-validate-form onClick={() => handleTransition("Finalizada")} className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Finalizar orden</button>
                 </div>
               )}
 
@@ -229,7 +229,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
             </div>
           </div>
         </div>
-      </div>
+      </form>
     </RecordPage>
   );
 }

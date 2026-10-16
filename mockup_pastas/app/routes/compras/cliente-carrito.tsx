@@ -194,7 +194,7 @@ export default function ClienteCarrito() {
         </section>
       )}
 
-      {cart.length > 0 && <fetcher.Form method="post" className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
+      {cart.length > 0 && <fetcher.Form noValidate method="post" className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
         <label className="mb-4 block text-sm font-semibold text-gray-800">Dirección de entrega<select name="deliveryAddressId" required defaultValue={addresses[0]?.id ?? ""} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm">{!addresses.length && <option value="">Agregá una dirección en Mi perfil</option>}{addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}</select></label>
         <h2 className="text-lg font-semibold text-gray-900">Datos para el pedido</h2>
         <p className="mt-1 text-sm text-gray-600">Se usarán los datos guardados en <Link to="/compras/perfil" className="font-medium text-amber-800 underline">Mi perfil</Link>, iguales a los que consulta Ventas.</p>

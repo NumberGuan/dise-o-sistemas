@@ -197,7 +197,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
         </div>
       )}
 
-      <form className="space-y-6">
+      <form noValidate onSubmit={event => event.preventDefault()} className="space-y-6">
         {/* Cliente y Fecha */}
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4">
@@ -257,7 +257,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
         </section>}
 
         {/* Medios de Pago */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div data-validation-complete data-validation-message={payments.length ? "" : "Agregá al menos un medio de pago con su importe."} className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4 flex justify-between items-center">
             <h2 className="font-semibold text-gray-900">Medios de Pago</h2>
             <span className="text-sm font-medium text-gray-500">Total cobrado: <span className="font-bold text-gray-900">{formatCurrency(totalPayments)}</span></span>
@@ -289,7 +289,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
               <div className="w-32">
                 <label htmlFor="receipt-amount" className="block text-xs font-medium text-gray-700 mb-1">Importe sugerido</label>
                 <input
-                  id="receipt-amount"
+                  data-validation-skip id="receipt-amount"
                   type="number"
                   min="0.01"
                   step="0.01"
@@ -340,7 +340,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
         </div>
 
         {/* Aplicación a Comprobantes */}
-        <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div data-validation-complete data-validation-message={totalApplied > 0 ? "" : "Aplicá el pago a un comprobante pendiente."} className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4 flex justify-between items-center">
             <h2 className="font-semibold text-gray-900">Aplicación a Comprobantes pendientes</h2>
             <span className="text-sm font-medium text-gray-500">Total aplicado: <span className="font-bold text-emerald-700">{formatCurrency(totalApplied)}</span></span>
@@ -429,8 +429,8 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
 
         <div className="flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancelar</button>
-          <button type="button" onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
-          <button type="button" onClick={() => handleSubmit("Registrado")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">Registrar Pago</button>
+          <button type="button" data-validate-form onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
+          <button type="button" data-validate-form data-validate-complete onClick={() => handleSubmit("Registrado")} className="rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-800">Registrar Pago</button>
         </div>
       </form>
     </div>

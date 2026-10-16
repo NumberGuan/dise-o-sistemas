@@ -199,7 +199,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
               {errorMsg}
             </div>
           )}
-          <form id="order-form" onSubmit={handleSubmit} className="space-y-6">
+          <form noValidate id="order-form" onSubmit={handleSubmit} className="space-y-6">
             <label className="block text-sm font-medium text-gray-700">Tipo de pedido
               <select value={kind} disabled={!isNew} onChange={event => { const next = event.target.value as OrderKind; setKind(next); setFulfillment(next === "Mostrador" ? "Retiro en local" : "Envío"); if (clientId === COUNTER_CLIENT.id) setClientId(""); }} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3">
                 {ORDER_KINDS.map(type => <option key={type}>{type}</option>)}
@@ -288,7 +288,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dirección de entrega</label>
                   <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <label className="block text-sm font-medium text-gray-700">Dirección guardada
-                      <select disabled={deliveryAddressType === "custom" || !selectedClient} value={selectedAddressId} onChange={event => setAddressId(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900">
+                      <select required disabled={deliveryAddressType === "custom" || !selectedClient} value={selectedAddressId} onChange={event => setAddressId(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900">
                         {!addresses.length && <option value="">Sin direcciones guardadas</option>}
                         {order?.deliveryAddress && order.deliveryAddressId && !addresses.some(address => address.id === order.deliveryAddressId) && <option value={order.deliveryAddressId}>Dirección original: {order.deliveryAddress}</option>}
                         {addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}
@@ -307,7 +307,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                       <div className="pt-2">
                         <input
                           type="text"
-                          value={customDeliveryAddress}
+                          required value={customDeliveryAddress}
                           onChange={e => setCustomDeliveryAddress(e.target.value)}
                           placeholder="Ej: Av. Corrientes 1234, CABA"
                           className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
@@ -320,7 +320,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
               </div>
             </div>
 
-            <div className="rounded-lg border border-gray-200 bg-white shadow-sm">
+            <div data-validation-message={items.length ? "" : "Agregá al menos un producto al pedido."} className="rounded-lg border border-gray-200 bg-white shadow-sm">
               {kind === "Mostrador" && <section className="border-b border-gray-200 p-4">
                 <label className="block text-sm font-medium">Buscar producto<input type="search" value={productSearch} onChange={event => setProductSearch(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" placeholder="Nombre del producto..." /></label>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">{SAMPLE_PRODUCTS.filter(product => product.name.toLowerCase().includes(productSearch.toLowerCase())).map(product => <button key={product.id} type="button" onClick={() => addProduct(product)} className="rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm hover:bg-amber-100">+ {product.name}<span className="block font-semibold">${product.price}</span></button>)}</div>
@@ -347,7 +347,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
                     <input
                       type="number"
                       min="1"
-                      value={quantity}
+                      data-validation-skip value={quantity}
                       onChange={e => setQuantity(parseInt(e.target.value, 10))}
                       className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                     />

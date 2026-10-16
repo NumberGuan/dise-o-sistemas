@@ -248,7 +248,7 @@ export default function OrdenCompraPage({
         </ul>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form noValidate onSubmit={handleSubmit} className="space-y-6">
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-gray-900">Cabecera</h2>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -257,7 +257,7 @@ export default function OrdenCompraPage({
                 Proveedor
               </label>
               <select
-                id="idProveedor"
+                required id="idProveedor"
                 value={idProveedor}
                 onChange={(event) => handleProveedorChange(event.target.value)}
                 className={`${selectClasses} mt-1`}
@@ -298,7 +298,7 @@ export default function OrdenCompraPage({
                 Fecha de Emisión
               </label>
               <input
-                id="fechaEmision"
+                required id="fechaEmision"
                 type="date"
                 value={fechaEmision}
                 onChange={(event) => setFechaEmision(event.target.value)}
@@ -308,7 +308,7 @@ export default function OrdenCompraPage({
           </div>
         </section>
 
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section data-validation-message={items.length ? "" : "Agregá al menos un ítem a la orden."} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-gray-900">
               Detalle de la Orden
@@ -346,7 +346,7 @@ export default function OrdenCompraPage({
                       <td className="px-3 py-3 text-gray-500">{index + 1}</td>
                       <td className="px-3 py-3">
                         <select
-                          value={item.idMateriaPrima}
+                          required value={item.idMateriaPrima}
                           onChange={(event) =>
                             handleMateriaPrimaChange(
                               item.key,
@@ -365,7 +365,7 @@ export default function OrdenCompraPage({
                       </td>
                       <td className="px-3 py-3">
                         <select
-                          value={item.idMarca}
+                          required value={item.idMarca}
                           onChange={(event) =>
                             handleMarcaChange(item.key, Number(event.target.value))
                           }
@@ -384,7 +384,7 @@ export default function OrdenCompraPage({
                         <input
                           type="number"
                           min={1}
-                          value={item.cantidad}
+                          required value={item.cantidad}
                           onChange={(event) =>
                             handleCantidadChange(item.key, Number(event.target.value))
                           }
@@ -395,7 +395,7 @@ export default function OrdenCompraPage({
                         <input
                           type="number"
                           min={0}
-                          value={item.subtotal}
+                          required value={item.subtotal}
                           onChange={(event) =>
                             handleSubtotalChange(item.key, event.target.value)
                           }

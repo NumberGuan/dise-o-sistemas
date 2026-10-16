@@ -116,7 +116,7 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
         </div>
       )}
 
-      <form className="space-y-8">
+      <form noValidate onSubmit={event => event.preventDefault()} className="space-y-8">
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4">
             <h2 className="font-semibold text-gray-900">Datos principales</h2>
@@ -175,7 +175,7 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
             <h2 className="font-semibold text-gray-900">Conceptos</h2>
           </div>
           <div className="p-5">
-            <div className="mb-6 rounded-lg border border-gray-100 bg-gray-50 p-4">
+            <div data-validation-message={items.length ? "" : "Agregá al menos un producto al presupuesto."} className="mb-6 rounded-lg border border-gray-100 bg-gray-50 p-4">
               <h3 className="mb-3 text-sm font-medium text-gray-700">Agregar producto</h3>
               <div className="flex flex-wrap items-end gap-3">
                 <div className="flex-1 min-w-[200px]">
@@ -196,7 +196,7 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
                   <input
                     type="number"
                     min="1"
-                    value={quantity}
+                    data-validation-skip value={quantity}
                     onChange={e => setQuantity(Number(e.target.value))}
                     className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
                   />
@@ -305,8 +305,8 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
 
         <div className="flex justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancelar</button>
-          <button type="button" onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
-          <button type="button" onClick={() => handleSubmit("Enviado")} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">Guardar y Marcar Enviado</button>
+          <button type="button" data-validate-form onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
+          <button type="button" data-validate-form onClick={() => handleSubmit("Enviado")} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">Guardar y Marcar Enviado</button>
         </div>
       </form>
     </div>
@@ -459,17 +459,19 @@ function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrde
             )}
 
             {budget.status === "Aceptado" && !budget.orderId && (
-              <div className="space-y-2">
+              <form noValidate onSubmit={event => { event.preventDefault(); onConvertToOrder(employeeId); }} className="space-y-2">
+                <div>
                 <label htmlFor="conversion-employee" className="block text-sm font-medium text-gray-700">Empleado responsable *</label>
                 <select id="conversion-employee" required value={employeeId} onChange={event => setEmployeeId(event.target.value)} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-100">
                   <option value="">Seleccionar empleado...</option>
                   {SAMPLE_EMPLOYEES.filter(employee => employee.status === "Activo").map(employee => <option key={employee.id} value={employee.id}>{employee.name}</option>)}
                 </select>
+                </div>
                 {conversionError && <p role="alert" className="text-sm text-red-700">{conversionError}</p>}
-                <button type="button" disabled={!employeeId} onClick={() => onConvertToOrder(employeeId)} className="w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-purple-700 disabled:cursor-not-allowed disabled:opacity-50">
+                <button type="submit" className="w-full rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-purple-700">
                   Convertir a Pedido
                 </button>
-              </div>
+              </form>
             )}
 
             {(budget.status === "Borrador" || budget.status === "Enviado") && (

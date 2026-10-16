@@ -79,15 +79,15 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
         </div>
       </div>
 
-      <div className="flex-1 p-5 sm:p-6">
+      <form id="maintenance-form" noValidate onSubmit={event => event.preventDefault()} className="flex-1 p-5 sm:p-6">
         {error && <p role="alert" className="mb-5 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>Fecha de emisión <span className="text-rose-600">*</span>
-            <input type="date" value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={field} />
+            <input type="date" required value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Fecha estimada <span className="text-rose-600">*</span>
-            <input type="date" value={estimatedDate} onChange={(e) => setEstimatedDate(e.target.value)} className={field} />
+            <input type="date" required value={estimatedDate} onChange={(e) => setEstimatedDate(e.target.value)} className={field} />
           </label>
 
           <label className={labelClass}>Tipo de responsable <span className="text-rose-600">*</span>
@@ -99,14 +99,14 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
 
           {responsibleType === "Empleado" ? (
             <label className={labelClass}>Responsable <span className="text-rose-600">*</span>
-              <select value={employee} onChange={(e) => setEmployee(e.target.value)} className={field}>
+              <select required value={employee} onChange={(e) => setEmployee(e.target.value)} className={field}>
                 <option value="">Seleccionar empleado...</option>
                 {SAMPLE_EMPLOYEES.filter((x) => x.status === "Activo").map((x) => <option key={x.id} value={x.id}>{x.name}</option>)}
               </select>
             </label>
           ) : (
             <label className={labelClass}>Nombre del proveedor <span className="text-rose-600">*</span>
-              <input type="text" value={externalName} onChange={(e) => setExternalName(e.target.value)} placeholder="Ej: Técnica Mantenimientos S.A." className={field} />
+              <input type="text" required value={externalName} onChange={(e) => setExternalName(e.target.value)} placeholder="Ej: Técnica Mantenimientos S.A." className={field} />
             </label>
           )}
 
@@ -115,7 +115,7 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
           </label>
         </div>
 
-        <div className="mt-8">
+        <div data-validation-message={items.length ? "" : "Agregá al menos una máquina a la orden."} className="mt-8">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Máquinas a intervenir</h3>
             <button type="button" onClick={addItem} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar máquina</button>
@@ -129,31 +129,31 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
                 <button type="button" onClick={() => removeItem(idx)} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Eliminar máquina">✕</button>
                 <div className="grid gap-4 sm:grid-cols-2 pr-6">
                   <label className={labelClass}>Máquina <span className="text-rose-600">*</span>
-                    <select value={it.machineId} onChange={(e) => updateItem(idx, "machineId", e.target.value)} className={field}>
+                    <select required value={it.machineId} onChange={(e) => updateItem(idx, "machineId", e.target.value)} className={field}>
                       <option value="">Seleccionar...</option>
                       {SAMPLE_MACHINES.filter((m) => m.status !== "Inactiva").map((m) => <option key={m.id} value={m.id}>{m.code} · {m.name}</option>)}
                     </select>
                   </label>
                   <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
-                    <select value={it.type} onChange={(e) => updateItem(idx, "type", e.target.value)} className={field}>
+                    <select required value={it.type} onChange={(e) => updateItem(idx, "type", e.target.value)} className={field}>
                       <option value="">Seleccionar...</option>
                       {MAINTENANCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
                     </select>
                   </label>
                   <label className={`${labelClass} sm:col-span-2`}>Descripción del problema / tarea <span className="text-rose-600">*</span>
-                    <input type="text" value={it.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className={field} />
+                    <input type="text" required value={it.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className={field} />
                   </label>
                 </div>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </form>
 
       <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
         <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
-        <button type="button" onClick={(e) => submit(e as unknown as FormEvent, false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Guardar Programado</button>
-        <button type="button" onClick={(e) => submit(e as unknown as FormEvent, true)} className="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">Guardar e Iniciar</button>
+        <button type="button" form="maintenance-form" data-validate-form onClick={(e) => submit(e as unknown as FormEvent, false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Guardar Programado</button>
+        <button type="button" form="maintenance-form" data-validate-form onClick={(e) => submit(e as unknown as FormEvent, true)} className="rounded-lg bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">Guardar e Iniciar</button>
       </div>
     </RecordPage>
   );
@@ -197,7 +197,7 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
         </div>
       </div>
 
-      <div className="flex-1 p-5 sm:p-6">
+      <form id="maintenance-completion-form" noValidate onSubmit={event => event.preventDefault()} className="flex-1 p-5 sm:p-6">
         <div className="grid gap-7 md:grid-cols-[1fr_300px]">
           <div className="space-y-6">
             <div>
@@ -224,7 +224,7 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
                           <>
                             <div>
                               <label className={labelClass}>Trabajo realizado <span className="text-rose-600">*</span>
-                                <textarea value={it.workPerformed || ""} onChange={(e) => updateItem(idx, "workPerformed", e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
+                                <textarea required value={it.workPerformed || ""} onChange={(e) => updateItem(idx, "workPerformed", e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
                               </label>
                             </div>
                             <div>
@@ -302,8 +302,8 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
 
               {order.status === "Programado" && (
                  <div className="mt-3 flex flex-col gap-2">
-                   <button onClick={() => handleTransition("En curso")} className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">Iniciar orden</button>
-                   <button onClick={() => handleTransition("Cancelado")} className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Cancelar orden</button>
+                   <button type="button" onClick={() => handleTransition("En curso")} className="w-full rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-700">Iniciar orden</button>
+                   <button type="button" onClick={() => handleTransition("Cancelado")} className="w-full rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Cancelar orden</button>
                  </div>
               )}
 
@@ -311,10 +311,10 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
                  <div className="mt-3 space-y-3">
                    <div>
                      <label className={labelClass}>Fecha de finalización <span className="text-rose-600">*</span>
-                       <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={field} />
+                       <input type="date" required value={endDate} onChange={(e) => setEndDate(e.target.value)} className={field} />
                      </label>
                    </div>
-                   <button onClick={() => handleTransition("Finalizado")} className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Finalizar orden</button>
+                   <button type="button" data-validate-form onClick={() => handleTransition("Finalizado")} className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Finalizar orden</button>
                  </div>
               )}
 
@@ -324,7 +324,7 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
             </div>
           </div>
         </div>
-      </div>
+      </form>
     </RecordPage>
   );
 }

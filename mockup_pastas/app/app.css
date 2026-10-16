@@ -181,3 +181,20 @@ body {
     -webkit-print-color-adjust: exact;
   }
 }
+/* Keep validation feedback visible below its field, including table cells. */
+.form-field-error {
+  display: block;
+  width: 100%;
+  margin-top: 0.375rem;
+  color: #b91c1c;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  white-space: normal;
+  text-align: left;
+}
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
+  border-color: #dc2626;
+  outline-color: #dc2626;
+}
+[aria-invalid="true"] { scroll-margin-block: 12rem 3rem; }

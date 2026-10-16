@@ -103,7 +103,7 @@ function RemitForm({ remit, remits, initialOrderId, onCancel, onSave }: RemitFor
         </div>
       )}
 
-      <form className="space-y-8">
+      <form noValidate onSubmit={event => event.preventDefault()} className="space-y-8">
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4">
             <h2 className="font-semibold text-gray-900">Datos principales</h2>
@@ -204,8 +204,8 @@ function RemitForm({ remit, remits, initialOrderId, onCancel, onSave }: RemitFor
 
         <div className="flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancelar</button>
-          <button type="button" onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
-          <button type="button" onClick={() => handleSubmit("Despachado")} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">Despachar</button>
+          <button type="button" data-validate-form onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
+          <button type="button" data-validate-form onClick={() => handleSubmit("Despachado")} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-sky-700">Despachar</button>
         </div>
       </form>
     </div>

@@ -164,7 +164,7 @@ export default function ProveedorFormPage({
         </ul>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form noValidate onSubmit={handleSubmit} className="space-y-6">
         <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="text-base font-semibold text-gray-900">
             Datos del Proveedor
@@ -175,7 +175,7 @@ export default function ProveedorFormPage({
                 Razón Social
               </label>
               <input
-                id="nombre"
+                required id="nombre"
                 type="text"
                 value={nombre}
                 onChange={(event) => setNombre(event.target.value)}
@@ -220,7 +220,7 @@ export default function ProveedorFormPage({
                 Tipo de Documento
               </label>
               <select
-                id="idTipoDocumento"
+                required id="idTipoDocumento"
                 value={idTipoDocumento}
                 onChange={(event) => setIdTipoDocumento(event.target.value)}
                 className={`${selectClasses} mt-1`}
@@ -239,7 +239,7 @@ export default function ProveedorFormPage({
                 Nro. de Documento
               </label>
               <input
-                id="nroDocumento"
+                required id="nroDocumento"
                 type="number"
                 min={1}
                 value={nroDocumento}
@@ -254,7 +254,7 @@ export default function ProveedorFormPage({
                 e-mail
               </label>
               <input
-                id="email"
+                required id="email"
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -268,7 +268,7 @@ export default function ProveedorFormPage({
                 Teléfono
               </label>
               <input
-                id="telefono"
+                required id="telefono"
                 type="tel"
                 value={telefono}
                 onChange={(event) => setTelefono(event.target.value)}
@@ -284,7 +284,7 @@ export default function ProveedorFormPage({
                 Calle
               </label>
               <input
-                id="calle"
+                required id="calle"
                 type="text"
                 value={calle}
                 onChange={(event) => setCalle(event.target.value)}
@@ -312,7 +312,7 @@ export default function ProveedorFormPage({
                 Localidad
               </label>
               <input
-                id="localidad"
+                required id="localidad"
                 type="text"
                 value={localidad}
                 onChange={(event) => setLocalidad(event.target.value)}
@@ -326,7 +326,7 @@ export default function ProveedorFormPage({
                 Provincia
               </label>
               <input
-                id="provincia"
+                required id="provincia"
                 type="text"
                 value={provincia}
                 onChange={(event) => setProvincia(event.target.value)}

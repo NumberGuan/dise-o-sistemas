@@ -50,41 +50,41 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
           <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
       </div>
-      <form onSubmit={submit} className="space-y-5 p-5 sm:p-6">
+      <form noValidate onSubmit={submit} className="space-y-5 p-5 sm:p-6">
         {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>Código
             <input value={codigo("PRO", id)} readOnly className={`${field} bg-gray-100`} />
           </label>
           <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
-            <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
+            <input autoFocus required value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Tipo de producto <span className="text-rose-600">*</span>
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
+            <select required value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
               {TIPOS_PRODUCTO.map((t) => <option key={t.idTipoProducto} value={t.idTipoProducto}>{t.tipo}</option>)}
             </select>
           </label>
           <label className={labelClass}>Receta <span className="text-rose-600">*</span>
-            <select value={receta} onChange={(e) => setReceta(e.target.value)} className={field}>
+            <select required value={receta} onChange={(e) => setReceta(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
               {RECETAS.map((r) => <option key={r.idReceta} value={r.idReceta}>{r.nombre}</option>)}
             </select>
           </label>
           <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
-            <select value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
+            <select required value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
               {UNIDADES.map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
             </select>
           </label>
           <label className={labelClass}>Precio (ARS) <span className="text-rose-600">*</span>
-            <input type="number" min="0" step="0.01" value={precio} onChange={(e) => setPrecio(e.target.value)} className={field} />
+            <input type="number" min="0.01" step="0.01" required value={precio} onChange={(e) => setPrecio(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Stock <span className="text-rose-600">*</span>
-            <input type="number" min="0" step="0.01" value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
+            <input type="number" min="0" step="0.01" required value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Fecha de vencimiento <span className="text-rose-600">*</span>
-            <input type="date" value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} className={field} />
+            <input type="date" required value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} className={field} />
           </label>
         </div>
         <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">

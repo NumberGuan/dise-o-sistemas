@@ -62,24 +62,24 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
         </div>
       </div>
 
-      <form id="recipe-form" onSubmit={submit} className="flex-1 p-5 sm:p-6">
+      <form noValidate id="recipe-form" onSubmit={submit} className="flex-1 p-5 sm:p-6">
         {error && <p role="alert" className="mb-5 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={`${labelClass} sm:col-span-2`}>Nombre <span className="text-rose-600">*</span>
-            <input autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
+            <input autoFocus required value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Tiempo de cocción (hh:mm) <span className="text-rose-600">*</span>
-            <input type="time" value={tiempo} onChange={(e) => setTiempo(e.target.value)} className={field} />
+            <input type="time" required value={tiempo} onChange={(e) => setTiempo(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Temperatura (°C) <span className="text-rose-600">*</span>
-            <input type="number" step="0.1" value={temperatura} onChange={(e) => setTemperatura(e.target.value)} className={field} />
+            <input type="number" step="0.1" required value={temperatura} onChange={(e) => setTemperatura(e.target.value)} className={field} />
           </label>
           <label className={`${labelClass} sm:col-span-2`}>Procedimiento <span className="text-rose-600">*</span>
-            <textarea rows={4} value={procedimiento} onChange={(e) => setProcedimiento(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
+            <textarea rows={4} required value={procedimiento} onChange={(e) => setProcedimiento(e.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
           </label>
         </div>
 
-        <div className="mt-8">
+        <div data-validation-message={materias.length ? "" : "Agregá al menos una materia prima."} className="mt-8">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Materias primas</h3>
             <button type="button" onClick={() => setMaterias([...materias, { key: `mp-${Date.now()}`, idMateriaPrima: "", cantidadNecesaria: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar materia prima</button>
@@ -95,13 +95,13 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
                   <button type="button" onClick={() => setMaterias(materias.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar materia prima">✕</button>
                   <div className="grid gap-4 pr-6 sm:grid-cols-[2fr_1fr]">
                     <label className={labelClass}>Materia prima <span className="text-rose-600">*</span>
-                      <select value={m.idMateriaPrima} onChange={(e) => updateMateria(idx, "idMateriaPrima", e.target.value)} className={field}>
+                      <select required value={m.idMateriaPrima} onChange={(e) => updateMateria(idx, "idMateriaPrima", e.target.value)} className={field}>
                         <option value="">Seleccionar...</option>
                         {MATERIAS_PRIMAS_PRODUCCION.map((x) => <option key={x.idMateriaPrima} value={x.idMateriaPrima}>{x.nombre}</option>)}
                       </select>
                     </label>
                     <label className={labelClass}>Cantidad necesaria {unidad && <span className="font-normal text-gray-500">({unidad})</span>} <span className="text-rose-600">*</span>
-                      <input type="number" min="0" step="0.01" value={m.cantidadNecesaria} onChange={(e) => updateMateria(idx, "cantidadNecesaria", e.target.value)} className={field} />
+                      <input type="number" min="0.01" step="0.01" required value={m.cantidadNecesaria} onChange={(e) => updateMateria(idx, "cantidadNecesaria", e.target.value)} className={field} />
                     </label>
                   </div>
                 </div>
@@ -126,16 +126,16 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
                 <button type="button" onClick={() => setMaquinas(maquinas.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar máquina">✕</button>
                 <div className="grid gap-4 pr-6 sm:grid-cols-[2fr_1fr_1fr]">
                   <label className={labelClass}>Máquina <span className="text-rose-600">*</span>
-                    <select value={m.idMaquina} onChange={(e) => updateMaquina(idx, "idMaquina", e.target.value)} className={field}>
+                    <select required value={m.idMaquina} onChange={(e) => updateMaquina(idx, "idMaquina", e.target.value)} className={field}>
                       <option value="">Seleccionar...</option>
                       {SAMPLE_MACHINES.map((x) => <option key={x.id} value={x.id}>{x.code} · {x.name}</option>)}
                     </select>
                   </label>
                   <label className={labelClass}>Hora de inicio <span className="text-rose-600">*</span>
-                    <input type="time" value={m.horaInicio} onChange={(e) => updateMaquina(idx, "horaInicio", e.target.value)} className={field} />
+                    <input type="time" required value={m.horaInicio} onChange={(e) => updateMaquina(idx, "horaInicio", e.target.value)} className={field} />
                   </label>
                   <label className={labelClass}>Hora de fin <span className="text-rose-600">*</span>
-                    <input type="time" value={m.horaFin} onChange={(e) => updateMaquina(idx, "horaFin", e.target.value)} className={field} />
+                    <input type="time" required value={m.horaFin} onChange={(e) => updateMaquina(idx, "horaFin", e.target.value)} className={field} />
                   </label>
                 </div>
               </div>

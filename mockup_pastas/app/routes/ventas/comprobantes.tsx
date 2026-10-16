@@ -147,7 +147,7 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
 
       
 
-      <form className="space-y-8">
+      <form noValidate onSubmit={event => event.preventDefault()} className="space-y-8">
         <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="border-b border-gray-200 px-5 py-4">
             <h2 className="font-semibold text-gray-900">Datos principales</h2>
@@ -185,7 +185,7 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
               <div>
                 <label htmlFor="invoice-order" className="block text-sm font-medium text-gray-700">Pedido asociado</label>
                 <select
-                  id="invoice-order"
+                  required id="invoice-order"
                   value={orderId}
                   onChange={e => setOrderId(e.target.value)}
                   disabled={!isNew}
@@ -333,8 +333,8 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
 
         <div className="flex flex-wrap justify-end gap-3">
           <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-100">Cancelar</button>
-          <button type="button" onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar como borrador</button>
-          <button type="button" onClick={() => handleSubmit("Emitido")} className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir Factura</button>
+          <button type="button" data-validate-form onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar como borrador</button>
+          <button type="button" data-validate-form onClick={() => handleSubmit("Emitido")} className="rounded-lg bg-amber-700 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-amber-800">Emitir Factura</button>
         </div>
       </form>
     </div>
