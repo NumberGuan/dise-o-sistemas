@@ -32,6 +32,7 @@ export default [
         route("presupuesto-proveedor", "routes/compras/presupuesto-proveedor.tsx"),
         route("presupuesto-proveedor/:id", "routes/compras/presupuesto-proveedor-detalle.tsx"),
         route("remito-proveedor", "routes/compras/remito-proveedor.tsx"),
+        route("remito-proveedor/:id", "routes/compras/remito-proveedor-detalle.tsx"),
         route("remitos", "routes/compras/remitos.tsx"),
         
         // Rutas de Cliente

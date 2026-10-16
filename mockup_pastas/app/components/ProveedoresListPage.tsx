@@ -1,13 +1,8 @@
-import { useState } from "react";
+import { useNavigate } from "react-router";
 
-import Modal from "~/components/Modal";
-import ProveedorDetallePage from "~/components/ProveedorDetallePage";
-import ProveedorFormPage from "~/components/ProveedorFormPage";
 import {
   deleteProveedor,
   getDomicilioPorId,
-  getNombreCompletoProveedor,
-  getProveedorPorId,
   getTipoDocumentoPorId,
   useProveedores,
 } from "~/data/proveedores";
@@ -15,19 +10,10 @@ import {
 const formatDocumento = (nro: number) =>
   nro.toLocaleString("es-AR", { useGrouping: true });
 
-type ModalState =
-  | { tipo: "nueva" }
-  | { tipo: "modificar"; id: number }
-  | { tipo: "detalle"; id: number }
-  | null;
-
 export default function ProveedoresListPage() {
-  const [modal, setModal] = useState<ModalState>(null);
+  const navigate = useNavigate();
 
   const proveedores = useProveedores();
-
-  const proveedorSeleccionado =
-    modal && modal.tipo !== "nueva" ? getProveedorPorId(modal.id) : undefined;
 
   const confirmarEliminar = (idPersona: number, nombre: string) => {
     if (
@@ -50,7 +36,7 @@ export default function ProveedoresListPage() {
         </div>
         <button
           type="button"
-          onClick={() => setModal({ tipo: "nueva" })}
+          onClick={() => navigate("/compras/proveedores/nueva")}
           className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           + Nuevo Proveedor
@@ -113,10 +99,7 @@ export default function ProveedoresListPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            setModal({
-                              tipo: "modificar",
-                              id: proveedor.idPersona,
-                            })
+                            navigate(`/compras/proveedores/${proveedor.idPersona}/modificar`)
                           }
                           className="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
                         >
@@ -138,10 +121,7 @@ export default function ProveedoresListPage() {
                         <button
                           type="button"
                           onClick={() =>
-                            setModal({
-                              tipo: "detalle",
-                              id: proveedor.idPersona,
-                            })
+                            navigate(`/compras/proveedores/${proveedor.idPersona}`)
                           }
                           className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
                         >
@@ -202,44 +182,6 @@ export default function ProveedoresListPage() {
         </p>
       )}
 
-      {modal?.tipo === "nueva" && (
-        <Modal
-          title="Nuevo Proveedor"
-          subtitle="Registra un nuevo proveedor en el sistema."
-          onClose={() => setModal(null)}
-          wide
-        >
-          <ProveedorFormPage onClose={() => setModal(null)} />
-        </Modal>
-      )}
-
-      {modal?.tipo === "modificar" && proveedorSeleccionado && (
-        <Modal
-          title="Modificar Proveedor"
-          subtitle="Actualiza los datos del proveedor y guarda los cambios."
-          onClose={() => setModal(null)}
-          wide
-        >
-          <ProveedorFormPage
-            proveedorId={String(modal.id)}
-            onClose={() => setModal(null)}
-          />
-        </Modal>
-      )}
-
-      {modal?.tipo === "detalle" && proveedorSeleccionado && (
-        <Modal
-          title={getNombreCompletoProveedor(proveedorSeleccionado)}
-          subtitle={`Código de persona: ${proveedorSeleccionado.idPersona} · ${proveedorSeleccionado.estado}`}
-          onClose={() => setModal(null)}
-          wide
-        >
-          <ProveedorDetallePage
-            proveedorId={String(modal.id)}
-            onClose={() => setModal(null)}
-          />
-        </Modal>
-      )}
     </div>
   );
 }

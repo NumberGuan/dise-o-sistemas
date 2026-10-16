@@ -1,33 +1,18 @@
-import { useState } from "react";
+import { useNavigate } from "react-router";
 
-import Modal from "~/components/Modal";
-import OrdenCompraPage from "~/components/OrdenCompraPage";
-import OrdenDetallePage from "~/components/OrdenDetallePage";
 import {
   deleteOrden,
   formatFecha,
   formatMoney,
   getMontoTotal,
-  getOrdenPorId,
   getProveedorPorId,
   useOrdenes,
 } from "~/data/ordenes";
 
-type ModalState =
-  | { tipo: "nueva" }
-  | { tipo: "detalle"; id: number }
-  | null;
-
 export default function OrdenesListPage() {
-  const [modal, setModal] = useState<ModalState>(null);
+  const navigate = useNavigate();
 
   const ordenes = useOrdenes();
-
-  const ordenSeleccionada =
-    modal?.tipo === "detalle" ? getOrdenPorId(modal.id) : undefined;
-  const proveedorSeleccionado = ordenSeleccionada
-    ? getProveedorPorId(ordenSeleccionada.idProveedor)
-    : undefined;
 
   const confirmarEliminar = (id: number, numero: string) => {
     if (
@@ -52,7 +37,7 @@ export default function OrdenesListPage() {
         </div>
         <button
           type="button"
-          onClick={() => setModal({ tipo: "nueva" })}
+          onClick={() => navigate("/compras/ordenes/nueva")}
           className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           + Nueva Orden
@@ -97,7 +82,7 @@ export default function OrdenesListPage() {
                     <td className="px-5 py-4 text-right">
                       <button
                         type="button"
-                        onClick={() => setModal({ tipo: "detalle", id: orden.id })}
+                        onClick={() => navigate(`/compras/ordenes/${orden.id}`)}
                         className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
                       >
                         Ver detalle
@@ -123,32 +108,6 @@ export default function OrdenesListPage() {
         </div>
       </div>
 
-      {modal?.tipo === "nueva" && (
-        <Modal
-          title="Nueva Orden de Compra"
-          subtitle="Completa la cabecera y agrega los ítems para registrar la orden."
-          onClose={() => setModal(null)}
-          wide
-        >
-          <OrdenCompraPage onClose={() => setModal(null)} />
-        </Modal>
-      )}
-
-      {ordenSeleccionada && (
-        <Modal
-          title={ordenSeleccionada.numero}
-          subtitle={`Orden de compra al proveedor ${
-            proveedorSeleccionado?.nombre ?? "—"
-          }.`}
-          onClose={() => setModal(null)}
-          wide
-        >
-          <OrdenDetallePage
-            ordenId={String(ordenSeleccionada.id)}
-            onClose={() => setModal(null)}
-          />
-        </Modal>
-      )}
     </div>
   );
 }
