@@ -2,7 +2,7 @@ import { Form, useFetchers, useNavigation } from "react-router";
 import type { getCatalogData } from "~/data/catalog";
 import CustomerProductCard from "~/components/CustomerProductCard";
 
-export default function ProductCatalog({ products, favorites, cart, query, availability, sort, totalProducts, publicMode = false }: ReturnType<typeof getCatalogData> & { publicMode?: boolean }) {
+export default function ProductCatalog({ products, favorites, cart, query, availability, category, sort, totalProducts, publicMode = false }: ReturnType<typeof getCatalogData> & { publicMode?: boolean }) {
   const catalogPath = publicMode ? "/catalogo" : "/compras/catalogo";
   const navigation = useNavigation();
   const fetchers = useFetchers();
@@ -29,9 +29,10 @@ export default function ProductCatalog({ products, favorites, cart, query, avail
           </div>
           <input type="hidden" name="availability" value={availability} />
           <input type="hidden" name="sort" value={sort} />
+          <input type="hidden" name="category" value={category} />
           <div className="flex gap-2">
             <button type="submit" className="min-h-11 flex-1 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white transition hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 sm:flex-none">Buscar</button>
-            {query && <a href={`${catalogPath}?${new URLSearchParams({ availability, sort }).toString()}`} className="inline-flex min-h-11 items-center rounded-xl border border-[#e5d9cb] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Limpiar búsqueda</a>}
+            {query && <a href={`${catalogPath}?${new URLSearchParams({ availability, category, sort }).toString()}`} className="inline-flex min-h-11 items-center rounded-xl border border-[#e5d9cb] bg-white px-4 text-sm font-semibold text-gray-700 transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">Limpiar búsqueda</a>}
           </div>
         </Form>
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
@@ -40,25 +41,33 @@ export default function ProductCatalog({ products, favorites, cart, query, avail
             <p className="mt-1 text-sm text-gray-600">{products.length} de {totalProducts} {totalProducts === 1 ? "producto" : "productos"} en el catálogo</p>
             <p className="mt-2 max-w-2xl text-xs leading-5 text-gray-500">Los productos, precios y estados visibles provienen del catálogo de muestra del proyecto; todavía no hay una fuente comercial o de stock en tiempo real.</p>
           </div>
-          <form method="get" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <form method="get" className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             {query && <input type="hidden" name="q" value={query} />}
             <div>
+              <label htmlFor="catalog-category" className="mb-1 block text-xs font-medium text-gray-600">Categoría</label>
+              <select key={category} id="catalog-category" name="category" defaultValue={category} className="min-h-10 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700">
+                <option value="all">Todos los productos</option>
+                <option value="Pastas">Pastas</option>
+                <option value="Salsas">Salsas</option>
+              </select>
+            </div>
+            <div>
               <label htmlFor="catalog-availability" className="mb-1 block text-xs font-medium text-gray-600">Disponibilidad</label>
-              <select id="catalog-availability" name="availability" defaultValue={availability} className="min-h-10 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700">
+              <select id="catalog-availability" name="availability" key={availability} defaultValue={availability} className="min-h-10 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700">
                 <option value="all">Todos los estados</option>
                 <option value="available">Solo disponibles</option>
               </select>
             </div>
             <div>
               <label htmlFor="catalog-sort" className="mb-1 block text-xs font-medium text-gray-600">Ordenar por</label>
-              <select id="catalog-sort" name="sort" defaultValue={sort} className="min-h-10 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700">
+              <select id="catalog-sort" name="sort" key={sort} defaultValue={sort} className="min-h-10 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-800 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700">
                 <option value="default">Orden original</option>
                 <option value="name">Nombre</option>
                 <option value="price-asc">Menor precio</option>
                 <option value="price-desc">Mayor precio</option>
               </select>
             </div>
-            <button type="submit" className="min-h-10 rounded-xl border border-[#e5d9cb] bg-white px-4 text-sm font-semibold text-gray-800 transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 sm:col-span-2">Aplicar filtros</button>
+            <button type="submit" className="min-h-10 rounded-xl border border-[#e5d9cb] bg-white px-4 text-sm font-semibold text-gray-800 transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700 sm:col-span-3">Aplicar filtros</button>
           </form>
         </div>
 

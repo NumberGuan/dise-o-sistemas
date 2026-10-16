@@ -116,17 +116,32 @@ export const SAMPLE_CLIENT_ACTIVITY: ClientActivity[] = [
 export type Product = {
   id: string;
   name: string;
+  category: "Pastas" | "Salsas";
   price: number;
   stock: string;
 };
 
 export const SAMPLE_PRODUCTS: Product[] = [
-  { id: "p-1", name: "Tallarines 500g", price: 2000, stock: "Disponible" },
-  { id: "p-2", name: "Ravioles verdura", price: 3500, stock: "A producir" },
-  { id: "p-3", name: "Spaghetti 500g", price: 2200, stock: "Disponible" },
-  { id: "p-4", name: "Ñoquis papa", price: 2800, stock: "Disponible" },
-  { id: "p-5", name: "Sorrentinos jamón y queso", price: 4200, stock: "A producir" },
-  { id: "p-6", name: "Fettuccine 500g", price: 2100, stock: "Disponible" },
+  { id: "p-1", name: "Tallarines x 500g", category: "Pastas", price: 2000, stock: "Disponible" },
+  { id: "p-2", name: "Ravioles de verdura x 500g", category: "Pastas", price: 3500, stock: "A producir" },
+  { id: "p-3", name: "Spaghetti x 500g", category: "Pastas", price: 2200, stock: "Disponible" },
+  { id: "p-4", name: "Ñoquis de papa x 500g", category: "Pastas", price: 2800, stock: "Disponible" },
+  { id: "p-5", name: "Sorrentinos de jamón y queso x 500g", category: "Pastas", price: 4200, stock: "A producir" },
+  { id: "p-6", name: "Fettuccine x 500g", category: "Pastas", price: 2100, stock: "Disponible" },
+  { id: "p-7", name: "Ravioles de jamón y queso x 500g", category: "Pastas", price: 3800, stock: "Disponible" },
+  { id: "p-8", name: "Ravioles de ricota y nuez x 500g", category: "Pastas", price: 4000, stock: "Disponible" },
+  { id: "p-9", name: "Sorrentinos de calabaza y queso x 500g", category: "Pastas", price: 4100, stock: "Disponible" },
+  { id: "p-10", name: "Canelones de verdura y ricota x 500g", category: "Pastas", price: 4500, stock: "Disponible" },
+  { id: "p-11", name: "Lasagna de carne x 500g", category: "Pastas", price: 4800, stock: "Disponible" },
+  { id: "p-12", name: "Agnolottis de pollo x 500g", category: "Pastas", price: 4300, stock: "Disponible" },
+  { id: "p-13", name: "Capelettis de carne x 500g", category: "Pastas", price: 4400, stock: "Disponible" },
+  { id: "s-1", name: "Salsa fileto x 250g", category: "Salsas", price: 1800, stock: "Disponible" },
+  { id: "s-2", name: "Salsa bolognesa x 250g", category: "Salsas", price: 2500, stock: "Disponible" },
+  { id: "s-3", name: "Salsa blanca x 250g", category: "Salsas", price: 2000, stock: "Disponible" },
+  { id: "s-4", name: "Salsa cuatro quesos x 250g", category: "Salsas", price: 2800, stock: "Disponible" },
+  { id: "s-5", name: "Salsa rosa x 250g", category: "Salsas", price: 2200, stock: "Disponible" },
+  { id: "s-6", name: "Salsa pesto x 250g", category: "Salsas", price: 2600, stock: "Disponible" },
+  { id: "s-7", name: "Salsa de champiñones x 250g", category: "Salsas", price: 2900, stock: "Disponible" },
 ];
 
 export const ORDER_STATUSES = ["Pendiente", "En preparación", "Listo para remito", "Facturado", "Cancelado"] as const;

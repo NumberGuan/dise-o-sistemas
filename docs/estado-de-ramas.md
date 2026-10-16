@@ -14,6 +14,7 @@ Reúne las mejoras del circuito de ventas y pedidos:
 - Pedidos de mostrador y eventos. Los eventos guardan fecha y hora de entrega y requieren una seña de al menos el 50%.
 - Navegación de los módulos mediante el menú lateral, formularios y detalles en páginas, y un botón visible para volver al listado dentro del contenido.
 - Catálogo público para visitantes, con carrito. Para confirmar la compra o guardar favoritos hay que iniciar sesión o registrarse.
+- Catálogo con 13 variedades de pastas de 500 g y 7 salsas de 250 g. Cada nombre indica el contenido del envase y se puede filtrar por Pastas o Salsas, combinando categoría, búsqueda, disponibilidad y orden de precios.
 
 ### `feature/pantallascliente`
 
