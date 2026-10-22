@@ -1,6 +1,9 @@
+import { useState } from "react";
+import AddressFields from "~/components/AddressFields";
 import type { ClientAddress } from "~/data/sales";
 
 export default function ClientAddressesEditor({ addresses, onChange, disabled = false }: { addresses: ClientAddress[]; onChange: (addresses: ClientAddress[]) => void; disabled?: boolean }) {
+  const [originals] = useState(() => addresses);
   const inputClass = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 disabled:bg-gray-100";
   function update(index: number, key: keyof ClientAddress, value: string) {
     onChange(addresses.map((address, i) => i === index ? { ...address, [key]: value } : address));
@@ -14,7 +17,8 @@ export default function ClientAddressesEditor({ addresses, onChange, disabled = 
     {addresses.map((address, index) => <fieldset key={address.id} disabled={disabled} className="rounded-xl border border-gray-200 bg-white p-4">
       <legend className="px-2 text-sm font-semibold text-gray-800">{address.label || `Dirección ${index + 1}`}{index === 0 ? " · Principal" : ""}</legend>
       <div className="grid gap-4 sm:grid-cols-2">
-        {([['label', 'Nombre de la dirección', 60], ['street', 'Calle', 160], ['streetNumber', 'Altura', 20], ['floor', 'Piso', 20], ['apartment', 'Departamento', 20], ['locality', 'Localidad', 100], ['province', 'Provincia', 100]] as const).map(([key, label, maxLength]) => <label key={key} className="block text-sm font-medium text-gray-700">{label}{key !== "floor" && key !== "apartment" ? " *" : ""}<input required={key !== "floor" && key !== "apartment"} maxLength={maxLength} value={address[key]} onChange={event => update(index, key, event.target.value)} placeholder={key === "label" ? "Ej.: Casa, Local o Depósito" : undefined} className={inputClass} /></label>)}
+        <label className="block text-sm font-medium text-gray-700 sm:col-span-2">Nombre de la dirección *<input required maxLength={60} value={address.label} onChange={event => update(index, "label", event.target.value)} placeholder="Ej.: Casa, Local o Depósito" className={inputClass} /></label>
+        <div className="sm:col-span-2"><AddressFields value={address} previous={originals.find(item => item.id === address.id)} disabled={disabled} onChange={value => onChange(addresses.map((item, i) => i === index ? { ...address, ...value } : item))} /></div>
       </div>
       <div className="mt-4 flex flex-wrap justify-end gap-3">
         {index > 0 && <button type="button" className="text-sm font-semibold text-amber-800" onClick={() => onChange([address, ...addresses.filter((_, i) => i !== index)])}>Usar como principal</button>}

@@ -43,7 +43,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
     return { error: "Seleccioná un tipo de documento y condición IVA válidos." };
   }
   try {
-    const addresses = validateClientAddresses(JSON.parse(String(data.get("addresses") ?? "[]")));
+    const addresses = validateClientAddresses(JSON.parse(String(data.get("addresses") ?? "[]")), getClientAddresses(customerAsClient(user)!));
     const primary = addresses[0];
     await mutateUser(user.id, (current) => {
       current.customerOrders = preserveOrderAddresses(current.customerOrders ?? [], customerAsClient(current)!);

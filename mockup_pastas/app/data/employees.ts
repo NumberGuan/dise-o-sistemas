@@ -1,3 +1,4 @@
+import type { AddressFields } from "./domicilios";
 ﻿export type EmployeeRole = "Vendedor" | "Administrador" | "Repartidor";
 
 export type EmployeeStatus = "Activo" | "Inactivo";
@@ -8,6 +9,7 @@ export type Employee = {
   /** Nombre completo provisto por la entidad Persona en el modelo de dominio. */
   name: string;
   email: string;
+  address?: AddressFields;
   dni: string;
   role: EmployeeRole;
   hireDate: string;

@@ -80,7 +80,7 @@ export default function ProveedoresListPage() {
                     </td>
                     <td className="px-5 py-4 text-gray-600">
                       {domicilio
-                        ? `${domicilio.calle}, ${domicilio.localidad}, ${domicilio.provincia}`
+                        ? `${domicilio.calle} ${domicilio.altura}, ${domicilio.localidad}, ${domicilio.provincia}`
                         : "—"}
                     </td>
                     <td className="px-5 py-4">

@@ -87,7 +87,7 @@ export default function ProveedorDetallePage({
             </dt>
             <dd className="mt-1 font-medium text-gray-900">
               {domicilio
-                ? `${domicilio.calle}, ${domicilio.localidad}, ${domicilio.provincia}`
+                ? `${domicilio.calle} ${domicilio.altura}, ${domicilio.localidad}, ${domicilio.provincia}`
                 : "—"}
             </dd>
           </div>

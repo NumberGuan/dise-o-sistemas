@@ -1,3 +1,5 @@
+import AddressFields from "~/components/AddressFields";
+import { validateTabulatedAddress } from "~/data/domicilios";
 import BackToListButton from "~/components/BackToListButton";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
@@ -55,6 +57,7 @@ export default function ProveedorFormPage({
   const [email, setEmail] = useState(proveedor?.email ?? "");
   const [telefono, setTelefono] = useState(proveedor?.telefono ?? "");
   const [calle, setCalle] = useState(domicilioOrigen?.calle ?? "");
+  const [altura, setAltura] = useState(domicilioOrigen?.altura ?? "");
   const [localidad, setLocalidad] = useState(domicilioOrigen?.localidad ?? "");
   const [provincia, setProvincia] = useState(
     domicilioOrigen?.provincia ?? "",
@@ -100,15 +103,9 @@ export default function ProveedorFormPage({
     if (!telefono.trim()) {
       newErrors.push("Debes ingresar el teléfono.");
     }
-    if (!calle.trim()) {
-      newErrors.push("Debes ingresar la calle.");
-    }
-    if (!localidad.trim()) {
-      newErrors.push("Debes ingresar la localidad.");
-    }
-    if (!provincia.trim()) {
-      newErrors.push("Debes ingresar la provincia.");
-    }
+    try {
+      validateTabulatedAddress({ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento });
+    } catch (error) { newErrors.push((error as Error).message); }
 
     setErrors(newErrors);
     setSaved(false);
@@ -118,6 +115,7 @@ export default function ProveedorFormPage({
 
     const domicilio: DomicilioInput = {
       calle: calle.trim(),
+      altura: altura.trim(),
       localidad: localidad.trim(),
       provincia: provincia.trim(),
       piso: piso.trim() || undefined,
@@ -278,77 +276,10 @@ export default function ProveedorFormPage({
             </div>
           </div>
 
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-3">
-            <div className="sm:col-span-2">
-              <label htmlFor="calle" className={labelClasses}>
-                Calle
-              </label>
-              <input
-                required id="calle"
-                type="text"
-                value={calle}
-                onChange={(event) => setCalle(event.target.value)}
-                placeholder="Calle y altura, ej: Av. de los Cerezos 550"
-                className={`${inputClasses} mt-1`}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="piso" className={labelClasses}>
-                Piso
-              </label>
-              <input
-                id="piso"
-                type="text"
-                value={piso}
-                onChange={(event) => setPiso(event.target.value)}
-                placeholder="Ej: 2"
-                className={`${inputClasses} mt-1`}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="localidad" className={labelClasses}>
-                Localidad
-              </label>
-              <input
-                required id="localidad"
-                type="text"
-                value={localidad}
-                onChange={(event) => setLocalidad(event.target.value)}
-                placeholder="Ej: La Plata"
-                className={`${inputClasses} mt-1`}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="provincia" className={labelClasses}>
-                Provincia
-              </label>
-              <input
-                required id="provincia"
-                type="text"
-                value={provincia}
-                onChange={(event) => setProvincia(event.target.value)}
-                placeholder="Ej: Buenos Aires"
-                className={`${inputClasses} mt-1`}
-              />
-            </div>
-
-            <div>
-              <label htmlFor="departamento" className={labelClasses}>
-                Departamento
-              </label>
-              <input
-                id="departamento"
-                type="text"
-                value={departamento}
-                onChange={(event) => setDepartamento(event.target.value)}
-                placeholder="Ej: B"
-                className={`${inputClasses} mt-1`}
-              />
-            </div>
-          </div>
+          <div className="mt-4"><AddressFields value={{ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento }} onChange={value => {
+            setProvincia(value.province); setLocalidad(value.locality); setCalle(value.street);
+            setAltura(value.streetNumber); setPiso(value.floor); setDepartamento(value.apartment);
+          }} /></div>
 
           <div className="mt-6 flex items-center gap-3">
             <button

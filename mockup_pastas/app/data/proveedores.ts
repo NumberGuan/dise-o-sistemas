@@ -1,3 +1,4 @@
+import { validateTabulatedAddress } from "./domicilios";
 import { createStore, useStore } from "./store";
 
 export type TipoDocumento = {
@@ -8,6 +9,7 @@ export type TipoDocumento = {
 export type Domicilio = {
   id: number;
   calle: string;
+  altura: string;
   localidad: string;
   provincia: string;
   piso?: string;
@@ -44,31 +46,36 @@ const INITIAL_STATE: ProveedoresState = {
   domicilios: [
     {
       id: 1,
-      calle: "Av. de los Cerezos 550",
+      calle: "Av. de los Cerezos",
+      altura: "550",
       localidad: "La Plata",
       provincia: "Buenos Aires",
     },
     {
       id: 2,
-      calle: "Ruta 36 km 85",
+      calle: "Ruta 36",
+      altura: "km 85",
       localidad: "Brandsen",
       provincia: "Buenos Aires",
     },
     {
       id: 3,
-      calle: "Calle Alsina 842",
+      calle: "Calle Alsina",
+      altura: "842",
       localidad: "Berisso",
       provincia: "Buenos Aires",
     },
     {
       id: 4,
-      calle: "Camino Centenario 3100",
+      calle: "Camino Centenario",
+      altura: "3100",
       localidad: "City Bell",
       provincia: "Buenos Aires",
     },
     {
       id: 5,
-      calle: "Av. 44 2750",
+      calle: "Av. 44",
+      altura: "2750",
       localidad: "La Plata",
       provincia: "Buenos Aires",
     },
@@ -163,6 +170,7 @@ export const createProveedor = (
   proveedor: ProveedorInput,
   domicilio: DomicilioInput,
 ): Proveedor => {
+  validateDomicilio(domicilio);
   const current = store.get();
   const idPersona = getProximoIdPersona();
   const idDomicilio = current.domicilios.length
@@ -188,6 +196,7 @@ export const updateProveedor = (
   if (!existente) {
     return false;
   }
+  validateDomicilio(domicilio);
   const actualizado: Proveedor = {
     ...proveedor,
     idPersona,
@@ -222,3 +231,6 @@ export const deleteProveedor = (idPersona: number): boolean => {
   });
   return true;
 };
+function validateDomicilio(domicilio: DomicilioInput) {
+  validateTabulatedAddress({ province: domicilio.provincia, locality: domicilio.localidad, street: domicilio.calle, streetNumber: domicilio.altura, floor: domicilio.piso ?? "", apartment: domicilio.departamento ?? "" });
+}

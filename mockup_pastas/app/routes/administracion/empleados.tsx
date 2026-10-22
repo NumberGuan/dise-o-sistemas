@@ -1,3 +1,6 @@
+import AddressFields from "~/components/AddressFields";
+import { EMPTY_ADDRESS, validateTabulatedAddress } from "~/data/domicilios";
+import { formatClientAddress } from "~/data/sales";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useMemo, useState, type FormEvent, useEffect } from "react";
@@ -77,6 +80,7 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
   const [hoursWorked, setHoursWorked] = useState(employee ? String(employee.hoursWorked) : "0");
   const [salary, setSalary] = useState(employee ? String(employee.salary) : "0");
   const [status, setStatus] = useState<EmployeeStatus>(employee?.status ?? "Activo");
+  const [address, setAddress] = useState(employee?.address ?? { ...EMPTY_ADDRESS });
   const [error, setError] = useState("");
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -124,11 +128,15 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
       return;
     }
 
+    try { validateTabulatedAddress(address); }
+    catch (error) { setError((error as Error).message); return; }
+
     onSave({
       id: employee?.id ?? `emp-${Date.now()}`,
       code,
       name: normalizedName,
       email: normalizedEmail,
+      address,
       dni: normalizedDni,
       role,
       hireDate,
@@ -191,6 +199,7 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
             </select>
           </div>
         </div>
+        <section className="space-y-3"><h2 className="font-semibold text-gray-900">Domicilio</h2><AddressFields value={address} onChange={setAddress} /></section>
         <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
           <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">{isNew ? "Guardar empleado" : "Guardar cambios"}</button>
@@ -235,6 +244,7 @@ function EmployeeDetail({ employee, onBack, onEdit, onToggleStatus }: EmployeeDe
               <dt className="text-xs text-gray-500">Email</dt>
               <dd className="mt-0.5 break-all font-medium text-gray-800">{employee.email}</dd>
             </div>
+            <div><dt className="text-xs text-gray-500">Domicilio</dt><dd className="mt-0.5 font-medium text-gray-800">{employee.address ? formatClientAddress(employee.address) : "Sin domicilio cargado"}</dd></div>
           </dl>
 
           <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-2">

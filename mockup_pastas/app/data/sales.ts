@@ -1,3 +1,4 @@
+import { validateTabulatedAddress } from "./domicilios";
 export type ClientStatus = "Activo" | "Inactivo";
 
 // Opciones de referencia para la maqueta; no representan un catálogo fiscal oficial.
@@ -25,7 +26,7 @@ export function getClientAddresses(client: Pick<Client, "id" | "street" | "stree
   return [{ id: "principal", label: "Principal", street: client.street, streetNumber: client.streetNumber, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province }];
 }
 
-export function validateClientAddresses(value: unknown): ClientAddress[] {
+export function validateClientAddresses(value: unknown, previous: ClientAddress[] = []): ClientAddress[] {
   if (!Array.isArray(value) || value.length > 20) throw new Error("Podés guardar hasta 20 direcciones.");
   const ids = new Set<string>();
   return value.map((entry) => {
@@ -37,6 +38,7 @@ export function validateClientAddresses(value: unknown): ClientAddress[] {
       if (typeof text !== "string" || text.length > fields[key] || (!["floor", "apartment"].includes(key) && !text.trim())) throw new Error("Completá el nombre, calle, altura, localidad y provincia de cada dirección.");
       address[key] = text.trim();
     }
+    validateTabulatedAddress(address, previous.find(item => item.id === address.id));
     if (ids.has(address.id)) throw new Error("Hay direcciones repetidas.");
     ids.add(address.id);
     return address;

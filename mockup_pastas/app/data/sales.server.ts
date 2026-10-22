@@ -1,3 +1,4 @@
+import { validateTabulatedAddress } from "./domicilios";
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
@@ -103,25 +104,27 @@ const validDate = (value: string) => {
   return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 };
 
-function validateClient(value: unknown): Omit<Client, "id" | "code"> | null {
+function validateClient(value: unknown, previous?: Client): Omit<Client, "id" | "code"> | null {
   const row = asRecord(value);
   if (!row) return null;
-  const addresses = row.addresses === undefined ? undefined : validateClientAddresses(row.addresses);
+  const addresses = row.addresses === undefined ? undefined : validateClientAddresses(row.addresses, previous ? getClientAddresses(previous) : []);
   const primary = addresses?.[0];
+  const location = addresses ? primary ?? { street: "", streetNumber: "", floor: "", apartment: "", locality: "", province: "Buenos Aires" } : row;
   const name = text(row.name, 100, true);
   const phone = text(row.phone, 40);
   const email = text(row.email, 254);
-  const street = text(primary?.street ?? row.street, 160);
-  const streetNumber = text(primary?.streetNumber ?? row.streetNumber, 20);
+  const street = text(location.street, 160);
+  const streetNumber = text(location.streetNumber, 20);
   const balance = 0;
-  const floor = text(primary?.floor ?? row.floor ?? "", 20);
-  const apartment = text(primary?.apartment ?? row.apartment ?? "", 20);
-  const locality = text(primary?.locality ?? row.locality, 100);
-  const province = text(primary?.province ?? row.province, 100, true);
+  const floor = text(location.floor ?? "", 20);
+  const apartment = text(location.apartment ?? "", 20);
+  const locality = text(location.locality, 100);
+  const province = text(location.province, 100, true);
   const cuitCuil = text(row.cuitCuil, 30);
   const notes = text(row.notes, 2000);
   if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || locality === null || !province || cuitCuil === null || notes === null) return null;
   if (!isOneOf(row.type, ["Comercio", "Distribuidor", "Particular"] as const) || !isOneOf(row.documentType, CLIENT_DOCUMENT_TYPES) || !isOneOf(row.ivaType, ["", ...CLIENT_IVA_TYPES] as const) || !isOneOf(row.status, ["Activo", "Inactivo"] as const)) return null;
+  if (!addresses && (street || streetNumber || locality)) validateTabulatedAddress({ street, streetNumber, locality, province, floor, apartment }, previous ? { ...previous, floor: previous.floor ?? "", apartment: previous.apartment ?? "" } : undefined);
   return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, addresses, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
 }
 
@@ -135,7 +138,8 @@ export function preserveOrderAddresses(orders: Order[], client: Client) {
 
 export async function saveSalesClient(input: unknown, id: string | undefined, actorRole: Role) {
   if (actorRole !== "Administrador" && actorRole !== "Ventas") throw new Error("No tenés permiso para guardar clientes.");
-  const client = validateClient(input);
+  const previous = id ? (await getSalesData()).clients.find(candidate => candidate.id === id) : undefined;
+  const client = validateClient(input, previous);
   if (!client) throw new Error("Revisá los datos ingresados del cliente.");
   if (id?.startsWith("customer-")) {
     const userId = id.slice("customer-".length);

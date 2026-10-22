@@ -7,6 +7,7 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
+    "test:domicilios": "node --test scripts/domicilios.test.mjs",
     "test:cuenta-mensual": "node --test scripts/cuenta-mensual.test.mjs",
     "test:catalogo-publico": "node --test scripts/catalogo-publico.test.mjs"
   },
