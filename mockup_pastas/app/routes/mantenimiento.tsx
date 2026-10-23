@@ -8,16 +8,18 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 };
 
 import ModuleDashboard from "~/components/ModuleDashboard";
-import { MAINTENANCE_TYPES, SAMPLE_MAINTENANCES } from "~/data/maintenance";
+import { useCatalogs } from "~/components/CatalogProvider";
+import { SAMPLE_MAINTENANCES } from "~/data/maintenance";
 
 function MaintenanceDashboard() {
+  const catalogs = useCatalogs();
   const scheduled = SAMPLE_MAINTENANCES.filter((order) => order.status === "Programado").length;
   const inProgress = SAMPLE_MAINTENANCES.filter((order) => order.status === "En curso").length;
   const completed = SAMPLE_MAINTENANCES.filter((order) => order.status === "Finalizado").length;
   const items = SAMPLE_MAINTENANCES.flatMap((order) => order.items);
-  const ordersByType = MAINTENANCE_TYPES.map((type) => ({
-    label: type,
-    value: items.filter((item) => item.type === type).length,
+  const ordersByType = catalogs["tipos-mantenimiento"].map((type) => ({
+    label: type.name,
+    value: items.filter((item) => item.type === type.value).length,
   }));
 
   return (

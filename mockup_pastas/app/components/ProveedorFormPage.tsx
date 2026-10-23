@@ -1,3 +1,6 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { useCatalogs } from "~/components/CatalogProvider";
+import { catalogAddressData } from "~/data/catalogs";
 import AddressFields from "~/components/AddressFields";
 import { validateTabulatedAddress } from "~/data/domicilios";
 import BackToListButton from "~/components/BackToListButton";
@@ -9,7 +12,6 @@ import {
   getDomicilioPorId,
   getProximoIdPersona,
   getProveedorPorId,
-  TIPOS_DOCUMENTO,
   updateProveedor,
   type DomicilioInput,
   type ProveedorInput,
@@ -33,6 +35,9 @@ export default function ProveedorFormPage({
   proveedorId?: string;
   onClose?: () => void;
 } = {}) {
+  const catalogs = useCatalogs();
+  const TIPOS_DOCUMENTO = catalogs["tipos-documento"].map(item => ({ id: Number(item.id), nombre: item.name, active: item.active }));
+  const getTipoDocumentoPorId = (id: number) => TIPOS_DOCUMENTO.find(item => item.id === id);
   const navigate = useNavigate();
   const irVolver = () =>
     onClose ? onClose() : navigate("/compras/proveedores");
@@ -104,7 +109,7 @@ export default function ProveedorFormPage({
       newErrors.push("Debes ingresar el teléfono.");
     }
     try {
-      validateTabulatedAddress({ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento });
+      validateTabulatedAddress({ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento }, domicilioOrigen ? { province: domicilioOrigen.provincia, locality: domicilioOrigen.localidad, street: domicilioOrigen.calle, streetNumber: domicilioOrigen.altura, floor: domicilioOrigen.piso ?? "", apartment: domicilioOrigen.departamento ?? "" } : undefined, catalogAddressData(catalogs));
     } catch (error) { newErrors.push((error as Error).message); }
 
     setErrors(newErrors);
@@ -133,9 +138,9 @@ export default function ProveedorFormPage({
     };
 
     if (esModificacion && proveedor) {
-      updateProveedor(proveedor.idPersona, input, domicilio);
+      updateProveedor(proveedor.idPersona, input, domicilio, catalogAddressData(catalogs));
     } else {
-      createProveedor(input, domicilio);
+      createProveedor(input, domicilio, catalogAddressData(catalogs));
     }
 
     setSaved(true);
@@ -217,19 +222,19 @@ export default function ProveedorFormPage({
               <label htmlFor="idTipoDocumento" className={labelClasses}>
                 Tipo de Documento
               </label>
-              <select
+              <CatalogField catalog="tipos-documento" onCreated={entry => setIdTipoDocumento(entry.id)}><select
                 required id="idTipoDocumento"
                 value={idTipoDocumento}
                 onChange={(event) => setIdTipoDocumento(event.target.value)}
                 className={`${selectClasses} mt-1`}
               >
                 <option value="">Seleccionar tipo</option>
-                {TIPOS_DOCUMENTO.map((tipo) => (
+                {TIPOS_DOCUMENTO.filter(item => item.active || item.id === proveedor?.idTipoDocumento).map((tipo) => (
                   <option key={tipo.id} value={tipo.id}>
                     {tipo.nombre}
                   </option>
                 ))}
-              </select>
+              </select></CatalogField>
             </div>
 
             <div>
@@ -276,7 +281,7 @@ export default function ProveedorFormPage({
             </div>
           </div>
 
-          <div className="mt-4"><AddressFields value={{ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento }} onChange={value => {
+          <div className="mt-4"><AddressFields previous={domicilioOrigen ? { province: domicilioOrigen.provincia, locality: domicilioOrigen.localidad, street: domicilioOrigen.calle, streetNumber: domicilioOrigen.altura, floor: domicilioOrigen.piso ?? "", apartment: domicilioOrigen.departamento ?? "" } : undefined} value={{ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento }} onChange={value => {
             setProvincia(value.province); setLocalidad(value.locality); setCalle(value.street);
             setAltura(value.streetNumber); setPiso(value.floor); setDepartamento(value.apartment);
           }} /></div>

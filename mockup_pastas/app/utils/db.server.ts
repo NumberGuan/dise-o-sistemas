@@ -18,10 +18,10 @@ export interface User {
     addresses?: import("~/data/sales").ClientAddress[];
     street?: string;
     streetNumber?: string;
-    type: 'Comercio' | 'Distribuidor' | 'Particular';
-    documentType: 'DNI' | 'CUIT' | 'CUIL' | 'Pasaporte' | 'Otro';
+    type: string;
+    documentType: string;
     cuitCuil: string;
-    ivaType: 'Responsable inscripto' | 'Monotributista' | 'Consumidor final' | 'Exento' | '';
+    ivaType: string;
     floor: string;
     apartment: string;
     locality: string;

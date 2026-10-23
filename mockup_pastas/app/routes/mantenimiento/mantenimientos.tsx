@@ -1,9 +1,11 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
-import { MAINTENANCE_STATUSES, MAINTENANCE_TYPES, SAMPLE_MACHINES, SAMPLE_MAINTENANCES, type MaintenanceOrder, type MaintenanceOrderItem, type MaintenanceStatus, type MaintenanceType } from "~/data/maintenance";
+import { MAINTENANCE_STATUSES, SAMPLE_MACHINES, SAMPLE_MAINTENANCES, type MaintenanceOrder, type MaintenanceOrderItem, type MaintenanceStatus, type MaintenanceType } from "~/data/maintenance";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
@@ -22,11 +24,12 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
   const [employee, setEmployee] = useState(item?.responsibleEmployeeId ?? "");
   const [externalName, setExternalName] = useState(item?.externalResponsibleName ?? "");
   const [observations, setObservations] = useState(item?.observations ?? "");
+  const catalogs = useCatalogs();
   const [items, setItems] = useState<Partial<MaintenanceOrderItem>[]>(item?.items ?? (preselectedMachineId ? [{ id: `item-${Date.now()}`, machineId: preselectedMachineId }] : []));
   const [error, setError] = useState("");
 
   function addItem() {
-    setItems([...items, { id: `item-${Date.now()}-${items.length}`, machineId: "", type: "Preventivo", description: "", workPerformed: "" }]);
+    setItems([...items, { id: `item-${Date.now()}-${items.length}`, machineId: "", type: catalogs["tipos-mantenimiento"].find(item => item.active)?.value ?? "", description: "", workPerformed: "" }]);
   }
   function removeItem(index: number) {
     setItems(items.filter((_, i) => i !== index));
@@ -135,10 +138,10 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
                     </select>
                   </label>
                   <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
-                    <select required value={it.type} onChange={(e) => updateItem(idx, "type", e.target.value)} className={field}>
+                    <CatalogField catalog="tipos-mantenimiento" onCreated={entry => updateItem(idx, "type", entry.value)} ><select required value={it.type} onChange={(e) => updateItem(idx, "type", e.target.value)} className={field}>
                       <option value="">Seleccionar...</option>
-                      {MAINTENANCE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-                    </select>
+                      <CatalogOptions catalog="tipos-mantenimiento" retained={item?.items.find(previous => previous.id === it.id)?.type} />
+                    </select></CatalogField>
                   </label>
                   <label className={`${labelClass} sm:col-span-2`}>Descripción del problema / tarea <span className="text-rose-600">*</span>
                     <input type="text" required value={it.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className={field} />
@@ -163,6 +166,7 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
   const employee = order.responsibleType === "Empleado" ? SAMPLE_EMPLOYEES.find((e) => e.id === order.responsibleEmployeeId) : null;
   const responsibleName = order.responsibleType === "Empleado" ? (employee?.name ?? "—") : (order.externalResponsibleName ?? "—");
 
+  const catalogs = useCatalogs();
   const [items, setItems] = useState<MaintenanceOrderItem[]>(order.items);
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [error, setError] = useState("");

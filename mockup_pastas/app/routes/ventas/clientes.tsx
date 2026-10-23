@@ -1,3 +1,6 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { catalogDefaultValue } from "~/data/catalogs";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
 import { getClientMonthlyAccount } from "~/data/billing";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -5,7 +8,7 @@ import { useFetcher, useLoaderData } from "react-router";
 
 import ClientAddressesEditor from "~/components/ClientAddressesEditor";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
-import { getClientAddresses, CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
+import { getClientAddresses, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
 import { getSalesData, saveSalesClient } from "~/data/sales.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/clientes";
@@ -45,7 +48,8 @@ const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
 };
 
 function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeClientType }: ClientFormProps) {
-  const [values, setValues] = useState(client ? { ...client, addresses: getClientAddresses(client) } : { ...EMPTY_CLIENT, id: "", code: "", addresses: [] });
+  const catalogs = useCatalogs();
+  const [values, setValues] = useState(client ? { ...client, addresses: getClientAddresses(client) } : { ...EMPTY_CLIENT, type: catalogDefaultValue(catalogs, "tipos-cliente", "Particular"), documentType: catalogDefaultValue(catalogs, "tipos-documento", "DNI"), id: "", code: "", addresses: [] });
   const [error, setError] = useState("");
 
   function update<K extends keyof Client>(key: K, value: Client[K]) {
@@ -82,9 +86,9 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
           {(error || serverError) && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error || serverError}</p>}
           <div className="grid gap-4 sm:grid-cols-2">
             <label className={labelClass}>Tipo de cliente
-              <select value={values.type} disabled={Boolean(client) && !canChangeClientType} onChange={(event) => update("type", event.target.value as Client["type"])} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}>
-                <option>Comercio</option><option>Distribuidor</option><option>Particular</option>
-              </select>
+              <CatalogField catalog="tipos-cliente" onCreated={entry => update("type", entry.value)} disabled={pending || Boolean(client) && !canChangeClientType}><select value={values.type} disabled={Boolean(client) && !canChangeClientType} onChange={(event) => update("type", event.target.value as Client["type"])} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`}>
+                <option value="">Seleccionar…</option><CatalogOptions catalog="tipos-cliente" retained={client?.type} />
+              </select></CatalogField>
               {client && !canChangeClientType && <span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar la condición del cliente.</span>}
             </label>
             <label className={labelClass}>Estado
@@ -96,18 +100,18 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
               <input required maxLength={100} value={values.name} onChange={(event) => update("name", event.target.value)} autoFocus className={inputClass} placeholder="Nombre del cliente" />
             </label>
             <label className={labelClass}>Tipo de documento
-              <select value={values.documentType} onChange={(event) => update("documentType", event.target.value as Client["documentType"])} className={inputClass}>
-                {CLIENT_DOCUMENT_TYPES.map((documentType) => <option key={documentType}>{documentType}</option>)}
-              </select>
+              <CatalogField catalog="tipos-documento" onCreated={entry => update("documentType", entry.value)} disabled={pending}><select value={values.documentType} onChange={(event) => update("documentType", event.target.value as Client["documentType"])} className={inputClass}>
+                <CatalogOptions catalog="tipos-documento" retained={client?.documentType} />
+              </select></CatalogField>
             </label>
             <label className={labelClass}>CUIT/CUIL
               <input value={values.cuitCuil} onChange={(event) => update("cuitCuil", event.target.value)} className={inputClass} placeholder="Número de documento" />
             </label>
             <label className={labelClass}>Tipo IVA
-              <select value={values.ivaType} onChange={(event) => update("ivaType", event.target.value as Client["ivaType"])} className={inputClass}>
+              <CatalogField catalog="tipos-iva" onCreated={entry => update("ivaType", entry.value)} disabled={pending}><select value={values.ivaType} onChange={(event) => update("ivaType", event.target.value as Client["ivaType"])} className={inputClass}>
                 <option value="">Seleccionar</option>
-                {CLIENT_IVA_TYPES.map((ivaType) => <option key={ivaType}>{ivaType}</option>)}
-              </select>
+                <CatalogOptions catalog="tipos-iva" retained={client?.ivaType} />
+              </select></CatalogField>
             </label>
             <label className={labelClass}>Teléfono
               <input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} className={inputClass} placeholder="Código de área y número" />

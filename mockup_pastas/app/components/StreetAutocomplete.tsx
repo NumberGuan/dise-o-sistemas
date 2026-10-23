@@ -1,14 +1,19 @@
 import { useId, useRef, useState } from "react";
 import { searchStreets } from "~/data/domicilios";
+import { CatalogField } from "~/components/InlineCatalog";
+import type { CatalogEntry } from "~/data/catalogs";
 
 type StreetOption = { id: string; nombre: string };
 
-export default function StreetAutocomplete({ value, options, onChange, disabled, inputClass }: {
+export default function StreetAutocomplete({ value, options, onChange, disabled, inputClass, catalogParentId, canAdd = true, onStreetCreated }: {
   value: string;
   options: StreetOption[];
   onChange: (value: string) => void;
   disabled: boolean;
   inputClass: string;
+  catalogParentId?: string;
+  canAdd?: boolean;
+  onStreetCreated?: (entry: CatalogEntry) => void;
 }) {
   const id = useId();
   const [open, setOpen] = useState(false);
@@ -30,6 +35,7 @@ export default function StreetAutocomplete({ value, options, onChange, disabled,
 
   return <div className="relative">
     <label htmlFor={id} className="block text-sm font-medium text-gray-700">Calle *</label>
+    <CatalogField catalog="calles" parentId={catalogParentId} disabled={!canAdd} onCreated={onStreetCreated}>
     <input id={id} role="combobox" aria-autocomplete="list" aria-expanded={expanded}
       aria-controls={`${id}-options`} aria-activedescendant={expanded && matches[activeIndex] ? `${id}-option-${activeIndex}` : undefined}
       aria-describedby={`${id}-help`} required maxLength={160} autoComplete="off" disabled={disabled}
@@ -53,6 +59,7 @@ export default function StreetAutocomplete({ value, options, onChange, disabled,
           if (selected) choose(selected);
         }
       }} />
+    </CatalogField>
     <p id={`${id}-help`} className="mt-1 text-xs text-gray-500">Buscá por las primeras letras y elegí una calle del catálogo.</p>
     {expanded && <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-gray-300 bg-white shadow-lg">
       <ul ref={listRef} id={`${id}-options`} role="listbox" aria-label="Calles encontradas" className="max-h-56 overflow-y-auto overscroll-contain">

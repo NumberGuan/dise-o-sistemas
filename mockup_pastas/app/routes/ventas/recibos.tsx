@@ -1,3 +1,5 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import BackToListButton from "~/components/BackToListButton";
 import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
 import { useLoaderData, useFetcher, useSearchParams } from "react-router";
@@ -5,7 +7,6 @@ import { useEffect, useMemo, useState } from "react";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
 import {
   RECEIPT_STATUSES,
-  PAYMENT_METHODS,
   getInvoicePaymentSummary,
   type Invoice,
   type Receipt,
@@ -89,7 +90,8 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   const [observations, setObservations] = useState(receipt?.observations || "");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const [payMethod, setPayMethod] = useState<PaymentMethod>("Efectivo");
+  const catalogs = useCatalogs();
+  const [payMethod, setPayMethod] = useState<PaymentMethod>(catalogs["medios-pago"].find(item => item.active)?.value ?? "");
   const [payAmount, setPayAmount] = useState<number | "">(0);
   const [payRef, setPayRef] = useState("");
 
@@ -266,14 +268,14 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
             <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
               <div className="w-40">
                 <label htmlFor="receipt-method" className="block text-xs font-medium text-gray-700 mb-1">Método</label>
-                <select
+                <CatalogField catalog="medios-pago" onCreated={entry => setPayMethod(entry.value)}><select
                   id="receipt-method"
                   value={payMethod}
                   onChange={e => setPayMethod(e.target.value as PaymentMethod)}
                   className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-amber-500"
                 >
-                  {PAYMENT_METHODS.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
+                  <CatalogOptions catalog="medios-pago" />
+                </select></CatalogField>
               </div>
               <div className="flex-1 min-w-[150px]">
                 <label htmlFor="receipt-reference" className="block text-xs font-medium text-gray-700 mb-1">Referencia (opcional)</label>

@@ -1,11 +1,12 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { useProductionCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
 import {
-  MARCAS, MATERIAS_PRIMAS_PRODUCCION, RECETAS, TIPOS_MATERIA_PRIMA, UNIDADES,
-  codigo, formatCantidad, formatCurrency, getMarca, getTipoMateriaPrima, siguienteId, type MateriaPrima,
+  MATERIAS_PRIMAS_PRODUCCION, RECETAS, codigo, formatCurrency, siguienteId, type MateriaPrima,
 } from "~/data/produccion";
 import { rowMotion, toast } from "~/components/motion";
 
@@ -14,6 +15,7 @@ const labelClass = "block text-sm font-medium text-gray-700";
 const filterClass = "h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 
 function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrima | null; onCancel: () => void; onSave: (m: MateriaPrima) => void }) {
+  const { UNIDADES, TIPOS_MATERIA_PRIMA, MARCAS } = useProductionCatalogs();
   const [id] = useState(material?.idMateriaPrima ?? siguienteId(MATERIAS_PRIMAS_PRODUCCION.map((m) => m.idMateriaPrima)));
   const [nombre, setNombre] = useState(material?.nombre ?? "");
   const [tipo, setTipo] = useState(String(material?.idTipoMateriaPrima ?? ""));
@@ -50,22 +52,22 @@ function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrim
             <input autoFocus required value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
-            <select required value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
+            <CatalogField catalog="tipos-materia-prima" onCreated={entry => setTipo(entry.id)}><select required value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
-              {TIPOS_MATERIA_PRIMA.map((t) => <option key={t.idTipoMateriaPrima} value={t.idTipoMateriaPrima}>{t.nombre}</option>)}
-            </select>
+              {TIPOS_MATERIA_PRIMA.filter(item => item.active || item.idTipoMateriaPrima === material?.idTipoMateriaPrima).map((t) => <option key={t.idTipoMateriaPrima} value={t.idTipoMateriaPrima}>{t.nombre}</option>)}
+            </select></CatalogField>
           </label>
           <label className={labelClass}>Marca <span className="text-rose-600">*</span>
-            <select required value={marca} onChange={(e) => setMarca(e.target.value)} className={field}>
+            <CatalogField catalog="marcas" onCreated={entry => setMarca(entry.id)}><select required value={marca} onChange={(e) => setMarca(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
-              {MARCAS.map((m) => <option key={m.idMarca} value={m.idMarca}>{m.nombre}</option>)}
-            </select>
+              {MARCAS.filter(item => item.active || item.idMarca === material?.idMarca).map((m) => <option key={m.idMarca} value={m.idMarca}>{m.nombre}</option>)}
+            </select></CatalogField>
           </label>
           <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
-            <select required value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
+            <CatalogField catalog="unidades" onCreated={entry => setUnidad(entry.id)}><select required value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
-              {UNIDADES.map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
-            </select>
+              {UNIDADES.filter(item => item.active || item.idUnidad === material?.idUnidad).map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
+            </select></CatalogField>
           </label>
           <label className={labelClass}>Stock <span className="text-rose-600">*</span>
             <input type="number" min="0" step="1" required value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
@@ -84,6 +86,7 @@ function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrim
 }
 
 function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPrima; onClose: () => void; onEdit: () => void }) {
+  const { getTipoMateriaPrima, getMarca, formatCantidad } = useProductionCatalogs();
   const recetas = RECETAS.flatMap((r) => {
     const uso = r.materiasPrimas.find((d) => d.idMateriaPrima === material.idMateriaPrima);
     return uso ? [{ receta: r, cantidad: uso.cantidadNecesaria }] : [];
@@ -142,6 +145,7 @@ function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPr
 }
 
 export default function MateriasPrimas() {
+  const { TIPOS_MATERIA_PRIMA, MARCAS, getTipoMateriaPrima, getMarca, formatCantidad } = useProductionCatalogs();
   const [materials, setMaterials] = useState(() => [...MATERIAS_PRIMAS_PRODUCCION]);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("Todos");

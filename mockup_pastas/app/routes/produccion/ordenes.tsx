@@ -1,3 +1,4 @@
+import { useProductionCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -7,7 +8,7 @@ import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import { SAMPLE_MACHINES } from "~/data/maintenance";
 import {
   ESTADOS_ORDEN_PRODUCCION, ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION,
-  codigo, formatCantidad, getProducto, getReceta, getUnidad, siguienteId,
+  codigo, getProducto, getReceta, siguienteId,
   type DetalleOrdenProduccion, type EstadoOrdenProduccion, type OrdenProduccion,
 } from "~/data/produccion";
 import { AnimatedBadge, Collapse, EASE_OUT, HoldToConfirm, rowMotion, toast } from "~/components/motion";
@@ -118,6 +119,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
   onEdit: () => void;
   onTransition: (next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string) => string | void;
 }) {
+  const { getUnidad, formatCantidad } = useProductionCatalogs();
   const [cantidades, setCantidades] = useState<Record<number, string>>(() => Object.fromEntries(order.detalle.map((d) => [d.idProducto, d.cantidadRealGenerada == null ? "" : String(d.cantidadRealGenerada)])));
   const [fechaFin, setFechaFin] = useState(today());
   const [error, setError] = useState("");
@@ -235,6 +237,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
 }
 
 export default function OrdenesProduccion() {
+  const { formatCantidad } = useProductionCatalogs();
   const [orders, setOrders] = useState(() => [...ORDENES_PRODUCCION]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");

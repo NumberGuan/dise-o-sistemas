@@ -10,6 +10,7 @@ export default [
   ]),
   
   route("", "routes/protected.tsx", [
+    route("catalogos/:catalogo/crear", "routes/catalogos-crear.tsx"),
     layout("components/Layout.tsx", [
       index("routes/home.tsx"),
 
@@ -57,6 +58,7 @@ export default [
 
       route("administracion", "routes/administracion.tsx", [
         route("empleados", "routes/administracion/empleados.tsx"),
+        route("catalogos/:catalogo", "routes/administracion/catalogos.tsx"),
       ]),
 
       route("mantenimiento", "routes/mantenimiento.tsx", [

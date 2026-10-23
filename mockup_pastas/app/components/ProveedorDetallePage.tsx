@@ -1,3 +1,4 @@
+import { useCatalogs } from "~/components/CatalogProvider";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
@@ -5,7 +6,6 @@ import {
   getDomicilioPorId,
   getNombreCompletoProveedor,
   getProveedorPorId,
-  getTipoDocumentoPorId,
 } from "~/data/proveedores";
 
 const formatDocumento = (nro: number) =>
@@ -18,6 +18,9 @@ export default function ProveedorDetallePage({
   proveedorId: string;
   onClose?: () => void;
 }) {
+  const catalogs = useCatalogs();
+  const TIPOS_DOCUMENTO = catalogs["tipos-documento"].map(item => ({ id: Number(item.id), nombre: item.name, active: item.active }));
+  const getTipoDocumentoPorId = (id: number) => TIPOS_DOCUMENTO.find(item => item.id === id);
   const navigate = useNavigate();
   const irVolver = () =>
     onClose ? onClose() : navigate("/compras/proveedores");

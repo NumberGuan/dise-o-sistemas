@@ -1,4 +1,4 @@
-import { validateTabulatedAddress } from "./domicilios";
+import { validateTabulatedAddress, type AddressCatalog } from "./domicilios";
 import { createStore, useStore } from "./store";
 
 export type TipoDocumento = {
@@ -169,8 +169,9 @@ export const getProximoIdPersona = () => {
 export const createProveedor = (
   proveedor: ProveedorInput,
   domicilio: DomicilioInput,
+  catalog?: AddressCatalog,
 ): Proveedor => {
-  validateDomicilio(domicilio);
+  validateDomicilio(domicilio, catalog);
   const current = store.get();
   const idPersona = getProximoIdPersona();
   const idDomicilio = current.domicilios.length
@@ -188,6 +189,7 @@ export const updateProveedor = (
   idPersona: number,
   proveedor: ProveedorInput,
   domicilio: DomicilioInput,
+  catalog?: AddressCatalog,
 ): boolean => {
   const current = store.get();
   const existente = current.proveedores.find(
@@ -196,7 +198,7 @@ export const updateProveedor = (
   if (!existente) {
     return false;
   }
-  validateDomicilio(domicilio);
+  validateDomicilio(domicilio, catalog, current.domicilios.find(item => item.id === existente.idDomicilio));
   const actualizado: Proveedor = {
     ...proveedor,
     idPersona,
@@ -231,6 +233,6 @@ export const deleteProveedor = (idPersona: number): boolean => {
   });
   return true;
 };
-function validateDomicilio(domicilio: DomicilioInput) {
-  validateTabulatedAddress({ province: domicilio.provincia, locality: domicilio.localidad, street: domicilio.calle, streetNumber: domicilio.altura, floor: domicilio.piso ?? "", apartment: domicilio.departamento ?? "" });
+function validateDomicilio(domicilio: DomicilioInput, catalog?: AddressCatalog, previous?: Domicilio) {
+  validateTabulatedAddress({ province: domicilio.provincia, locality: domicilio.localidad, street: domicilio.calle, streetNumber: domicilio.altura, floor: domicilio.piso ?? "", apartment: domicilio.departamento ?? "" }, previous ? { province: previous.provincia, locality: previous.localidad, street: previous.calle, streetNumber: previous.altura, floor: previous.piso ?? "", apartment: previous.departamento ?? "" } : undefined, catalog);
 }

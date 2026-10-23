@@ -1,3 +1,7 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { getCatalogs } from "~/data/catalogs.server";
+import { validCatalogValue, catalogAddressData } from "~/data/catalogs";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
 import { getClientMonthlyAccount } from "~/data/billing";
 import { useState } from "react";
@@ -6,7 +10,7 @@ import { customerAsClient } from "~/data/customer.server";
 import { getSalesData, preserveOrderAddresses } from "~/data/sales.server";
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 
-import { CLIENT_DOCUMENT_TYPES, CLIENT_IVA_TYPES, getClientAddresses, validateClientAddresses } from "~/data/sales";
+import { getClientAddresses, validateClientAddresses } from "~/data/sales";
 import { mutateUser } from "~/utils/db.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/cliente-perfil";
@@ -39,18 +43,19 @@ export const action = async ({ request }: Route.ActionArgs) => {
   if (fields.some((field) => value(field).length > 180)) return { error: "Uno de los datos supera el máximo permitido." };
   const documentType = value("documentType");
   const ivaType = value("ivaType");
-  if (!(CLIENT_DOCUMENT_TYPES as readonly string[]).includes(documentType) || !(CLIENT_IVA_TYPES as readonly string[]).includes(ivaType) && ivaType !== "") {
+  const catalogs = await getCatalogs();
+  if (!validCatalogValue(catalogs, "tipos-documento", documentType, user.customerData?.documentType ?? "DNI") || ivaType !== "" && !validCatalogValue(catalogs, "tipos-iva", ivaType, user.customerData?.ivaType)) {
     return { error: "Seleccioná un tipo de documento y condición IVA válidos." };
   }
   try {
-    const addresses = validateClientAddresses(JSON.parse(String(data.get("addresses") ?? "[]")), getClientAddresses(customerAsClient(user)!));
+    const addresses = validateClientAddresses(JSON.parse(String(data.get("addresses") ?? "[]")), getClientAddresses(customerAsClient(user)!), catalogAddressData(catalogs));
     const primary = addresses[0];
     await mutateUser(user.id, (current) => {
       current.customerOrders = preserveOrderAddresses(current.customerOrders ?? [], customerAsClient(current)!);
       current.name = name;
       current.phone = value("phone");
       current.address = primary ? [primary.street, primary.streetNumber].join(" ") : "";
-      current.customerData = { addresses, street: primary?.street ?? "", streetNumber: primary?.streetNumber ?? "", balance: current.customerData?.balance, type: current.customerData?.type ?? "Particular", documentType: documentType as typeof CLIENT_DOCUMENT_TYPES[number], cuitCuil: value("cuitCuil"), ivaType: ivaType as typeof CLIENT_IVA_TYPES[number] | "", floor: primary?.floor ?? "", apartment: primary?.apartment ?? "", locality: primary?.locality ?? "", province: primary?.province ?? "", notes: value("notes") };
+      current.customerData = { addresses, street: primary?.street ?? "", streetNumber: primary?.streetNumber ?? "", balance: current.customerData?.balance, type: current.customerData?.type ?? "Particular", documentType, cuitCuil: value("cuitCuil"), ivaType, floor: primary?.floor ?? "", apartment: primary?.apartment ?? "", locality: primary?.locality ?? "", province: primary?.province ?? "", notes: value("notes") };
     });
     return { success: true };
   } catch (error) {
@@ -61,6 +66,8 @@ export const action = async ({ request }: Route.ActionArgs) => {
 export default function ClientePerfil() {
   const { profile, account } = useLoaderData<typeof loader>();
   const [addresses, setAddresses] = useState(profile.addresses);
+  const [documentType, setDocumentType] = useState(profile.documentType);
+  const [ivaType, setIvaType] = useState(profile.ivaType);
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSaving = navigation.state === "submitting";
@@ -76,9 +83,9 @@ export default function ClientePerfil() {
       <div className="grid gap-4 sm:grid-cols-2">
         <div className={labelClass}><span>Categoría de cliente</span><p className={`${inputClass} flex items-center bg-gray-50 text-gray-700`} aria-readonly="true">{profile.type}</p><span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar esta categoría.</span></div>
         <label className={labelClass}>Nombre o razón social<input name="name" required minLength={2} maxLength={100} defaultValue={profile.name} className={inputClass} /></label>
-        <label className={labelClass}>Tipo de documento<select name="documentType" defaultValue={profile.documentType} className={inputClass}>{CLIENT_DOCUMENT_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
+        <label className={labelClass}>Tipo de documento<CatalogField catalog="tipos-documento" onCreated={entry => setDocumentType(entry.value)} disabled={isSaving}><select name="documentType" value={documentType} onChange={event => setDocumentType(event.target.value)} className={inputClass}><CatalogOptions catalog="tipos-documento" retained={profile.documentType} /></select></CatalogField></label>
         <label className={labelClass}>CUIT/CUIL<input name="cuitCuil" maxLength={30} defaultValue={profile.cuitCuil} className={inputClass} /></label>
-        <label className={labelClass}>Tipo IVA<select name="ivaType" defaultValue={profile.ivaType} className={inputClass}><option value="">Seleccionar</option>{CLIENT_IVA_TYPES.map((type) => <option key={type}>{type}</option>)}</select></label>
+        <label className={labelClass}>Tipo IVA<CatalogField catalog="tipos-iva" onCreated={entry => setIvaType(entry.value)} disabled={isSaving}><select name="ivaType" value={ivaType} onChange={event => setIvaType(event.target.value)} className={inputClass}><option value="">Seleccionar</option><CatalogOptions catalog="tipos-iva" retained={profile.ivaType} /></select></CatalogField></label>
         <label className={labelClass}>Correo electrónico<input type="email" value={profile.email} readOnly aria-readonly="true" className={`${inputClass} bg-gray-50 text-gray-600`} /><span className="mt-1 block text-xs font-normal text-gray-500">El correo identifica tu cuenta y no se puede modificar desde el perfil.</span></label>
         <label className={labelClass}>Teléfono<input name="phone" type="tel" maxLength={40} defaultValue={profile.phone} className={inputClass} /></label>
         <label className={`${labelClass} sm:col-span-2`}>Observaciones<textarea name="notes" rows={3} maxLength={180} defaultValue={profile.notes} className={inputClass} /></label>

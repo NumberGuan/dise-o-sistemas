@@ -1,5 +1,5 @@
 import type { AddressFields } from "./domicilios";
-﻿export type EmployeeRole = "Vendedor" | "Administrador" | "Repartidor";
+﻿export type EmployeeRole = string;
 
 export type EmployeeStatus = "Activo" | "Inactivo";
 

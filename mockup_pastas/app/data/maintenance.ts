@@ -1,5 +1,5 @@
 export type MachineStatus = "Activa" | "En mantenimiento" | "Fuera de servicio" | "Inactiva";
-export type MaintenanceType = "Preventivo" | "Correctivo";
+export type MaintenanceType = string;
 export type MaintenanceStatus = "Programado" | "En curso" | "Finalizado" | "Cancelado";
 
 export type Machine = {

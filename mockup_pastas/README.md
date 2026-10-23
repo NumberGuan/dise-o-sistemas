@@ -111,3 +111,31 @@ This template comes with [Tailwind CSS](https://tailwindcss.com/) already config
 ---
 
 Built with ❤️ using React Router.
+## Administración y catálogos
+
+Ingresá como Administrador y abrí **Administración → Gestión del sistema** (`/administracion`). El buscador permite encontrar catálogos y accesos a las pantallas de gestión de todos los módulos.
+
+Los 14 catálogos disponibles son: tipos de cliente, modalidades de entrega, métodos de pago, tipos de IVA, tipos de documento, cargos, provincias, localidades, calles, unidades de medida, tipos de producto, tipos de materia prima, marcas y tipos de mantenimiento. Cada uno tiene listado, búsqueda, filtros, consulta, alta y edición con estado activo/inactivo. Las rutas de lectura y escritura verifican el rol Administrador en el servidor.
+
+Los cambios se guardan en `data/catalogs.json`, creado al guardar el primer cambio. Antes de eso se usan las opciones iniciales de la maqueta. Los formularios de clientes y perfiles, pedidos, recibos y señas, proveedores, empleados, producción y mantenimiento consumen los catálogos compartidos. Las marcas de este catálogo corresponden a materias primas de Producción; Compras conserva sus cotizaciones y precios por combinación de insumo y proveedor.
+
+La baja es lógica: un registro inactivo deja de ofrecerse para nuevas selecciones y se conserva en los registros que ya lo usan. El nombre visible puede editarse; los identificadores y valores de referencia se mantienen para preservar las operaciones existentes. En domicilios, las nuevas selecciones usan el nombre vigente y las direcciones anteriores conservan el texto guardado. Provincias, localidades y calles respetan sus relaciones; para desactivar un registro superior primero deben desactivarse sus dependientes. Debe quedar al menos una opción activa en cada catálogo.
+
+Una modalidad de entrega define si requiere dirección (envío) o permite retiro. Ese comportamiento y la ubicación superior de un registro existente no se pueden cambiar: se crea otro registro cuando cambia esa relación. Los tipos de IVA son condiciones de las personas; no configuran las alícuotas de facturación. Los cargos son funciones laborales y no otorgan permisos de acceso. Los estados de los circuitos de pedidos, facturación y producción conservan sus transiciones específicas.
+
+Las entidades operativas mantienen sus pantallas de gestión, accesibles desde el centro de Administración. Domicilios, teléfonos y detalles de documentos se editan dentro de su registro principal. Los módulos que ya funcionaban con datos de muestra durante la sesión conservan ese alcance; la persistencia nueva corresponde a los catálogos.
+
+El almacenamiento de catálogos usa una cola de escrituras y reemplazo de archivo atómico dentro de una instancia. Como el resto de los archivos JSON de esta maqueta, requiere almacenamiento persistente en el servidor y una base de datos transaccional para varias instancias.
+
+Para verificar Administración:
+
+```bash
+npm run test:administracion
+npm run typecheck
+npm run build
+```
+
+Las pruebas usan una carpeta temporal y verifican altas concurrentes, duplicados, persistencia, permisos, baja lógica, referencias existentes, integración con clientes/pedidos/recibos y relaciones de domicilio.
+
+
+El botón **+** de cada catálogo en Gestión del sistema y de sus campos en los formularios abre un modal de alta, disponible para el administrador. Al guardar, la opción queda activa y seleccionada automáticamente en el formulario de origen, conservando los datos que se estaban cargando. El modal muestra los errores de validación y la confirmación de guardado en la misma ventana; solo se cierra con la cruz superior. Hacer clic afuera o presionar Escape no lo cierra. En localidades y calles se propone la ubicación seleccionada en el formulario y se valida la relación antes de guardar.

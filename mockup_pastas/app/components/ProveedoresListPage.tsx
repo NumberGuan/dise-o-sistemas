@@ -1,9 +1,9 @@
+import { useCatalogs } from "~/components/CatalogProvider";
 import { useNavigate } from "react-router";
 
 import {
   deleteProveedor,
   getDomicilioPorId,
-  getTipoDocumentoPorId,
   useProveedores,
 } from "~/data/proveedores";
 
@@ -11,6 +11,9 @@ const formatDocumento = (nro: number) =>
   nro.toLocaleString("es-AR", { useGrouping: true });
 
 export default function ProveedoresListPage() {
+  const catalogs = useCatalogs();
+  const TIPOS_DOCUMENTO = catalogs["tipos-documento"].map(item => ({ id: Number(item.id), nombre: item.name, active: item.active }));
+  const getTipoDocumentoPorId = (id: number) => TIPOS_DOCUMENTO.find(item => item.id === id);
   const navigate = useNavigate();
 
   const proveedores = useProveedores();

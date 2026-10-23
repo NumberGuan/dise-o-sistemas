@@ -1,11 +1,12 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { useProductionCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
 import {
-  ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS, TIPOS_PRODUCTO, UNIDADES,
-  codigo, formatCantidad, formatCurrency, getReceta, getTipoProducto, siguienteId, type Producto,
+  ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS, codigo, formatCurrency, getReceta, siguienteId, type Producto,
 } from "~/data/produccion";
 import { rowMotion, toast } from "~/components/motion";
 
@@ -22,6 +23,7 @@ function vencimientoBadge(fecha: string) {
 }
 
 function ProductForm({ product, onCancel, onSave }: { product: Producto | null; onCancel: () => void; onSave: (p: Producto) => void }) {
+  const { UNIDADES, TIPOS_PRODUCTO } = useProductionCatalogs();
   const [id] = useState(product?.idProducto ?? siguienteId(PRODUCTOS_PRODUCCION.map((p) => p.idProducto)));
   const [nombre, setNombre] = useState(product?.nombre ?? "");
   const [tipo, setTipo] = useState(String(product?.idTipoProducto ?? ""));
@@ -60,10 +62,10 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
             <input autoFocus required value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Tipo de producto <span className="text-rose-600">*</span>
-            <select required value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
+            <CatalogField catalog="tipos-producto" onCreated={entry => setTipo(entry.id)}><select required value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
-              {TIPOS_PRODUCTO.map((t) => <option key={t.idTipoProducto} value={t.idTipoProducto}>{t.tipo}</option>)}
-            </select>
+              {TIPOS_PRODUCTO.filter(item => item.active || item.idTipoProducto === product?.idTipoProducto).map((t) => <option key={t.idTipoProducto} value={t.idTipoProducto}>{t.tipo}</option>)}
+            </select></CatalogField>
           </label>
           <label className={labelClass}>Receta <span className="text-rose-600">*</span>
             <select required value={receta} onChange={(e) => setReceta(e.target.value)} className={field}>
@@ -72,10 +74,10 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
             </select>
           </label>
           <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
-            <select required value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
+            <CatalogField catalog="unidades" onCreated={entry => setUnidad(entry.id)}><select required value={unidad} onChange={(e) => setUnidad(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
-              {UNIDADES.map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
-            </select>
+              {UNIDADES.filter(item => item.active || item.idUnidad === product?.idUnidad).map((u) => <option key={u.idUnidad} value={u.idUnidad}>{u.unidad}</option>)}
+            </select></CatalogField>
           </label>
           <label className={labelClass}>Precio (ARS) <span className="text-rose-600">*</span>
             <input type="number" min="0.01" step="0.01" required value={precio} onChange={(e) => setPrecio(e.target.value)} className={field} />
@@ -97,6 +99,7 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
 }
 
 function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClose: () => void; onEdit: () => void }) {
+  const { getTipoProducto, formatCantidad } = useProductionCatalogs();
   const receta = getReceta(product.idReceta);
   const ordenes = ORDENES_PRODUCCION
     .filter((o) => o.detalle.some((d) => d.idProducto === product.idProducto))
@@ -165,6 +168,7 @@ function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClo
 }
 
 export default function Productos() {
+  const { TIPOS_PRODUCTO, getTipoProducto, formatCantidad } = useProductionCatalogs();
   const [products, setProducts] = useState(() => [...PRODUCTOS_PRODUCCION]);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("Todos");

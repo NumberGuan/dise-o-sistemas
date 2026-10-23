@@ -1,3 +1,6 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { catalogAddressData } from "~/data/catalogs";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import AddressFields from "~/components/AddressFields";
 import { EMPTY_ADDRESS, validateTabulatedAddress } from "~/data/domicilios";
 import { formatClientAddress } from "~/data/sales";
@@ -6,7 +9,6 @@ import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useMemo, useState, type FormEvent, useEffect } from "react";
 
 import {
-  EMPLOYEE_ROLES,
   EMPLOYEE_STATUSES,
   SAMPLE_EMPLOYEES,
   type Employee,
@@ -70,6 +72,7 @@ type EmployeeFormProps = {
 };
 
 function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormProps) {
+  const catalogs = useCatalogs();
   const isNew = employee === null;
   const [code] = useState(() => employee?.code ?? nextEmployeeCode(employees));
   const [name, setName] = useState(employee?.name ?? "");
@@ -128,7 +131,7 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
       return;
     }
 
-    try { validateTabulatedAddress(address); }
+    try { validateTabulatedAddress(address, employee?.address, catalogAddressData(catalogs)); }
     catch (error) { setError((error as Error).message); return; }
 
     onSave({
@@ -175,10 +178,10 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
           </div>
           <div>
             <label htmlFor="employee-role" className={labelClass}>Cargo <span className="text-rose-600">*</span></label>
-            <select required id="employee-role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole | "")} className={inputClassName}>
+            <CatalogField catalog="cargos" onCreated={entry => setRole(entry.value)} ><select required id="employee-role" value={role} onChange={(event) => setRole(event.target.value as EmployeeRole | "")} className={inputClassName}>
               <option value="">Seleccionar cargo...</option>
-              {EMPLOYEE_ROLES.map((employeeRole) => <option key={employeeRole} value={employeeRole}>{employeeRole}</option>)}
-            </select>
+              <CatalogOptions catalog="cargos" retained={employee?.role} />
+            </select></CatalogField>
           </div>
           <div>
             <label htmlFor="employee-hire-date" className={labelClass}>Fecha de ingreso <span className="text-rose-600">*</span></label>
@@ -199,7 +202,7 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
             </select>
           </div>
         </div>
-        <section className="space-y-3"><h2 className="font-semibold text-gray-900">Domicilio</h2><AddressFields value={address} onChange={setAddress} /></section>
+        <section className="space-y-3"><h2 className="font-semibold text-gray-900">Domicilio</h2><AddressFields value={address} previous={employee?.address} onChange={setAddress} /></section>
         <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
           <button type="submit" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">{isNew ? "Guardar empleado" : "Guardar cambios"}</button>
@@ -370,7 +373,7 @@ export default function Empleados() {
               <label htmlFor="employee-role-filter" className="sr-only">Filtrar por cargo</label>
               <select id="employee-role-filter" value={roleFilter} onChange={(event) => setRoleFilter(event.target.value as EmployeeRole | "Todos los cargos")} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100">
                 <option>Todos los cargos</option>
-                {EMPLOYEE_ROLES.map((role) => <option key={role} value={role}>{role}</option>)}
+                <CatalogOptions catalog="cargos" />
               </select>
             </div>
             <div>

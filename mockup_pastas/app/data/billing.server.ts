@@ -1,9 +1,11 @@
+import { getCatalogs } from "./catalogs.server";
+import { validCatalogValue } from "./catalogs";
 import crypto from "node:crypto";
 import { mutateSalesData } from "~/data/sales.server";
 import { customerAsClient } from "~/data/customer.server";
 import { getUsers } from "~/utils/db.server";
 import { invoiceAmounts, getClientMonthlyAccount, money } from "~/data/billing";
-import { getInvoicePaymentSummary, COUNTER_CLIENT, INVOICE_STATUSES, INVOICE_TYPES, RECEIPT_STATUSES, PAYMENT_METHODS, type Client, type Invoice, type Receipt } from "~/data/sales";
+import { getInvoicePaymentSummary, COUNTER_CLIENT, INVOICE_STATUSES, INVOICE_TYPES, RECEIPT_STATUSES, type Client, type Invoice, type Receipt } from "~/data/sales";
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Los datos enviados no son válidos.");
@@ -67,6 +69,7 @@ export async function saveSalesInvoice(input: unknown, id?: string) {
 }
 
 export async function saveSalesReceipt(input: unknown, id?: string) {
+  const catalogs = await getCatalogs();
   return mutateSalesData(async data => {
     const row = record(input);
     const previous = id ? data.receipts.find(receipt => receipt.id === id) : undefined;
@@ -98,7 +101,10 @@ export async function saveSalesReceipt(input: unknown, id?: string) {
       const payment = record(raw);
       const paid = amount(payment.amount);
       if (paid <= 0) throw new Error("Cada pago debe ser positivo.");
-      return { id: crypto.randomUUID(), method: choice(payment.method, PAYMENT_METHODS), amount: paid, reference: string(payment.reference ?? "", 200) };
+      const method = payment.method;
+      const retained = previous?.payments.some(item => item.method === method);
+      if (!validCatalogValue(catalogs, "medios-pago", method, retained && typeof method === "string" ? method : undefined)) throw new Error("Seleccioná un método de pago activo.");
+      return { id: crypto.randomUUID(), method, amount: paid, reference: string(payment.reference ?? "", 200) };
     });
     const total = amount(money(payments.reduce((sum, payment) => sum + payment.amount, 0)));
     const applied = money(invoices.reduce((sum, detail) => sum + detail.amountApplied, 0));

@@ -1,3 +1,8 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { useState } from "react";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
+import { getCatalogs } from "~/data/catalogs.server";
+import { catalogDefaultValue, deliveryNeedsAddress, validCatalogValue } from "~/data/catalogs";
 import CustomerCartLine from "~/components/CustomerCartLine";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { randomUUID } from "node:crypto";
@@ -46,13 +51,17 @@ export const action = async ({ request }: Route.ActionArgs) => {
     let checkoutError: string | null = null;
     let created = false;
     try {
+      const catalogs = await getCatalogs();
+      const fulfillment = formData.get("fulfillment") ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío");
+      if (!validCatalogValue(catalogs, "modalidades-entrega", fulfillment)) return { error: "Seleccioná una modalidad de entrega activa." };
+      const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
       await mutateUser(user.id, (current, users) => {
         if ((current.customerStatus ?? "Activo") !== "Activo") {
           checkoutError = "Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.";
           return;
         }
         const selectedAddress = getClientAddresses(customerAsClient(current)!).find(address => address.id === formData.get("deliveryAddressId") && address.street.trim() && address.locality.trim());
-        if (!selectedAddress) {
+        if (needsAddress && !selectedAddress) {
           checkoutError = "Seleccioná una dirección guardada. Podés agregar direcciones desde Mi perfil.";
           return;
         }
@@ -92,7 +101,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
           number = `PC-WEB-${String(sequence).padStart(6, "0")}`;
           id = `web-order-${String(sequence).padStart(6, "0")}`;
         }
-        const order = { id, number, kind: "Regular" as const, fulfillment: "Envío" as const, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, deliveryAddressId: selectedAddress.id, deliveryAddress: formatClientAddress(selectedAddress), items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
+        const order = { id, number, kind: "Regular" as const, fulfillment, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, deliveryAddressId: needsAddress ? selectedAddress!.id : undefined, deliveryAddress: needsAddress ? formatClientAddress(selectedAddress!) : fulfillment, items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
         current.customerOrders = [...(current.customerOrders ?? []), order];
         current.cart = [];
         created = true;
@@ -111,6 +120,10 @@ export const action = async ({ request }: Route.ActionArgs) => {
   if (intent === "remove-item") {
     let removed = false;
     try {
+      const catalogs = await getCatalogs();
+      const fulfillment = formData.get("fulfillment") ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío");
+      if (!validCatalogValue(catalogs, "modalidades-entrega", fulfillment)) return { error: "Seleccioná una modalidad de entrega activa." };
+      const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
       await mutateUser(user.id, (current) => {
         const cart = current.cart ?? [];
         if (!cart.some((item) => item.productId === productId)) return;
@@ -162,6 +175,9 @@ export const action = async ({ request }: Route.ActionArgs) => {
 export default function ClienteCarrito() {
   const { cart, total, totalItems, isActive, hasDeliveryAddress, addresses } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<CustomerMutationResult>();
+  const catalogs = useCatalogs();
+  const [fulfillment, setFulfillment] = useState(catalogDefaultValue(catalogs, "modalidades-entrega", "Envío"));
+  const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
@@ -195,15 +211,16 @@ export default function ClienteCarrito() {
       )}
 
       {cart.length > 0 && <fetcher.Form noValidate method="post" className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
-        <label className="mb-4 block text-sm font-semibold text-gray-800">Dirección de entrega<select name="deliveryAddressId" required defaultValue={addresses[0]?.id ?? ""} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm">{!addresses.length && <option value="">Agregá una dirección en Mi perfil</option>}{addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}</select></label>
+        <label className="mb-4 block text-sm font-semibold text-gray-800">Modalidad de entrega<CatalogField catalog="modalidades-entrega" onCreated={entry => setFulfillment(entry.value)} disabled={fetcher.state !== "idle"}><select name="fulfillment" value={fulfillment} onChange={event => setFulfillment(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm"><CatalogOptions catalog="modalidades-entrega" /></select></CatalogField></label>
+        {needsAddress && <label className="mb-4 block text-sm font-semibold text-gray-800">Dirección de entrega<select name="deliveryAddressId" required defaultValue={addresses[0]?.id ?? ""} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm">{!addresses.length && <option value="">Agregá una dirección en Mi perfil</option>}{addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}</select></label>}
         <h2 className="text-lg font-semibold text-gray-900">Datos para el pedido</h2>
         <p className="mt-1 text-sm text-gray-600">Se usarán los datos guardados en <Link to="/compras/perfil" className="font-medium text-amber-800 underline">Mi perfil</Link>, iguales a los que consulta Ventas.</p>
         {!isActive && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.</p>}
-        {isActive && !hasDeliveryAddress && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Completá el domicilio y la localidad en Mi perfil para continuar.</p>}
+        {isActive && needsAddress && !hasDeliveryAddress && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Completá el domicilio y la localidad en Mi perfil para continuar.</p>}
         <label htmlFor="order-observations" className="mt-4 block text-sm font-medium text-gray-700">Observaciones de entrega</label>
         <textarea id="order-observations" name="observations" rows={2} maxLength={500} className="mt-1 w-full rounded-xl border border-[#e5d9cb] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-amber-700" placeholder="Indicaciones para recibir el pedido" />
         {fetcher.state === "idle" && fetcher.data?.error && <p role="alert" className="mt-3 text-sm text-red-700">{fetcher.data.error} {fetcher.data.error.includes("Mi perfil") && <Link to="/compras/perfil" className="font-semibold underline">Completar perfil</Link>}</p>}
-        <div className="mt-4 flex flex-col gap-3 border-t border-[#f0e7dd] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button name="intent" value="checkout" type="submit" disabled={fetcher.state !== "idle" || total === null || !isActive || !hasDeliveryAddress} className="min-h-11 shrink-0 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
+        <div className="mt-4 flex flex-col gap-3 border-t border-[#f0e7dd] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button name="intent" value="checkout" type="submit" disabled={fetcher.state !== "idle" || total === null || !isActive || (needsAddress && !hasDeliveryAddress)} className="min-h-11 shrink-0 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
       </fetcher.Form>}
       {fetcher.state === "idle" && fetcher.data?.success && fetcher.data.intent === "checkout" && <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Pedido confirmado. Ya podés consultarlo en Mis pedidos.</p>}
 

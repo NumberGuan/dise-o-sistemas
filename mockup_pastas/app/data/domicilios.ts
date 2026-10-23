@@ -95,21 +95,28 @@ export const EMPTY_ADDRESS: AddressFields = {
   province: "", locality: "", street: "", streetNumber: "", floor: "", apartment: "",
 };
 
-export function addressOptions(province: string, locality: string) {
-  const provincia = PROVINCIAS.find(item => item.nombre === province);
-  const localidades = LOCALIDADES.filter(item => item.provinciaId === provincia?.id);
+export type AddressCatalog = {
+  provincias: readonly { id: string; nombre: string }[];
+  localidades: readonly { id: string; nombre: string; provinciaId?: string }[];
+  calles: readonly { id: string; nombre: string; localidadId?: string }[];
+};
+const defaultAddressCatalog: AddressCatalog = { provincias: PROVINCIAS, localidades: LOCALIDADES, calles: CALLES };
+
+export function addressOptions(province: string, locality: string, catalog = defaultAddressCatalog) {
+  const provincia = catalog.provincias.find(item => item.nombre === province);
+  const localidades = catalog.localidades.filter(item => item.provinciaId === provincia?.id);
   const selected = localidades.find(item => item.nombre === locality);
-  return { localidades, calles: CALLES.filter(item => item.localidadId === selected?.id) };
+  return { localidades, calles: catalog.calles.filter(item => item.localidadId === selected?.id) };
 }
 
-export function isTabulatedAddress(address: Pick<AddressFields, "province" | "locality" | "street">) {
-  return addressOptions(address.province, address.locality).calles.some(item => item.nombre === address.street);
+export function isTabulatedAddress(address: Pick<AddressFields, "province" | "locality" | "street">, catalog = defaultAddressCatalog) {
+  return addressOptions(address.province, address.locality, catalog).calles.some(item => item.nombre === address.street);
 }
 
-export function validateTabulatedAddress(address: AddressFields, previous?: AddressFields) {
+export function validateTabulatedAddress(address: AddressFields, previous?: AddressFields, catalog = defaultAddressCatalog) {
   const retained = previous && address.province === previous.province
     && address.locality === previous.locality && address.street === previous.street;
-  if ((!isTabulatedAddress(address) && !retained) || !address.province || !address.locality || !address.street || !address.streetNumber.trim()) {
+  if ((!isTabulatedAddress(address, catalog) && !retained) || !address.province || !address.locality || !address.street || !address.streetNumber.trim()) {
     throw new Error("Seleccioná provincia, localidad y calle del catálogo y completá la altura o kilómetro.");
   }
 }

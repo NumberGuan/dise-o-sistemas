@@ -1,5 +1,8 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, redirect, useFetcher, useLoaderData, useRevalidator, useSearchParams } from "react-router";
+import { deliveryNeedsAddress, catalogOptions, catalogDefaultValue } from "~/data/catalogs";
 import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
@@ -11,7 +14,6 @@ import {
   ORDER_STATUSES, 
   ORDER_KINDS,
   COUNTER_CLIENT,
-  PAYMENT_METHODS,
   type OrderKind,
   type PaymentMethod,
   type Client, 
@@ -78,14 +80,15 @@ type OrderFormProps = {
 };
 
 function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps) {
+  const catalogs = useCatalogs();
   const isNew = !order;
   const { receipts } = useLoaderData<typeof loader>();
   const [kind, setKind] = useState<OrderKind>(order?.kind ?? "Regular");
-  const [fulfillment, setFulfillment] = useState<"Retiro en local" | "Envío">(order?.fulfillment ?? "Envío");
+  const [fulfillment, setFulfillment] = useState(order?.fulfillment ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío"));
   const [deliveryTime, setDeliveryTime] = useState(order?.deliveryTime ?? "");
   const existingDeposit = order ? receipts.find(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado") : undefined;
   const [depositAmount, setDepositAmount] = useState<number | "">(existingDeposit?.total ?? "");
-  const [depositMethod, setDepositMethod] = useState<PaymentMethod>("Efectivo");
+  const [depositMethod, setDepositMethod] = useState<PaymentMethod>(catalogOptions(catalogs, "medios-pago")[0]?.value ?? "");
   const [depositReference, setDepositReference] = useState("");
   const [productSearch, setProductSearch] = useState("");
   const [clientId, setClientId] = useState(order?.clientId === COUNTER_CLIENT.id ? "" : order?.clientId || "");
@@ -151,7 +154,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
       setErrorMsg("Debe seleccionar un empleado responsable del pedido.");
       return;
     }
-    if (fulfillment === "Envío" && deliveryAddressType === "custom" && !customDeliveryAddress.trim()) {
+    if (deliveryNeedsAddress(catalogs, fulfillment) && deliveryAddressType === "custom" && !customDeliveryAddress.trim()) {
       setErrorMsg("Debe ingresar la dirección alternativa de entrega.");
       return;
     }
@@ -281,10 +284,10 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
 
                 {kind === "Evento" && <label className="block text-sm font-medium text-gray-700">Hora de retiro o envío *<input type="time" required value={deliveryTime} onChange={event => setDeliveryTime(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" /></label>}
                 <label className="block text-sm font-medium text-gray-700">Modalidad de entrega
-                  <select value={fulfillment} onChange={event => setFulfillment(event.target.value as typeof fulfillment)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3"><option>Retiro en local</option><option>Envío</option></select>
+                  <CatalogField catalog="modalidades-entrega" onCreated={entry => setFulfillment(entry.value)} disabled={pending}><select value={fulfillment} onChange={event => setFulfillment(event.target.value as typeof fulfillment)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3"><CatalogOptions catalog="modalidades-entrega" retained={order?.fulfillment} /></select></CatalogField>
                 </label>
 
-                {fulfillment === "Envío" && <div className="mt-4">
+                {deliveryNeedsAddress(catalogs, fulfillment) && <div className="mt-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">Dirección de entrega</label>
                   <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-4">
                     <label className="block text-sm font-medium text-gray-700">Dirección guardada
@@ -409,7 +412,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
               <p className="text-sm">Total final con IVA y descuentos: {currency(finalAmounts.total)}. Seña mínima (50%): {currency(minimumDeposit)}.</p>
               {existingDeposit ? <p className="text-sm font-semibold">Seña registrada: {currency(existingDeposit.total)} · {existingDeposit.number}</p> : <>
                 <label className="block text-sm">Seña a cobrar *<input type="number" required min={minimumDeposit} max={finalAmounts.total} step="0.01" value={depositAmount === "" ? minimumDeposit : depositAmount} onChange={event => setDepositAmount(event.target.value === "" ? "" : Number(event.target.value))} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" /></label>
-                <label className="block text-sm">Medio de pago de la seña<select value={depositMethod} onChange={event => setDepositMethod(event.target.value as PaymentMethod)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3">{PAYMENT_METHODS.map(method => <option key={method}>{method}</option>)}</select></label>
+                <label className="block text-sm">Medio de pago de la seña<CatalogField catalog="medios-pago" onCreated={entry => setDepositMethod(entry.value)} disabled={pending}><select value={depositMethod} onChange={event => setDepositMethod(event.target.value as PaymentMethod)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3"><CatalogOptions catalog="medios-pago" /></select></CatalogField></label>
                 <label className="block text-sm">Referencia de la seña<input value={depositReference} onChange={event => setDepositReference(event.target.value)} className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3" /></label>
                 <p className="text-sm">Al guardar se registra el cobro de la seña. Al emitir la factura se descuenta del saldo a pagar.</p>
               </>}
@@ -476,6 +479,7 @@ type OrderDetailsProps = {
 };
 
 function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderDetailsProps) {
+  const catalogs = useCatalogs();
   const { invoices, receipts } = useLoaderData<typeof loader>();
   const deposit = receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
   const activeInvoice = invoices.find(invoice => invoice.orderId === order.id && invoice.status !== "Anulado");
@@ -544,7 +548,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
                   ? order.customDeliveryAddress 
                   : (client ? formatClientAddress(client) : "Dirección del cliente no disponible"))}
                 <span className="ml-2 text-xs font-normal text-gray-500">
-                  ({order.fulfillment === "Retiro en local" ? "Retiro" : order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
+                  ({!deliveryNeedsAddress(catalogs, order.fulfillment ?? "Envío") ? "Retiro" : order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
                 </span>
               </p>
                 </>

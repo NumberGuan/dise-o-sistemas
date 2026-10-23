@@ -1,3 +1,4 @@
+import { useProductionCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -6,7 +7,7 @@ import { Link } from "react-router";
 import { SAMPLE_MACHINES } from "~/data/maintenance";
 import {
   MATERIAS_PRIMAS_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS,
-  codigo, formatCantidad, getMateriaPrima, getUnidad, siguienteId,
+  codigo, getMateriaPrima, siguienteId,
   type DetalleMateriaPrima, type DetalleRecetaMaquina, type Receta,
 } from "~/data/produccion";
 import { Accordion, Collapse, rowMotion, toast } from "~/components/motion";
@@ -24,6 +25,7 @@ function formatTiempo(tiempo: string) {
 }
 
 function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCancel: () => void; onSave: (r: Receta) => void }) {
+  const { getUnidad } = useProductionCatalogs();
   const [id] = useState(recipe?.idReceta ?? siguienteId(RECETAS.map((r) => r.idReceta)));
   const [nombre, setNombre] = useState(recipe?.nombre ?? "");
   const [procedimiento, setProcedimiento] = useState(recipe?.procedimiento ?? "");
@@ -155,6 +157,7 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
 }
 
 function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: () => void; onEdit: () => void }) {
+  const { formatCantidad } = useProductionCatalogs();
   const productos = PRODUCTOS_PRODUCCION.filter((p) => p.idReceta === recipe.idReceta);
 
   return (

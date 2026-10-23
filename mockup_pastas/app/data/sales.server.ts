@@ -1,3 +1,5 @@
+import { getCatalogs } from "./catalogs.server";
+import { validCatalogValue, deliveryNeedsAddress, catalogAddressData, type Catalogs } from "./catalogs";
 import { validateTabulatedAddress } from "./domicilios";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -8,12 +10,9 @@ import {
   getClientAddresses,
   validateClientAddresses,
   formatClientAddress,
-  CLIENT_DOCUMENT_TYPES,
-  CLIENT_IVA_TYPES,
   ORDER_STATUSES,
   ORDER_KINDS,
   COUNTER_CLIENT,
-  PAYMENT_METHODS,
   SAMPLE_CLIENTS,
   SAMPLE_ORDERS,
   SAMPLE_PRODUCTS,
@@ -104,10 +103,10 @@ const validDate = (value: string) => {
   return !Number.isNaN(parsed.valueOf()) && parsed.toISOString().slice(0, 10) === value;
 };
 
-function validateClient(value: unknown, previous?: Client): Omit<Client, "id" | "code"> | null {
+function validateClient(value: unknown, catalogs: Catalogs, previous?: Client): Omit<Client, "id" | "code"> | null {
   const row = asRecord(value);
   if (!row) return null;
-  const addresses = row.addresses === undefined ? undefined : validateClientAddresses(row.addresses, previous ? getClientAddresses(previous) : []);
+  const addresses = row.addresses === undefined ? undefined : validateClientAddresses(row.addresses, previous ? getClientAddresses(previous) : [], catalogAddressData(catalogs));
   const primary = addresses?.[0];
   const location = addresses ? primary ?? { street: "", streetNumber: "", floor: "", apartment: "", locality: "", province: "Buenos Aires" } : row;
   const name = text(row.name, 100, true);
@@ -123,8 +122,8 @@ function validateClient(value: unknown, previous?: Client): Omit<Client, "id" | 
   const cuitCuil = text(row.cuitCuil, 30);
   const notes = text(row.notes, 2000);
   if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || locality === null || !province || cuitCuil === null || notes === null) return null;
-  if (!isOneOf(row.type, ["Comercio", "Distribuidor", "Particular"] as const) || !isOneOf(row.documentType, CLIENT_DOCUMENT_TYPES) || !isOneOf(row.ivaType, ["", ...CLIENT_IVA_TYPES] as const) || !isOneOf(row.status, ["Activo", "Inactivo"] as const)) return null;
-  if (!addresses && (street || streetNumber || locality)) validateTabulatedAddress({ street, streetNumber, locality, province, floor, apartment }, previous ? { ...previous, floor: previous.floor ?? "", apartment: previous.apartment ?? "" } : undefined);
+  if (!validCatalogValue(catalogs, "tipos-cliente", row.type, previous?.type) || !validCatalogValue(catalogs, "tipos-documento", row.documentType, previous?.documentType) || (row.ivaType !== "" && !validCatalogValue(catalogs, "tipos-iva", row.ivaType, previous?.ivaType)) || !isOneOf(row.status, ["Activo", "Inactivo"] as const)) return null;
+  if (!addresses && (street || streetNumber || locality)) validateTabulatedAddress({ street, streetNumber, locality, province, floor, apartment }, previous ? { ...previous, floor: previous.floor ?? "", apartment: previous.apartment ?? "" } : undefined, catalogAddressData(catalogs));
   return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, addresses, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
 }
 
@@ -139,7 +138,7 @@ export function preserveOrderAddresses(orders: Order[], client: Client) {
 export async function saveSalesClient(input: unknown, id: string | undefined, actorRole: Role) {
   if (actorRole !== "Administrador" && actorRole !== "Ventas") throw new Error("No tenés permiso para guardar clientes.");
   const previous = id ? (await getSalesData()).clients.find(candidate => candidate.id === id) : undefined;
-  const client = validateClient(input, previous);
+  const client = validateClient(input, await getCatalogs(), previous);
   if (!client) throw new Error("Revisá los datos ingresados del cliente.");
   if (id?.startsWith("customer-")) {
     const userId = id.slice("customer-".length);
@@ -174,7 +173,7 @@ export async function saveSalesClient(input: unknown, id: string | undefined, ac
   });
 }
 
-function validateOrder(value: unknown, clients: Client[], existing?: Order): Order {
+function validateOrder(value: unknown, clients: Client[], catalogs: Catalogs, existing?: Order): Order {
   const row = asRecord(value);
   if (!row) throw new Error("El pedido enviado no es válido.");
   const kind = row.kind ?? existing?.kind ?? "Regular";
@@ -189,7 +188,8 @@ function validateOrder(value: unknown, clients: Client[], existing?: Order): Ord
   const date = text(row.date, 10, true);
   const deliveryDate = text(row.deliveryDate, 10);
   const fulfillment = row.fulfillment ?? existing?.fulfillment ?? (kind === "Mostrador" ? "Retiro en local" : "Envío");
-  if (!isOneOf(fulfillment, ["Retiro en local", "Envío"] as const)) throw new Error("Seleccioná retiro en local o envío.");
+  if (!validCatalogValue(catalogs, "modalidades-entrega", fulfillment, existing?.fulfillment)) throw new Error("Seleccioná una modalidad de entrega activa.");
+  const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
   const deliveryTime = text(row.deliveryTime ?? "", 5);
   if (kind === "Evento" && (!deliveryDate || !validDate(deliveryDate) || !date || deliveryDate < date || !deliveryTime || !/^([01]\d|2[0-3]):[0-5]\d$/.test(deliveryTime))) throw new Error("El evento requiere un día y una hora válidos de retiro o envío, posteriores a la fecha del pedido.");
   const observations = text(row.observations, 2000);
@@ -200,9 +200,9 @@ function validateOrder(value: unknown, clients: Client[], existing?: Order): Ord
   const deliveryAddressId = text(row.deliveryAddressId ?? addresses[0]?.id ?? "", 120);
   const selectedAddress = addresses.find((address) => address.id === deliveryAddressId);
   const retainedAddress = existing?.deliveryAddressType === "client" && existing.deliveryAddressId === deliveryAddressId ? existing.deliveryAddress : undefined;
-  if (fulfillment === "Envío" && deliveryAddressType === "client" && !retainedAddress && (!selectedAddress || !selectedAddress.street || !selectedAddress.locality)) throw new Error("Seleccioná una dirección guardada del cliente.");
-  const deliveryAddress = fulfillment === "Retiro en local" ? "Retiro en local" : deliveryAddressType === "custom" ? customAddress || "" : retainedAddress ?? (selectedAddress ? formatClientAddress(selectedAddress) : "");
-  if (!date || !validDate(date) || deliveryDate === null || (deliveryDate && !validDate(deliveryDate)) || observations === null || !employeeId || !SAMPLE_EMPLOYEES.some((employee) => employee.id === employeeId && employee.status === "Activo") || (deliveryAddressType !== "client" && deliveryAddressType !== "custom") || customAddress === null || (fulfillment === "Envío" && deliveryAddressType === "custom" && !customAddress)) throw new Error("Revisá el vendedor, las fechas, la dirección y las observaciones del pedido.");
+  if (needsAddress && deliveryAddressType === "client" && !retainedAddress && (!selectedAddress || !selectedAddress.street || !selectedAddress.locality)) throw new Error("Seleccioná una dirección guardada del cliente.");
+  const deliveryAddress = !needsAddress ? fulfillment : deliveryAddressType === "custom" ? customAddress || "" : retainedAddress ?? (selectedAddress ? formatClientAddress(selectedAddress) : "");
+  if (!date || !validDate(date) || deliveryDate === null || (deliveryDate && !validDate(deliveryDate)) || observations === null || !employeeId || !SAMPLE_EMPLOYEES.some((employee) => employee.id === employeeId && employee.status === "Activo") || (deliveryAddressType !== "client" && deliveryAddressType !== "custom") || customAddress === null || (needsAddress && deliveryAddressType === "custom" && !customAddress)) throw new Error("Revisá el vendedor, las fechas, la dirección y las observaciones del pedido.");
   if (!Array.isArray(row.items) || row.items.length < 1 || row.items.length > 100) throw new Error("El pedido debe incluir productos válidos.");
   const items: OrderItem[] = row.items.map((rawItem, index) => {
     const item = asRecord(rawItem);
@@ -222,7 +222,7 @@ function validateOrder(value: unknown, clients: Client[], existing?: Order): Ord
   if (existing && requestedStatus !== existing.status) throw new Error("El estado del pedido debe cambiarse con la acción correspondiente.");
   const status = existing?.status ?? "Pendiente";
   if (!existing && requestedStatus !== undefined && requestedStatus !== status) throw new Error("El estado inicial no es válido.");
-  return { id: existing?.id ?? `o-${crypto.randomUUID()}`, number: existing?.number ?? "", clientId, kind, fulfillment, deliveryTime: kind === "Evento" ? deliveryTime! : undefined, employeeId: employeeId || undefined, date, deliveryDate: deliveryDate || "", deliveryAddressType, deliveryAddressId: fulfillment === "Envío" && deliveryAddressType === "client" ? deliveryAddressId || undefined : undefined, deliveryAddress, customDeliveryAddress: fulfillment === "Envío" && deliveryAddressType === "custom" ? customAddress : undefined, items, subtotal, discount: discount as number, total: subtotal - (discount as number), status, observations };
+  return { id: existing?.id ?? `o-${crypto.randomUUID()}`, number: existing?.number ?? "", clientId, kind, fulfillment, deliveryTime: kind === "Evento" ? deliveryTime! : undefined, employeeId: employeeId || undefined, date, deliveryDate: deliveryDate || "", deliveryAddressType, deliveryAddressId: needsAddress && deliveryAddressType === "client" ? deliveryAddressId || undefined : undefined, deliveryAddress, customDeliveryAddress: needsAddress && deliveryAddressType === "custom" ? customAddress : undefined, items, subtotal, discount: discount as number, total: subtotal - (discount as number), status, observations };
 }
 
 async function findClient(id: string) {
@@ -267,7 +267,8 @@ export async function saveSalesOrder(input: unknown, id?: string) {
   const previous = id ? (await getSalesData()).orders.find((item) => item.id === id) : undefined;
   if (id && !previous) throw new Error("El pedido ya no existe.");
   const normalizedInput = asRecord(input);
-  const order = validateOrder({ ...normalizedInput, status: previous?.status ?? normalizedInput?.status }, clients, previous);
+  const catalogs = await getCatalogs();
+  const order = validateOrder({ ...normalizedInput, status: previous?.status ?? normalizedInput?.status }, clients, catalogs, previous);
   if (!id) order.number = `PC-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
   else order.number = previous!.number;
   if (previous && (previous.status === "Cancelado" || previous.status === "Facturado")) throw new Error("No se pueden editar pedidos cancelados o facturados.");
@@ -286,7 +287,7 @@ export async function saveSalesOrder(input: unknown, id?: string) {
         const deposit = asRecord(normalizedInput?.deposit);
         const amount = deposit?.amount;
         const reference = text(deposit?.reference ?? "", 200);
-        if (typeof amount !== "number" || !Number.isFinite(amount) || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001 || amount < minimum || amount > finalTotal || amount <= 0 || !isOneOf(deposit?.method, PAYMENT_METHODS) || reference === null) throw new Error(`El evento requiere cobrar una seña de al menos $${minimum.toFixed(2)} y no mayor al total.`);
+        if (typeof amount !== "number" || !Number.isFinite(amount) || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001 || amount < minimum || amount > finalTotal || amount <= 0 || !validCatalogValue(catalogs, "medios-pago", deposit?.method) || reference === null) throw new Error(`El evento requiere cobrar una seña de al menos $${minimum.toFixed(2)} y no mayor al total.`);
         data.receipts.unshift({ id: `rec-${crypto.randomUUID()}`, number: `RC-0001-${String(Math.max(0, ...data.receipts.map(receipt => Number(receipt.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, date: order.date, clientId: order.clientId, advanceOrderId: order.id, invoices: [], payments: [{ id: crypto.randomUUID(), method: deposit.method, amount, reference }], total: amount, status: "Registrado", observations: `Seña de evento ${order.number}` });
       }
       if (current) data.orders[data.orders.indexOf(current)] = order;
