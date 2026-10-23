@@ -21,6 +21,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Recibos de Pago Clientes", to: "/ventas/recibos" },
       { label: "Remitos Cliente", to: "/ventas/remitos" },
       { label: "Devoluciones", to: "/ventas/devoluciones" },
+      { label: "Donación", to: "/ventas/donacion" },
     ],
   },
   {
