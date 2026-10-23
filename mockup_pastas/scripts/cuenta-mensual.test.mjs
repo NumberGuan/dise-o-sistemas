@@ -73,6 +73,7 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
     await t.test("El servidor recalcula la factura y bloquea duplicados y meses sin facturar", async () => {
       await service.saveSalesInvoice(invoiceInput("first"));
       let data = await sales.getSalesData();
+      assert.equal(data.invoices[0].billingAddress, model.formatClientAddress(client));
       assert.equal(data.invoices[0].discount, 1500);
       assert.equal(data.invoices[0].total, 10285);
       assert.equal(data.orders.find(order => order.id === "first").status, "Facturado");
@@ -108,6 +109,21 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
       const data = await sales.getSalesData();
       await sales.saveSalesClient({ ...data.clients[0], balance: 999999 }, client.id, "Ventas");
       assert.equal((await sales.getSalesData()).clients[0].balance, 20570);
+    });
+    await t.test("Facturar conserva la dirección fija aunque cambien los domicilios del cliente", async () => {
+      const data = await sales.getSalesData();
+      const currentClient = data.clients.find(row => row.id === client.id);
+      const fixed = { ...model.getClientAddresses(currentClient)[0], label: "Dirección fija", streetNumber: "999" };
+      const extra = { ...fixed, id: "deposito", label: "Depósito", streetNumber: "456" };
+      const invoicesBefore = data.invoices.map(row => ({ id: row.id, address: row.billingAddress }));
+      await sales.saveSalesClient({ ...currentClient, addresses: [fixed, extra] }, client.id, "Ventas");
+      const saved = await sales.getSalesData();
+      const updated = saved.clients.find(row => row.id === client.id);
+      assert.equal(updated.streetNumber, "999");
+      assert.equal(updated.addresses[1].streetNumber, "456");
+      for (const invoice of invoicesBefore) assert.equal(saved.invoices.find(row => row.id === invoice.id).billingAddress, invoice.address);
+      await assert.rejects(sales.saveSalesClient({ ...updated, addresses: [] }, client.id, "Ventas"), /dirección fija/);
+      await assert.rejects(sales.saveSalesClient({ ...updated, addresses: undefined, street: "", streetNumber: "", locality: "" }, client.id, "Ventas"), /dirección fija/);
     });
     await t.test("Los borradores no cobran y un pago parcial solo resta el importe registrado", async () => {
       let data = await sales.getSalesData();

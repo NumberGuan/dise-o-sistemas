@@ -5,7 +5,7 @@ import { mutateSalesData } from "~/data/sales.server";
 import { customerAsClient } from "~/data/customer.server";
 import { getUsers } from "~/utils/db.server";
 import { invoiceAmounts, getClientMonthlyAccount, money } from "~/data/billing";
-import { getInvoicePaymentSummary, COUNTER_CLIENT, INVOICE_STATUSES, INVOICE_TYPES, RECEIPT_STATUSES, type Client, type Invoice, type Receipt } from "~/data/sales";
+import { getInvoicePaymentSummary, formatClientAddress, COUNTER_CLIENT, INVOICE_STATUSES, INVOICE_TYPES, RECEIPT_STATUSES, type Client, type Invoice, type Receipt } from "~/data/sales";
 
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Los datos enviados no son válidos.");
@@ -55,7 +55,7 @@ export async function saveSalesInvoice(input: unknown, id?: string) {
     if (dueDate < invoiceDate) throw new Error("El vencimiento no puede ser anterior a la emisión.");
     const totals = invoiceAmounts(order.items, client.type, order.discount);
     amount(totals.total);
-    const invoice: Invoice = { ...totals, id: previous?.id ?? `inv-${crypto.randomUUID()}`, number: previous?.number ?? `FC-0001-${String(Math.max(0, ...data.invoices.map(invoice => Number(invoice.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, clientId: client.id, orderId, date: invoiceDate, dueDate, type: choice(row.type, INVOICE_TYPES), status, observations: string(row.observations ?? "") };
+    const invoice: Invoice = { ...totals, id: previous?.id ?? `inv-${crypto.randomUUID()}`, number: previous?.number ?? `FC-0001-${String(Math.max(0, ...data.invoices.map(invoice => Number(invoice.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, clientId: client.id, billingAddress: formatClientAddress(client), orderId, date: invoiceDate, dueDate, type: choice(row.type, INVOICE_TYPES), status, observations: string(row.observations ?? "") };
     if (order.kind === "Evento" && invoice.type === "Nota de Crédito") throw new Error("Facturá el evento con una factura o nota de débito.");
     if (order.kind === "Evento" && status === "Emitido") {
       const deposits = data.receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado");

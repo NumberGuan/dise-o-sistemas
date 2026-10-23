@@ -139,3 +139,5 @@ Las pruebas usan una carpeta temporal y verifican altas concurrentes, duplicados
 
 
 El botón **+** de cada catálogo en Gestión del sistema y de sus campos en los formularios abre un modal de alta, disponible para el administrador. Al guardar, la opción queda activa y seleccionada automáticamente en el formulario de origen, conservando los datos que se estaban cargando. El modal muestra los errores de validación y la confirmación de guardado en la misma ventana; solo se cierra con la cruz superior. Hacer clic afuera o presionar Escape no lo cierra. En localidades y calles se propone la ubicación seleccionada en el formulario y se valida la relación antes de guardar.
+
+Los clientes tienen una dirección fija de facturación obligatoria, seguida de direcciones complementarias opcionales. La dirección fija se puede editar y permanece en primer lugar; las complementarias se pueden agregar o quitar y seleccionar para entregas. Los comprobantes nuevos guardan la dirección de facturación para conservarla aunque después cambie el domicilio del cliente.

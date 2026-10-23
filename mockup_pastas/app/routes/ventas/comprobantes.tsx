@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useLoaderData, useFetcher } from "react-router";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
 import {
+  formatClientAddress,
   INVOICE_STATUSES,
   INVOICE_TYPES,
   getInvoicePaymentSummary,
@@ -178,6 +179,7 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
                 {selectedClient && (
                   <p className="mt-2 text-xs text-gray-500">
                     {selectedClient.documentType}: {selectedClient.cuitCuil || "N/A"} - {selectedClient.ivaType}
+                    <span className="mt-1 block">Dirección de facturación: {formatClientAddress(selectedClient) || "Sin dirección registrada"}</span>
                   </p>
                 )}
               </div>
@@ -443,6 +445,10 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
                 <dd className="font-medium text-gray-900">{client?.name || "Desconocido"}</dd>
                 <dd className="text-gray-600">{client?.documentType}: {client?.cuitCuil}</dd>
                 <dd className="text-gray-600">{client?.ivaType}</dd>
+              </div>
+              <div className="border-t border-gray-100 pt-3">
+                <dt className="text-gray-500">Dirección de facturación</dt>
+                <dd className="font-medium text-gray-900">{(invoice.billingAddress ?? (client ? formatClientAddress(client) : "")) || "Sin dirección registrada"}</dd>
               </div>
               <div className="border-t border-gray-100 pt-3">
                 <dt className="text-gray-500">Fecha de emisión</dt>

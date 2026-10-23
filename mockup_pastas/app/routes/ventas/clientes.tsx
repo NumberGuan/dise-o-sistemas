@@ -8,7 +8,7 @@ import { useFetcher, useLoaderData } from "react-router";
 
 import ClientAddressesEditor from "~/components/ClientAddressesEditor";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
-import { getClientAddresses, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
+import { getClientAddresses, createFixedClientAddress, formatClientAddress, type Client, type ClientStatus, type Order } from "~/data/sales";
 import { getSalesData, saveSalesClient } from "~/data/sales.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/clientes";
@@ -49,7 +49,7 @@ const EMPTY_CLIENT: Omit<Client, "id" | "code"> = {
 
 function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeClientType }: ClientFormProps) {
   const catalogs = useCatalogs();
-  const [values, setValues] = useState(client ? { ...client, addresses: getClientAddresses(client) } : { ...EMPTY_CLIENT, type: catalogDefaultValue(catalogs, "tipos-cliente", "Particular"), documentType: catalogDefaultValue(catalogs, "tipos-documento", "DNI"), id: "", code: "", addresses: [] });
+  const [values, setValues] = useState(client ? { ...client, addresses: getClientAddresses(client).length ? getClientAddresses(client) : [createFixedClientAddress()] } : { ...EMPTY_CLIENT, type: catalogDefaultValue(catalogs, "tipos-cliente", "Particular"), documentType: catalogDefaultValue(catalogs, "tipos-documento", "DNI"), id: "", code: "", addresses: [createFixedClientAddress()] });
   const [error, setError] = useState("");
 
   function update<K extends keyof Client>(key: K, value: Client[K]) {
@@ -151,11 +151,11 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Información del cliente</h3>
             <dl className="mt-3 space-y-3 text-sm">
-              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección completa", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección fija de facturación", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
             </dl>
             {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
-            <h3 className="mt-5 text-sm font-semibold text-gray-900">Direcciones guardadas</h3>
-            <ul className="mt-2 space-y-2 text-sm text-gray-700">{getClientAddresses(client).map((address, index) => <li key={address.id}><strong>{address.label}{index === 0 ? " · Principal" : ""}</strong><p>{formatClientAddress(address)}</p></li>)}</ul>
+            <h3 className="mt-5 text-sm font-semibold text-gray-900">Dirección fija y complementarias</h3>
+            <ul className="mt-2 space-y-2 text-sm text-gray-700">{getClientAddresses(client).map((address, index) => <li key={address.id}><strong>{index === 0 ? "Dirección fija · Facturación" : address.label}</strong><p>{formatClientAddress(address)}</p></li>)}</ul>
             {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 text-sm text-amber-900">{client.notes}</p></div>}
           </div>
           <div>

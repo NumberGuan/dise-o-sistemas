@@ -38,6 +38,14 @@ test("Domicilios tabulados compartidos", async t => {
       assert.throws(() => sales.validateClientAddresses([{ ...previous, street: "Otro pasaje" }], [previous]));
       assert.throws(() => sales.validateClientAddresses([previous]));
     });
+    await t.test("Exige dirección fija y conserva las complementarias después de ella", () => {
+      assert.throws(() => sales.validateClientAddresses([]), /dirección fija/);
+      const extra = { ...address, id: "deposito", label: "Depósito", streetNumber: "456" };
+      assert.deepEqual(sales.validateClientAddresses([address, extra]), [address, extra]);
+      assert.throws(() => sales.validateClientAddresses([address, { ...extra, streetNumber: "" }]));
+      assert.deepEqual(sales.validateClientAddresses([address]), [address]);
+      assert.equal(sales.createFixedClientAddress().label, "Dirección fija");
+    });
     await t.test("Filtra calles por localidad dentro de su provincia", () => {
       assert.ok(catalog.addressOptions("Buenos Aires", "La Plata").calles.some(row => row.nombre === "Calle 7"));
       assert.equal(catalog.addressOptions("Córdoba", "La Plata").calles.length, 0);

@@ -20,6 +20,10 @@ export type ClientAddress = {
   province: string;
 };
 
+export function createFixedClientAddress(): ClientAddress {
+  return { id: "principal", label: "Dirección fija", street: "", streetNumber: "", floor: "", apartment: "", locality: "", province: "Buenos Aires" };
+}
+
 export function getClientAddresses(client: Pick<Client, "id" | "street" | "streetNumber" | "floor" | "apartment" | "locality" | "province" | "addresses">): ClientAddress[] {
   if (client.addresses) return client.addresses;
   if (!client.street.trim()) return [];
@@ -28,6 +32,7 @@ export function getClientAddresses(client: Pick<Client, "id" | "street" | "stree
 
 export function validateClientAddresses(value: unknown, previous: ClientAddress[] = [], catalog?: AddressCatalog): ClientAddress[] {
   if (!Array.isArray(value) || value.length > 20) throw new Error("Podés guardar hasta 20 direcciones.");
+  if (!value.length) throw new Error("Ingresá la dirección fija de facturación del cliente.");
   const ids = new Set<string>();
   return value.map((entry) => {
     if (!entry || typeof entry !== "object") throw new Error("La dirección no es válida.");
@@ -58,6 +63,7 @@ export type Client = {
   street: string;
   streetNumber: string;
   balance: number;
+  // La primera dirección es la fija de facturación; las restantes son complementarias.
   addresses?: ClientAddress[];
   floor?: string;
   apartment?: string;
@@ -260,6 +266,7 @@ export type Invoice = {
   dueDate: string;
   clientId: string;
   orderId?: string;
+  billingAddress?: string;
   items: InvoiceItem[];
   subtotal: number;
   discount: number;

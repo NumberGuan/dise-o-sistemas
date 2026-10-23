@@ -10,7 +10,7 @@ import { customerAsClient } from "~/data/customer.server";
 import { getSalesData, preserveOrderAddresses } from "~/data/sales.server";
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 
-import { getClientAddresses, validateClientAddresses } from "~/data/sales";
+import { getClientAddresses, createFixedClientAddress, validateClientAddresses } from "~/data/sales";
 import { mutateUser } from "~/utils/db.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/cliente-perfil";
@@ -65,7 +65,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
 export default function ClientePerfil() {
   const { profile, account } = useLoaderData<typeof loader>();
-  const [addresses, setAddresses] = useState(profile.addresses);
+  const [addresses, setAddresses] = useState(() => profile.addresses.length ? profile.addresses : [createFixedClientAddress()]);
   const [documentType, setDocumentType] = useState(profile.documentType);
   const [ivaType, setIvaType] = useState(profile.ivaType);
   const actionData = useActionData<typeof action>();

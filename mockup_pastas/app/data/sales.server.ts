@@ -123,7 +123,8 @@ function validateClient(value: unknown, catalogs: Catalogs, previous?: Client): 
   const notes = text(row.notes, 2000);
   if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || locality === null || !province || cuitCuil === null || notes === null) return null;
   if (!validCatalogValue(catalogs, "tipos-cliente", row.type, previous?.type) || !validCatalogValue(catalogs, "tipos-documento", row.documentType, previous?.documentType) || (row.ivaType !== "" && !validCatalogValue(catalogs, "tipos-iva", row.ivaType, previous?.ivaType)) || !isOneOf(row.status, ["Activo", "Inactivo"] as const)) return null;
-  if (!addresses && (street || streetNumber || locality)) validateTabulatedAddress({ street, streetNumber, locality, province, floor, apartment }, previous ? { ...previous, floor: previous.floor ?? "", apartment: previous.apartment ?? "" } : undefined, catalogAddressData(catalogs));
+  if (!street || !streetNumber || !locality) throw new Error("Ingresá la dirección fija de facturación del cliente.");
+  if (!addresses) validateTabulatedAddress({ street, streetNumber, locality, province, floor, apartment }, previous ? { ...previous, floor: previous.floor ?? "", apartment: previous.apartment ?? "" } : undefined, catalogAddressData(catalogs));
   return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, addresses, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
 }
 
