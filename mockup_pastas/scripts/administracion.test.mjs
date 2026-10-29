@@ -33,12 +33,29 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
     const save = (key, name, extra) => catalogs.saveCatalogEntry(key, form(name, extra));
     let client, delivery, payment;
 
-    await t.test("Los 14 catálogos conservan los identificadores de los registros existentes", async () => {
+    await t.test("Los 15 catálogos conservan los identificadores de los registros existentes", async () => {
       const data = await catalogs.getCatalogs();
-      assert.equal(Object.keys(data).length, 14);
+      assert.equal(Object.keys(data).length, 15);
       assert.equal(data["tipos-documento"].find(item => item.id === "1").value, "CUIT");
       assert.equal(data.unidades.find(item => item.id === "5").value, "docena");
       await assert.rejects(fs.access("data/catalogs.json"), { code: "ENOENT" });
+    });
+    await t.test("Los tipos de máquina se incorporan a catálogos existentes y conservan las selecciones históricas", async () => {
+      const previous = model.initialCatalogs();
+      delete previous["tipos-maquina"];
+      await fs.writeFile("data/catalogs.json", JSON.stringify(previous));
+      const initial = await catalogs.getCatalogs();
+      assert.deepEqual(initial["tipos-maquina"].map(item => item.value), ["Amasadora", "Sobadora", "Formadora", "Secadero"]);
+      const created = await save("tipos-maquina", "Envasadora");
+      let data = await catalogs.getCatalogs();
+      assert.equal(model.validCatalogValue(data, "tipos-maquina", created.value), true);
+      await assert.rejects(save("tipos-maquina", "  ENVASADORA  "), /Ya existe/);
+      await save("tipos-maquina", "Envasadora automática", { id: created.id, active: "false" });
+      data = await catalogs.getCatalogs();
+      assert.equal(model.validCatalogValue(data, "tipos-maquina", created.value), false);
+      assert.equal(model.validCatalogValue(data, "tipos-maquina", created.value, created.value), true);
+      assert.equal(model.catalogOptions(data, "tipos-maquina").some(item => item.id === created.id), false);
+      assert.equal(model.catalogOptions(data, "tipos-maquina", created.value).find(item => item.id === created.id).name, "Envasadora automática");
     });
     await t.test("Las altas persisten y las escrituras simultáneas no se pierden", async () => {
       const names = ["Mayorista", "Institución", "Restaurante"];

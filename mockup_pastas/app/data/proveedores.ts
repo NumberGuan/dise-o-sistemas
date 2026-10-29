@@ -1,5 +1,6 @@
 import { validateTabulatedAddress, type AddressCatalog } from "./domicilios";
 import { createStore, useStore } from "./store";
+import { validatePhones } from "./phones";
 
 export type TipoDocumento = {
   id: number;
@@ -26,6 +27,7 @@ export type Proveedor = {
   apellido: string;
   email: string;
   telefono: string;
+  telefonosAdicionales?: string[];
 };
 
 export type ProveedorInput = Omit<Proveedor, "idPersona" | "idDomicilio">;
@@ -172,12 +174,13 @@ export const createProveedor = (
   catalog?: AddressCatalog,
 ): Proveedor => {
   validateDomicilio(domicilio, catalog);
+  const phones = validatePhones(proveedor.telefono, proveedor.telefonosAdicionales);
   const current = store.get();
   const idPersona = getProximoIdPersona();
   const idDomicilio = current.domicilios.length
     ? Math.max(...current.domicilios.map((d) => d.id)) + 1
     : 1;
-  const nuevo: Proveedor = { ...proveedor, idPersona, idDomicilio };
+  const nuevo: Proveedor = { ...proveedor, telefono: phones.phone, telefonosAdicionales: phones.additionalPhones, idPersona, idDomicilio };
   store.set({
     proveedores: [...current.proveedores, nuevo],
     domicilios: [...current.domicilios, { ...domicilio, id: idDomicilio }],
@@ -199,8 +202,11 @@ export const updateProveedor = (
     return false;
   }
   validateDomicilio(domicilio, catalog, current.domicilios.find(item => item.id === existente.idDomicilio));
+  const phones = validatePhones(proveedor.telefono, proveedor.telefonosAdicionales ?? existente.telefonosAdicionales);
   const actualizado: Proveedor = {
     ...proveedor,
+    telefono: phones.phone,
+    telefonosAdicionales: phones.additionalPhones,
     idPersona,
     idDomicilio: existente.idDomicilio,
   };
