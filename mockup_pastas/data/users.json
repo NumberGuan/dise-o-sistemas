@@ -40,5 +40,12 @@
     "email": "cliente@a.com",
     "passwordHash": "db98d7065baa3fe17cefea65fb37232f:6e497e38c5f6eb84d0251bc2e88b1d48588f33c3daff7c20757c9650821d32590722d04195bf69687d8697b09c8ad5f97cf547b88c07bcf2d3856d309aa8877e",
     "role": "Cliente"
+  },
+  {
+    "id": "bbd54b88-98e5-4684-8c8e-a880c3af088e",
+    "name": "Universidad Tecnologica Nacional facultad regional Trenque Lauquen",
+    "email": "maria@empresa.com",
+    "passwordHash": "78621c56cd1086cc94147eaf04a1d525:34cddfafcf71d8c0cb05b97030001faef3250c93e56b5ccedcfac4e0ed215db4c2c1ccf7b2e953e5d65fcc5bb8a3e625471feb7a9ba97bbd3119cc9878bbe5b2",
+    "role": "Administrador"
   }
 ]
