@@ -1,4 +1,6 @@
 import { CatalogField } from "~/components/InlineCatalog";
+import PhoneFields, { PhoneDetails } from "~/components/PhoneFields";
+import { validatePhones } from "~/data/phones";
 import { catalogDefaultValue } from "~/data/catalogs";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
@@ -62,8 +64,12 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
       setError("Completá el nombre o razón social.");
       return;
     }
+    let phones;
+    try { phones = validatePhones(values.phone, values.additionalPhones); }
+    catch (error) { setError((error as Error).message); return; }
     onSave({
       ...values,
+      ...phones,
       street: values.addresses[0]?.street ?? "",
       streetNumber: values.addresses[0]?.streetNumber ?? "",
       floor: values.addresses[0]?.floor ?? "",
@@ -113,9 +119,6 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
                 <CatalogOptions catalog="tipos-iva" retained={client?.ivaType} />
               </select></CatalogField>
             </label>
-            <label className={labelClass}>Teléfono
-              <input type="tel" value={values.phone} onChange={(event) => update("phone", event.target.value)} className={inputClass} placeholder="Código de área y número" />
-            </label>
             <label className={labelClass}>Correo electrónico
               <input type="email" value={values.email} disabled={Boolean(client?.id.startsWith("customer-"))} onChange={(event) => update("email", event.target.value)} className={`${inputClass} disabled:bg-gray-100 disabled:text-gray-500`} placeholder="nombre@comercio.com" />
             </label>
@@ -124,6 +127,7 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
               <textarea rows={3} value={values.notes} onChange={(event) => update("notes", event.target.value)} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
             </label>
           </div>
+          <PhoneFields primary={values.phone} additional={values.additionalPhones} onChange={(phone, additionalPhones) => setValues(current => ({ ...current, phone, additionalPhones }))} disabled={pending} />
           <ClientAddressesEditor addresses={values.addresses} onChange={addresses => setValues(current => ({ ...current, addresses }))} disabled={pending} />
           <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
             <button type="button" disabled={pending} onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
@@ -151,7 +155,8 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Información del cliente</h3>
             <dl className="mt-3 space-y-3 text-sm">
-              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Teléfono", client.phone], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección fija de facturación", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección fija de facturación", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+              <PhoneDetails primary={client.phone} additional={client.additionalPhones} />
             </dl>
             {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
             <h3 className="mt-5 text-sm font-semibold text-gray-900">Dirección fija y complementarias</h3>

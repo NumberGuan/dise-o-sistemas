@@ -1,4 +1,7 @@
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
+import { CatalogField } from "~/components/InlineCatalog";
+import { validCatalogValue } from "~/data/catalogs";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
@@ -10,6 +13,7 @@ const badge = (s: MachineStatus) => s === "Activa" ? "bg-emerald-100 text-emeral
 const nextCode = () => `MAQ-${String(Math.max(0, ...SAMPLE_MACHINES.map((m) => Number(m.code.match(/\d+$/)?.[0]) || 0)) + 1).padStart(3, "0")}`;
 
 function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; onCancel: () => void; onSave: (m: Machine) => void }) {
+  const catalogs = useCatalogs();
   const [code] = useState(machine?.code ?? nextCode());
   const [name, setName] = useState(machine?.name ?? "");
   const [type, setType] = useState(machine?.type ?? "");
@@ -24,7 +28,8 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
 
   function submit(e: FormEvent) {
     e.preventDefault();
-    if (!name.trim() || !type.trim() || !serial.trim()) return setError("Nombre, tipo y número de serie son obligatorios.");
+    if (!name.trim() || !type.trim() || !serial.trim()) return setError("Nombre, tipo de máquina y número de serie son obligatorios.");
+    if (!validCatalogValue(catalogs, "tipos-maquina", type, machine?.type)) return setError("Seleccioná un tipo de máquina activo.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return setError("Ingresá una fecha válida.");
     if (SAMPLE_MACHINES.some((m) => m.serialNumber.toLowerCase() === serial.trim().toLowerCase() && m.id !== machine?.id)) return setError("El número de serie ya está registrado.");
     onSave({ id: machine?.id ?? `maq-${Date.now()}`, code, name: name.trim(), type: type.trim(), brand: brand.trim(), model: model.trim(), serialNumber: serial.trim(), location: location.trim(), acquisitionDate: date, status, observations: observations.trim() });
@@ -47,9 +52,15 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
           <label className={labelClass}>Nombre <span className="text-rose-600">*</span>
             <input autoFocus required value={name} onChange={(e) => setName(e.target.value)} className={field} />
           </label>
-          <label className={labelClass}>Tipo <span className="text-rose-600">*</span>
-            <input required value={type} onChange={(e) => setType(e.target.value)} className={field} />
-          </label>
+          <div>
+            <label htmlFor="machine-form-type" className={labelClass}>Tipo de Maquina <span className="text-rose-600">*</span></label>
+            <CatalogField catalog="tipos-maquina" onCreated={entry => setType(entry.value)}>
+              <select id="machine-form-type" required value={type} onChange={(e) => setType(e.target.value)} className={field}>
+                <option value="">Seleccionar tipo de máquina…</option>
+                <CatalogOptions catalog="tipos-maquina" retained={machine?.type} />
+              </select>
+            </CatalogField>
+          </div>
           <label className={labelClass}>Marca
             <input value={brand} onChange={(e) => setBrand(e.target.value)} className={field} />
           </label>
@@ -108,7 +119,7 @@ function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine:
           <h3 className="text-sm font-semibold text-gray-900">Información de la máquina</h3>
           <dl className="mt-3 space-y-3 text-sm">
             {[
-              ["Tipo", machine.type],
+              ["Tipo de Maquina", machine.type],
               ["Marca / modelo", `${machine.brand} ${machine.model}`],
               ["N.º de serie", machine.serialNumber],
               ["Ubicación", machine.location || "—"],
@@ -229,8 +240,8 @@ export default function Maquinas() {
               <option>Todos</option>
               {MACHINE_STATUSES.map((s) => <option key={s}>{s}</option>)}
             </select>
-            <label className="sr-only" htmlFor="machine-type">Filtrar por tipo</label>
-            <select id="machine-type" aria-label="Filtrar por tipo" value={type} onChange={(e) => setType(e.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100">
+            <label className="sr-only" htmlFor="machine-type">Filtrar por tipo de máquina</label>
+            <select id="machine-type" aria-label="Filtrar por tipo de máquina" value={type} onChange={(e) => setType(e.target.value)} className="h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100">
               <option>Todos</option>
               {types.map((t) => <option key={t}>{t}</option>)}
             </select>
@@ -248,7 +259,7 @@ export default function Maquinas() {
           <>
             <div className="hidden lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
               <div className="min-w-0 text-left">Código / Nombre</div>
-              <div className="min-w-0 text-center">Tipo</div>
+              <div className="min-w-0 text-center">Tipo de Maquina</div>
               <div className="min-w-0 text-center">Marca / Modelo</div>
               <div className="min-w-0 text-center">Ubicación</div>
               <div className="min-w-0 text-center">Estado</div>
@@ -262,7 +273,7 @@ export default function Maquinas() {
                     <h3 className="break-words font-semibold leading-5 text-gray-900">{m.name}</h3>
                   </div>
                   <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo</p>
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo de Maquina</p>
                     <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{m.type}</p>
                   </div>
                   <div className="min-w-0 text-left lg:text-center">

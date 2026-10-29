@@ -12,6 +12,7 @@ export interface User {
   role: Role;
   name: string;
   phone?: string;
+  additionalPhones?: string[];
   address?: string;
   customerData?: {
     balance?: number;

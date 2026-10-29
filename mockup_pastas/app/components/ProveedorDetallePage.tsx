@@ -1,4 +1,5 @@
 import { useCatalogs } from "~/components/CatalogProvider";
+import { PhoneDetails } from "~/components/PhoneFields";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
@@ -76,14 +77,7 @@ export default function ProveedorDetallePage({
             </dt>
             <dd className="mt-1 font-medium text-gray-900">{proveedor.email}</dd>
           </div>
-          <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Teléfono
-            </dt>
-            <dd className="mt-1 font-medium text-gray-900">
-              {proveedor.telefono}
-            </dd>
-          </div>
+          <PhoneDetails primary={proveedor.telefono} additional={proveedor.telefonosAdicionales} />
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
               Domicilio

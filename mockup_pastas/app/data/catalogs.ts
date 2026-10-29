@@ -25,6 +25,7 @@ export const CATALOG_DEFINITIONS = [
   { key: "tipos-producto", title: "Tipos de producto", singular: "tipo de producto", group: "Producción e inventario", description: "Clasificaciones del catálogo de producción." },
   { key: "tipos-materia-prima", title: "Tipos de materia prima", singular: "tipo de materia prima", group: "Producción e inventario", description: "Clasificaciones de los insumos de producción." },
   { key: "marcas", title: "Marcas", singular: "marca", group: "Producción e inventario", description: "Marcas de las materias primas de producción." },
+  { key: "tipos-maquina", title: "Tipos de máquina", singular: "tipo de máquina", group: "Mantenimiento", description: "Clasificaciones de las máquinas de producción." },
   { key: "tipos-mantenimiento", title: "Tipos de mantenimiento", singular: "tipo de mantenimiento", group: "Mantenimiento", description: "Clasificaciones de los trabajos sobre las máquinas." },
 ] as const;
 
@@ -50,6 +51,7 @@ export function initialCatalogs(): Catalogs {
     "tipos-producto": TIPOS_PRODUCTO.map(item => entry(String(item.idTipoProducto), item.tipo)),
     "tipos-materia-prima": TIPOS_MATERIA_PRIMA.map(item => entry(String(item.idTipoMateriaPrima), item.nombre)),
     marcas: MARCAS.map(item => entry(String(item.idMarca), item.nombre)),
+    "tipos-maquina": names(["Amasadora", "Sobadora", "Formadora", "Secadero"]),
     "tipos-mantenimiento": names(["Preventivo", "Correctivo"]),
   };
 }

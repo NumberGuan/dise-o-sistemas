@@ -1,4 +1,6 @@
 import { CatalogField } from "~/components/InlineCatalog";
+import PhoneFields, { PhoneDetails } from "~/components/PhoneFields";
+import { validatePhones } from "~/data/phones";
 import { catalogAddressData } from "~/data/catalogs";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import AddressFields from "~/components/AddressFields";
@@ -77,6 +79,8 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
   const [code] = useState(() => employee?.code ?? nextEmployeeCode(employees));
   const [name, setName] = useState(employee?.name ?? "");
   const [email, setEmail] = useState(employee?.email ?? "");
+  const [phone, setPhone] = useState(employee?.phone ?? "");
+  const [additionalPhones, setAdditionalPhones] = useState(employee?.additionalPhones ?? []);
   const [dni, setDni] = useState(employee?.dni ?? "");
   const [role, setRole] = useState<EmployeeRole | "">(employee?.role ?? "");
   const [hireDate, setHireDate] = useState(employee?.hireDate ?? new Date().toISOString().slice(0, 10));
@@ -133,8 +137,12 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
 
     try { validateTabulatedAddress(address, employee?.address, catalogAddressData(catalogs)); }
     catch (error) { setError((error as Error).message); return; }
+    let phones;
+    try { phones = validatePhones(phone, additionalPhones); }
+    catch (error) { setError((error as Error).message); return; }
 
     onSave({
+      ...phones,
       id: employee?.id ?? `emp-${Date.now()}`,
       code,
       name: normalizedName,
@@ -202,6 +210,7 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
             </select>
           </div>
         </div>
+        <PhoneFields primary={phone} additional={additionalPhones} onChange={(primary, additional) => { setPhone(primary); setAdditionalPhones(additional); }} />
         <section className="space-y-3"><h2 className="font-semibold text-gray-900">Domicilio</h2><AddressFields value={address} previous={employee?.address} onChange={setAddress} /></section>
         <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
@@ -247,6 +256,7 @@ function EmployeeDetail({ employee, onBack, onEdit, onToggleStatus }: EmployeeDe
               <dt className="text-xs text-gray-500">Email</dt>
               <dd className="mt-0.5 break-all font-medium text-gray-800">{employee.email}</dd>
             </div>
+            <PhoneDetails primary={employee.phone} additional={employee.additionalPhones} />
             <div><dt className="text-xs text-gray-500">Domicilio</dt><dd className="mt-0.5 font-medium text-gray-800">{employee.address ? formatClientAddress(employee.address) : "Sin domicilio cargado"}</dd></div>
           </dl>
 

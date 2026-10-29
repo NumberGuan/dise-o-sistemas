@@ -1,0 +1,450 @@
+{
+  "clients": [
+    {
+      "id": "c-148",
+      "code": "CLI-00148",
+      "type": "Distribuidor",
+      "name": "Distribuidora El Sol",
+      "documentType": "CUIT",
+      "cuitCuil": "30-71234567-8",
+      "ivaType": "Responsable inscripto",
+      "phone": "11 4567-2300",
+      "email": "compras@distribuidoraelsol.com.ar",
+      "street": "Av. Rivadavia",
+      "streetNumber": "2840",
+      "balance": 0,
+      "floor": "",
+      "apartment": "",
+      "locality": "Morón",
+      "province": "Buenos Aires",
+      "status": "Activo",
+      "notes": "Entrega por la mañana. Contactar a Laura."
+    },
+    {
+      "id": "c-147",
+      "code": "CLI-00147",
+      "type": "Comercio",
+      "name": "Supermercados Andes",
+      "documentType": "CUIT",
+      "cuitCuil": "30-69876543-2",
+      "ivaType": "Responsable inscripto",
+      "phone": "11 4788-1200",
+      "email": "pedidos@andes.com.ar",
+      "street": "Belgrano",
+      "streetNumber": "145",
+      "balance": 0,
+      "floor": "",
+      "apartment": "",
+      "locality": "San Martín",
+      "province": "Buenos Aires",
+      "status": "Activo",
+      "notes": ""
+    },
+    {
+      "id": "c-146",
+      "code": "CLI-00146",
+      "type": "Comercio",
+      "name": "Almacén Don Pedro",
+      "documentType": "CUIT",
+      "cuitCuil": "20-24567891-3",
+      "ivaType": "Monotributista",
+      "phone": "11 4455-7701",
+      "email": "donpedro@correo.com",
+      "street": "Italia",
+      "streetNumber": "820",
+      "balance": 0,
+      "floor": "",
+      "apartment": "",
+      "locality": "Haedo",
+      "province": "Buenos Aires",
+      "status": "Activo",
+      "notes": "Recibe pedidos los lunes y jueves."
+    },
+    {
+      "id": "c-145",
+      "code": "CLI-00145",
+      "type": "Comercio",
+      "name": "Mini Market Norte",
+      "documentType": "CUIT",
+      "cuitCuil": "30-73456789-1",
+      "ivaType": "Responsable inscripto",
+      "phone": "11 4766-0092",
+      "email": "administracion@mininorte.com.ar",
+      "street": "San Lorenzo",
+      "streetNumber": "560",
+      "balance": 0,
+      "floor": "",
+      "apartment": "",
+      "locality": "Villa Ballester",
+      "province": "Buenos Aires",
+      "status": "Activo",
+      "notes": ""
+    },
+    {
+      "id": "c-144",
+      "code": "CLI-00144",
+      "type": "Particular",
+      "name": "María Fernanda López",
+      "documentType": "CUIL",
+      "cuitCuil": "27-28345678-4",
+      "ivaType": "Consumidor final",
+      "phone": "11 6098-3321",
+      "email": "maria.lopez@email.com",
+      "street": "Las Heras",
+      "streetNumber": "112",
+      "balance": 0,
+      "floor": "2",
+      "apartment": "B",
+      "locality": "Castelar",
+      "province": "Buenos Aires",
+      "status": "Inactivo",
+      "notes": "Cliente sin actividad reciente."
+    },
+    {
+      "id": "c-143",
+      "code": "CLI-00143",
+      "type": "Distribuidor",
+      "name": "Alimentos La Estación",
+      "documentType": "CUIT",
+      "cuitCuil": "30-72345678-9",
+      "ivaType": "Responsable inscripto",
+      "phone": "11 4621-8800",
+      "email": "ventas@laestacion.com.ar",
+      "street": "Calle 25 de Mayo",
+      "streetNumber": "1010",
+      "balance": 0,
+      "floor": "",
+      "apartment": "",
+      "locality": "Ituzaingó",
+      "province": "Buenos Aires",
+      "status": "Activo",
+      "notes": ""
+    }
+  ],
+  "orders": [
+    {
+      "id": "o-148",
+      "number": "PC-000148",
+      "clientId": "c-148",
+      "employeeId": "emp-2",
+      "date": "2026-09-24",
+      "deliveryAddressType": "client",
+      "deliveryDate": "2026-09-25",
+      "items": [
+        {
+          "id": "oi-1",
+          "productId": "p-1",
+          "productName": "Tallarines 500g",
+          "quantity": 40,
+          "unitPrice": 2000,
+          "subtotal": 80000
+        },
+        {
+          "id": "oi-2",
+          "productId": "p-2",
+          "productName": "Ravioles verdura",
+          "quantity": 18,
+          "unitPrice": 3500,
+          "subtotal": 63000
+        }
+      ],
+      "subtotal": 143000,
+      "discount": 14600,
+      "total": 128400,
+      "status": "Facturado",
+      "observations": "Entrega por la mañana, verificar stock de ravioles."
+    },
+    {
+      "id": "o-147",
+      "number": "PC-000147",
+      "clientId": "c-147",
+      "employeeId": "emp-2",
+      "date": "2026-09-24",
+      "deliveryAddressType": "client",
+      "deliveryDate": "2026-09-26",
+      "items": [
+        {
+          "id": "oi-3",
+          "productId": "p-3",
+          "productName": "Spaghetti 500g",
+          "quantity": 30,
+          "unitPrice": 2200,
+          "subtotal": 66000
+        }
+      ],
+      "subtotal": 66000,
+      "discount": 0,
+      "total": 66000,
+      "status": "Pendiente",
+      "observations": ""
+    },
+    {
+      "id": "o-146",
+      "number": "PC-000146",
+      "clientId": "c-146",
+      "employeeId": "emp-3",
+      "date": "2026-09-23",
+      "deliveryDate": "2026-09-24",
+      "deliveryAddressType": "custom",
+      "customDeliveryAddress": "Av. Corrientes 1234, CABA",
+      "items": [
+        {
+          "id": "oi-4",
+          "productId": "p-4",
+          "productName": "Ñoquis papa",
+          "quantity": 10,
+          "unitPrice": 2800,
+          "subtotal": 28000
+        },
+        {
+          "id": "oi-5",
+          "productId": "p-5",
+          "productName": "Sorrentinos jamón y queso",
+          "quantity": 5,
+          "unitPrice": 4200,
+          "subtotal": 21000
+        }
+      ],
+      "subtotal": 49000,
+      "discount": 0,
+      "total": 49000,
+      "status": "Listo para remito",
+      "observations": "Llamar antes de enviar."
+    }
+  ],
+  "invoices": [
+    {
+      "items": [
+        {
+          "id": "oi-1fe5e24d-30b0-4bd1-aed1-e1eaa9c8dccc-0",
+          "productId": "p-12",
+          "productName": "Agnolottis de pollo x 500g",
+          "quantity": 1,
+          "unitPrice": 4300,
+          "subtotal": 4300,
+          "discount": 0,
+          "netSubtotal": 4300
+        },
+        {
+          "id": "oi-e879484e-3420-456c-a0ce-a01aac46f040-1",
+          "productId": "p-8",
+          "productName": "Ravioles de ricota y nuez x 500g",
+          "quantity": 1,
+          "unitPrice": 4000,
+          "subtotal": 4000,
+          "discount": 0,
+          "netSubtotal": 4000
+        },
+        {
+          "id": "oi-8dac4704-a711-413e-9a1f-e89c80a120f7-2",
+          "productId": "s-4",
+          "productName": "Salsa cuatro quesos x 250g",
+          "quantity": 1,
+          "unitPrice": 2800,
+          "subtotal": 2800,
+          "discount": 0,
+          "netSubtotal": 2800
+        },
+        {
+          "id": "oi-b2377eef-b0fa-4da2-919a-b8fa1b049d1f-3",
+          "productId": "s-6",
+          "productName": "Salsa pesto x 250g",
+          "quantity": 1,
+          "unitPrice": 2600,
+          "subtotal": 2600,
+          "discount": 0,
+          "netSubtotal": 2600
+        },
+        {
+          "id": "oi-da4dc7f3-fc39-4e19-bd1a-19a833885a71-4",
+          "productId": "s-5",
+          "productName": "Salsa rosa x 250g",
+          "quantity": 1,
+          "unitPrice": 2200,
+          "subtotal": 2200,
+          "discount": 0,
+          "netSubtotal": 2200
+        }
+      ],
+      "subtotal": 15900,
+      "discount": 0,
+      "taxableBase": 15900,
+      "tax": 3339,
+      "total": 19239,
+      "commercialDiscountRate": 0,
+      "id": "inv-f40371ef-47ea-4064-b2d5-17fa2a673585",
+      "number": "FC-0001-00000384",
+      "clientId": "customer-b35da0a2-7296-47c5-b02a-362faa4fd1df",
+      "billingAddress": "dorrego 1478, Piso 9, Depto. p, Trenque Lauquen, Buenos Aires",
+      "orderId": "o-8f414804-5c0d-4392-b3be-ccdee5fb9cdb",
+      "date": "2026-10-22",
+      "dueDate": "2026-10-22",
+      "type": "Factura A",
+      "status": "Emitido",
+      "observations": ""
+    },
+    {
+      "items": [
+        {
+          "id": "oi-5a7a3c13-6023-4e5d-b71a-2deee77030d3-0",
+          "productId": "s-6",
+          "productName": "Salsa pesto x 250g",
+          "quantity": 2,
+          "unitPrice": 2600,
+          "subtotal": 5200,
+          "discount": 0,
+          "netSubtotal": 5200
+        },
+        {
+          "id": "oi-7d32172a-6f02-4c3e-bee7-5fe337dc1d88-1",
+          "productId": "p-1",
+          "productName": "Tallarines x 500g",
+          "quantity": 2,
+          "unitPrice": 2000,
+          "subtotal": 4000,
+          "discount": 0,
+          "netSubtotal": 4000
+        },
+        {
+          "id": "oi-00a8e019-f616-4f20-8815-4d885a94c468-2",
+          "productId": "p-3",
+          "productName": "Spaghetti x 500g",
+          "quantity": 1,
+          "unitPrice": 2200,
+          "subtotal": 2200,
+          "discount": 0,
+          "netSubtotal": 2200
+        },
+        {
+          "id": "oi-23447ef9-910f-4265-b0d4-e88fa2b2b621-3",
+          "productId": "p-9",
+          "productName": "Sorrentinos de calabaza y queso x 500g",
+          "quantity": 1,
+          "unitPrice": 4100,
+          "subtotal": 4100,
+          "discount": 0,
+          "netSubtotal": 4100
+        },
+        {
+          "id": "oi-4aba4350-7662-4daf-9ee0-e760ea1e95e7-4",
+          "productId": "p-5",
+          "productName": "Sorrentinos de jamón y queso x 500g",
+          "quantity": 1,
+          "unitPrice": 4200,
+          "subtotal": 4200,
+          "discount": 0,
+          "netSubtotal": 4200
+        },
+        {
+          "id": "oi-68efe84c-4683-42d2-bbdf-4aaef0140072-5",
+          "productId": "s-5",
+          "productName": "Salsa rosa x 250g",
+          "quantity": 1,
+          "unitPrice": 2200,
+          "subtotal": 2200,
+          "discount": 0,
+          "netSubtotal": 2200
+        }
+      ],
+      "subtotal": 21900,
+      "discount": 0,
+      "taxableBase": 21900,
+      "tax": 4599,
+      "total": 26499,
+      "commercialDiscountRate": 0,
+      "id": "inv-92b36d22-a66b-414f-8a9e-deef83c5a977",
+      "number": "FC-0001-00000383",
+      "clientId": "customer-b35da0a2-7296-47c5-b02a-362faa4fd1df",
+      "billingAddress": "dorrego 1478, Piso 9, Depto. p, Trenque Lauquen, Buenos Aires",
+      "orderId": "o-9c973617-c46b-418b-ac39-f98ceef1102a",
+      "date": "2026-10-22",
+      "dueDate": "2026-10-22",
+      "type": "Factura A",
+      "status": "Emitido",
+      "observations": ""
+    },
+    {
+      "id": "inv-1",
+      "number": "FC-0001-00000381",
+      "type": "Factura A",
+      "date": "2026-09-18",
+      "dueDate": "2026-10-18",
+      "clientId": "c-148",
+      "orderId": "o-148",
+      "items": [
+        {
+          "id": "ii-1",
+          "productId": "p-1",
+          "productName": "Tallarines 500g",
+          "quantity": 40,
+          "unitPrice": 2000,
+          "subtotal": 80000
+        },
+        {
+          "id": "ii-2",
+          "productId": "p-2",
+          "productName": "Ravioles verdura",
+          "quantity": 18,
+          "unitPrice": 3500,
+          "subtotal": 63000
+        }
+      ],
+      "subtotal": 143000,
+      "discount": 14600,
+      "tax": 26964,
+      "total": 155364,
+      "status": "Emitido",
+      "observations": "Pago a 30 días."
+    },
+    {
+      "id": "inv-2",
+      "number": "FC-0001-00000382",
+      "type": "Factura B",
+      "date": "2026-09-20",
+      "dueDate": "2026-09-20",
+      "clientId": "c-144",
+      "items": [
+        {
+          "id": "ii-3",
+          "productId": "p-3",
+          "productName": "Spaghetti 500g",
+          "quantity": 2,
+          "unitPrice": 2200,
+          "subtotal": 4400
+        }
+      ],
+      "subtotal": 4400,
+      "discount": 0,
+      "tax": 924,
+      "total": 5324,
+      "status": "Emitido",
+      "observations": ""
+    }
+  ],
+  "receipts": [
+    {
+      "id": "rec-1",
+      "number": "RC-0001-00000107",
+      "date": "2026-09-21",
+      "clientId": "c-144",
+      "invoices": [
+        {
+          "invoiceId": "inv-2",
+          "invoiceNumber": "FC-0001-00000382",
+          "amountApplied": 5324
+        }
+      ],
+      "payments": [
+        {
+          "id": "pay-1",
+          "method": "Transferencia",
+          "amount": 5324,
+          "reference": "TR-998822"
+        }
+      ],
+      "total": 5324,
+      "status": "Registrado",
+      "observations": "Pago completo de la factura."
+    }
+  ]
+}

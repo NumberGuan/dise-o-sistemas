@@ -1,4 +1,5 @@
 import { getCatalogs } from "./catalogs.server";
+import { validatePhones } from "./phones";
 import { validCatalogValue, deliveryNeedsAddress, catalogAddressData, type Catalogs } from "./catalogs";
 import { validateTabulatedAddress } from "./domicilios";
 import fs from "node:fs/promises";
@@ -110,7 +111,7 @@ function validateClient(value: unknown, catalogs: Catalogs, previous?: Client): 
   const primary = addresses?.[0];
   const location = addresses ? primary ?? { street: "", streetNumber: "", floor: "", apartment: "", locality: "", province: "Buenos Aires" } : row;
   const name = text(row.name, 100, true);
-  const phone = text(row.phone, 40);
+  const { phone, additionalPhones } = validatePhones(row.phone, row.additionalPhones === undefined ? previous?.additionalPhones : row.additionalPhones);
   const email = text(row.email, 254);
   const street = text(location.street, 160);
   const streetNumber = text(location.streetNumber, 20);
@@ -121,11 +122,11 @@ function validateClient(value: unknown, catalogs: Catalogs, previous?: Client): 
   const province = text(location.province, 100, true);
   const cuitCuil = text(row.cuitCuil, 30);
   const notes = text(row.notes, 2000);
-  if (!name || phone === null || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || locality === null || !province || cuitCuil === null || notes === null) return null;
+  if (!name || email === null || (email && !/^\S+@\S+\.\S+$/.test(email)) || street === null || streetNumber === null || floor === null || apartment === null || locality === null || !province || cuitCuil === null || notes === null) return null;
   if (!validCatalogValue(catalogs, "tipos-cliente", row.type, previous?.type) || !validCatalogValue(catalogs, "tipos-documento", row.documentType, previous?.documentType) || (row.ivaType !== "" && !validCatalogValue(catalogs, "tipos-iva", row.ivaType, previous?.ivaType)) || !isOneOf(row.status, ["Activo", "Inactivo"] as const)) return null;
   if (!street || !streetNumber || !locality) throw new Error("Ingresá la dirección fija de facturación del cliente.");
   if (!addresses) validateTabulatedAddress({ street, streetNumber, locality, province, floor, apartment }, previous ? { ...previous, floor: previous.floor ?? "", apartment: previous.apartment ?? "" } : undefined, catalogAddressData(catalogs));
-  return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, email, addresses, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
+  return { type: row.type, name, documentType: row.documentType, cuitCuil, ivaType: row.ivaType, phone, additionalPhones, email, addresses, street, streetNumber, balance, floor, apartment, locality, province, status: row.status, notes };
 }
 
 export function preserveOrderAddresses(orders: Order[], client: Client) {
@@ -152,6 +153,7 @@ export async function saveSalesClient(input: unknown, id: string | undefined, ac
       current.customerOrders = preserveOrderAddresses(current.customerOrders ?? [], customerAsClient(current)!);
       current.name = client.name;
       current.phone = client.phone;
+      current.additionalPhones = client.additionalPhones;
       current.address = [client.street, client.streetNumber].filter(Boolean).join(" ");
       current.customerData = { addresses: client.addresses, street: client.street, streetNumber: client.streetNumber, balance: client.balance, type: client.type, documentType: client.documentType, cuitCuil: client.cuitCuil, ivaType: client.ivaType, floor: client.floor ?? "", apartment: client.apartment ?? "", locality: client.locality, province: client.province, notes: client.notes };
       current.customerStatus = client.status;

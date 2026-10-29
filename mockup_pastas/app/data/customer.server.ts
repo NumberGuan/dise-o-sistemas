@@ -21,6 +21,7 @@ export function customerAsClient(user: User): Client | null {
     name: user.name,
     email: user.email,
     phone: user.phone ?? "",
+    additionalPhones: user.additionalPhones ?? [],
     status: user.customerStatus ?? "Activo",
     ...customerData,
     street: user.customerData?.street ?? splitClientAddress(user.address ?? "").street,

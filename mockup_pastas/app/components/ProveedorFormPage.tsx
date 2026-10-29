@@ -1,4 +1,6 @@
 import { CatalogField } from "~/components/InlineCatalog";
+import PhoneFields from "~/components/PhoneFields";
+import { validatePhones } from "~/data/phones";
 import { useCatalogs } from "~/components/CatalogProvider";
 import { catalogAddressData } from "~/data/catalogs";
 import AddressFields from "~/components/AddressFields";
@@ -61,6 +63,7 @@ export default function ProveedorFormPage({
   );
   const [email, setEmail] = useState(proveedor?.email ?? "");
   const [telefono, setTelefono] = useState(proveedor?.telefono ?? "");
+  const [telefonosAdicionales, setTelefonosAdicionales] = useState(proveedor?.telefonosAdicionales ?? []);
   const [calle, setCalle] = useState(domicilioOrigen?.calle ?? "");
   const [altura, setAltura] = useState(domicilioOrigen?.altura ?? "");
   const [localidad, setLocalidad] = useState(domicilioOrigen?.localidad ?? "");
@@ -105,16 +108,16 @@ export default function ProveedorFormPage({
     if (!email.trim()) {
       newErrors.push("Debes ingresar el e-mail.");
     }
-    if (!telefono.trim()) {
-      newErrors.push("Debes ingresar el teléfono.");
-    }
+    let phones;
+    try { phones = validatePhones(telefono, telefonosAdicionales); }
+    catch (error) { newErrors.push((error as Error).message); }
     try {
       validateTabulatedAddress({ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento }, domicilioOrigen ? { province: domicilioOrigen.provincia, locality: domicilioOrigen.localidad, street: domicilioOrigen.calle, streetNumber: domicilioOrigen.altura, floor: domicilioOrigen.piso ?? "", apartment: domicilioOrigen.departamento ?? "" } : undefined, catalogAddressData(catalogs));
     } catch (error) { newErrors.push((error as Error).message); }
 
     setErrors(newErrors);
     setSaved(false);
-    if (newErrors.length > 0) {
+    if (newErrors.length > 0 || !phones) {
       return;
     }
 
@@ -133,7 +136,8 @@ export default function ProveedorFormPage({
       nombre: nombre.trim(),
       apellido: "",
       email: email.trim(),
-      telefono: telefono.trim(),
+      telefono: phones.phone,
+      telefonosAdicionales: phones.additionalPhones,
       estado,
     };
 
@@ -266,21 +270,9 @@ export default function ProveedorFormPage({
               />
             </div>
 
-            <div>
-              <label htmlFor="telefono" className={labelClasses}>
-                Teléfono
-              </label>
-              <input
-                required id="telefono"
-                type="tel"
-                value={telefono}
-                onChange={(event) => setTelefono(event.target.value)}
-                placeholder="Ej: (0221) 425-6677"
-                className={`${inputClasses} mt-1`}
-              />
-            </div>
           </div>
 
+          <div className="mt-4"><PhoneFields primary={telefono} additional={telefonosAdicionales} onChange={(primary, additional) => { setTelefono(primary); setTelefonosAdicionales(additional); }} /></div>
           <div className="mt-4"><AddressFields previous={domicilioOrigen ? { province: domicilioOrigen.provincia, locality: domicilioOrigen.localidad, street: domicilioOrigen.calle, streetNumber: domicilioOrigen.altura, floor: domicilioOrigen.piso ?? "", apartment: domicilioOrigen.departamento ?? "" } : undefined} value={{ province: provincia, locality: localidad, street: calle, streetNumber: altura, floor: piso, apartment: departamento }} onChange={value => {
             setProvincia(value.province); setLocalidad(value.locality); setCalle(value.street);
             setAltura(value.streetNumber); setPiso(value.floor); setDepartamento(value.apartment);

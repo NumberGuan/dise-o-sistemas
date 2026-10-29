@@ -27,6 +27,7 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
   const catalogs = useCatalogs();
   const [items, setItems] = useState<Partial<MaintenanceOrderItem>[]>(item?.items ?? (preselectedMachineId ? [{ id: `item-${Date.now()}`, machineId: preselectedMachineId }] : []));
   const [error, setError] = useState("");
+  const approximateTotal = items.reduce((sum, repair) => sum + (repair.approximateCost ?? 0), 0);
 
   function addItem() {
     setItems([...items, { id: `item-${Date.now()}-${items.length}`, machineId: "", type: catalogs["tipos-mantenimiento"].find(item => item.active)?.value ?? "", description: "", workPerformed: "" }]);
@@ -51,6 +52,7 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
       if (!it.machineId) return setError("Seleccioná una máquina en todos los ítems.");
       if (!it.type) return setError("Seleccioná el tipo de mantenimiento en todos los ítems.");
       if (!it.description?.trim()) return setError("Ingresá la descripción en todos los ítems.");
+      if (it.approximateCost !== undefined && (!Number.isFinite(it.approximateCost) || it.approximateCost < 0)) return setError("El costo aproximado de cada reparación debe ser un importe válido igual o mayor a cero.");
       const machine = SAMPLE_MACHINES.find((m) => m.id === it.machineId);
       if (machine?.status === "Inactiva") return setError(`La máquina ${machine.name} está inactiva y no puede recibir mantenimiento.`);
       if (start && SAMPLE_MAINTENANCES.some((m) => m.id !== item?.id && m.status === "En curso" && m.items.some(x => x.machineId === it.machineId))) return setError(`La máquina ${machine?.name} ya tiene un mantenimiento en curso.`);
@@ -89,7 +91,7 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
           <label className={labelClass}>Fecha de emisión <span className="text-rose-600">*</span>
             <input type="date" required value={issueDate} onChange={(e) => setIssueDate(e.target.value)} className={field} />
           </label>
-          <label className={labelClass}>Fecha estimada <span className="text-rose-600">*</span>
+          <label className={labelClass}>Fecha estimada de finalización <span className="text-rose-600">*</span>
             <input type="date" required value={estimatedDate} onChange={(e) => setEstimatedDate(e.target.value)} className={field} />
           </label>
 
@@ -146,10 +148,22 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
                   <label className={`${labelClass} sm:col-span-2`}>Descripción del problema / tarea <span className="text-rose-600">*</span>
                     <input type="text" required value={it.description} onChange={(e) => updateItem(idx, "description", e.target.value)} className={field} />
                   </label>
+                  <label className={labelClass}>Costo aproximado de la reparación (ARS)
+                    <input type="number" min="0" step="0.01" value={it.approximateCost ?? ""} onChange={(e) => {
+                      const value = e.target.value;
+                      const newItems = [...items];
+                      newItems[idx] = { ...newItems[idx], approximateCost: value === "" ? undefined : Number(value) };
+                      setItems(newItems);
+                    }} placeholder="Ej: 15000" className={field} />
+                  </label>
                 </div>
               </div>
             ))}
           </div>
+          {items.length > 0 && <div className="mt-4 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+            <span className="text-sm font-semibold text-amber-900">Costo Total aproximado</span>
+            <span aria-live="polite" className="text-lg font-bold text-amber-900">{formatCurrency(approximateTotal)}</span>
+          </div>}
         </div>
       </form>
 
@@ -172,6 +186,7 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
   const [error, setError] = useState("");
 
   const totalCost = items.reduce((sum, item) => sum + (item.cost || 0), 0);
+  const approximateTotal = order.items.reduce((sum, item) => sum + (item.approximateCost ?? 0), 0);
 
   function updateItem(index: number, field: keyof MaintenanceOrderItem, value: string | number) {
     const newItems = [...items];
@@ -223,6 +238,12 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
                           <p className="text-xs text-gray-500">Descripción del problema / tarea</p>
                           <p className="mt-1 text-sm text-gray-900">{it.description}</p>
                         </div>
+                        {it.approximateCost !== undefined && (
+                          <div>
+                            <p className="text-xs text-gray-500">Costo aproximado</p>
+                            <p className="mt-1 text-sm font-medium text-gray-900">{formatCurrency(it.approximateCost)}</p>
+                          </div>
+                        )}
 
                         {order.status === "En curso" ? (
                           <>
@@ -270,7 +291,7 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
                   <dd className="mt-0.5 font-medium text-gray-800">{order.issueDate}</dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-gray-500">Fecha estimada</dt>
+                  <dt className="text-xs text-gray-500">Fecha estimada de finalización</dt>
                   <dd className="mt-0.5 font-medium text-gray-800">{order.estimatedDate}</dd>
                 </div>
                 <div>
@@ -285,6 +306,10 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
                   <dt className="text-xs text-gray-500">Fecha de finalización</dt>
                   <dd className="mt-0.5 font-medium text-gray-800">{order.endDate ?? "—"}</dd>
                 </div>
+                {approximateTotal > 0 && <div className="pt-2 border-t border-gray-100">
+                  <dt className="text-xs text-gray-500">Costo Total aproximado</dt>
+                  <dd className="mt-0.5 text-lg font-bold text-gray-900">{formatCurrency(approximateTotal)}</dd>
+                </div>}
                 {totalCost > 0 && (
                   <div className="pt-2 border-t border-gray-100">
                     <dt className="text-xs text-gray-500">Costo Total</dt>
@@ -472,7 +497,7 @@ export default function Mantenimientos() {
             <div className="hidden lg:grid lg:grid-cols-[1fr_1.5fr_1fr_1.5fr_1fr_auto] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
               <div className="min-w-0 text-left">Nº Orden</div>
               <div className="min-w-0 text-left">Máquinas</div>
-              <div className="min-w-0 text-center">Programado</div>
+              <div className="min-w-0 text-center">Finalización estimada</div>
               <div className="min-w-0 text-center">Responsable</div>
               <div className="min-w-0 text-center">Estado</div>
               <div className="min-w-0 text-center">Acciones</div>
@@ -493,7 +518,7 @@ export default function Mantenimientos() {
                       <p className="mt-1 truncate text-sm text-gray-900 lg:mt-0" title={machinesSummary}>{o.items.length} {o.items.length === 1 ? "máquina" : "máquinas"}: {machinesSummary}</p>
                     </div>
                     <div className="min-w-0 text-left lg:text-center">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Programado</p>
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Finalización estimada</p>
                       <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{o.estimatedDate} {due && <span className="text-red-600 font-semibold block sm:inline">· Vencido</span>}</p>
                     </div>
                     <div className="min-w-0 text-left lg:text-center">

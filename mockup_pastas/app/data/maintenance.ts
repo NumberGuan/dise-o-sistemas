@@ -22,6 +22,7 @@ export type MaintenanceOrderItem = {
   type: MaintenanceType;
   description: string;
   workPerformed: string;
+  approximateCost?: number;
   cost?: number;
 };
 
