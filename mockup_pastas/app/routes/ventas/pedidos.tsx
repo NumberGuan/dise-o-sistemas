@@ -646,7 +646,7 @@ export default function Pedidos() {
       const matchesSearch = !query || order.number.toLowerCase().includes(query) || clientName.includes(query);
       const matchesStatus = statusFilter === "Todos los estados" || order.status === statusFilter;
       return matchesSearch && matchesStatus && (kindFilter === "Todos los tipos" || (order.kind ?? "Regular") === kindFilter);
-    });
+    }).sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number));
   }, [orders, search, statusFilter, kindFilter, clients]);
 
   useEffect(() => {
