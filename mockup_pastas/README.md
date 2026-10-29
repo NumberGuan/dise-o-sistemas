@@ -142,6 +142,8 @@ El botón **+** de cada catálogo en Gestión del sistema y de sus campos en los
 
 Los clientes tienen una dirección fija de facturación obligatoria, seguida de direcciones complementarias opcionales. La dirección fija se puede editar y permanece en primer lugar; las complementarias se pueden agregar o quitar y seleccionar para entregas. Los comprobantes nuevos guardan la dirección de facturación para conservarla aunque después cambie el domicilio del cliente.
 
+Clientes, empleados y proveedores permiten cargar un teléfono principal obligatorio y hasta 20 adicionales. Los adicionales se pueden agregar, quitar o intercambiar con el principal; las vistas de detalle muestran ambos por separado. Se rechazan números vacíos, repetidos y de más de 40 caracteres. Los teléfonos existentes se conservan como principales. Ventas y Mi perfil comparten los teléfonos de las cuentas de clientes; empleados y proveedores mantienen el almacenamiento durante la sesión que ya utilizaban. `npm run test:telefonos` verifica el guardado, la sincronización y las validaciones con datos aislados en una carpeta temporal.
+
 ### Donación en Ventas
 
 La pantalla `/ventas/donacion` permite registrar un cliente activo, fecha, productos, cantidades y observaciones. El valor unitario, los subtotales y el total se calculan siempre en $0 en el servidor; estas operaciones no generan deuda ni se agregan a los pedidos comerciales. Se admiten productos del catálogo de muestra de Producción con stock y vencimiento entre la fecha elegida y los siete días siguientes. No se admiten fechas futuras, productos vencidos para esa fecha ni destinatarios genéricos de mostrador.

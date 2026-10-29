@@ -10,6 +10,7 @@
     "test:administracion": "node --test scripts/administracion.test.mjs",
     "test:donaciones": "node --test scripts/donaciones.test.mjs",
     "test:domicilios": "node --test scripts/domicilios.test.mjs",
+    "test:telefonos": "node --test scripts/telefonos.test.mjs",
     "test:cuenta-mensual": "node --test scripts/cuenta-mensual.test.mjs",
     "test:catalogo-publico": "node --test scripts/catalogo-publico.test.mjs"
   },

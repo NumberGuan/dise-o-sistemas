@@ -54,7 +54,7 @@ export default function ProveedoresListPage() {
                 <th className="px-5 py-3 font-medium">Nombre / Razón Social</th>
                 <th className="px-5 py-3 font-medium">Documento</th>
                 <th className="px-5 py-3 font-medium">e-mail</th>
-                <th className="px-5 py-3 font-medium">Teléfono</th>
+                <th className="px-5 py-3 font-medium">Teléfono principal</th>
                 <th className="px-5 py-3 font-medium">Domicilio</th>
                 <th className="px-5 py-3 font-medium">Estado</th>
                 <th className="px-5 py-3 text-right font-medium">Acciones</th>

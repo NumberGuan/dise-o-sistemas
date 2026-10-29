@@ -9,6 +9,8 @@ export type Employee = {
   /** Nombre completo provisto por la entidad Persona en el modelo de dominio. */
   name: string;
   email: string;
+  phone?: string;
+  additionalPhones?: string[];
   address?: AddressFields;
   dni: string;
   role: EmployeeRole;

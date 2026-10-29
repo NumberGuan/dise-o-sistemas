@@ -59,6 +59,7 @@ export type Client = {
   cuitCuil: string;
   ivaType: ClientIvaType | "";
   phone: string;
+  additionalPhones?: string[];
   email: string;
   street: string;
   streetNumber: string;
