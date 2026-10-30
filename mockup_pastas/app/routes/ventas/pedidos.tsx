@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -486,7 +487,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
   const activeRemit = SAMPLE_REMITS.find(remit => remit.orderId === order.id && remit.status !== "Anulado");
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={`Pedido ${order.number}`} onCancel={onClose} />
+      <SalesFormHeader title={`Pedido ${order.number}`} onCancel={onClose} action={<PrintVoucher title="Pedido de cliente" document={order} client={client} details={[{ label: "Fecha de entrega", value: order.deliveryDate }, { label: "Dirección de entrega", value: order.deliveryAddress ?? order.customDeliveryAddress ?? "Sin informar" }]} />} />
       <p className="mb-4 text-sm font-semibold text-amber-800">Tipo: {order.kind ?? "Regular"} · {order.fulfillment ?? "Envío"}{order.kind === "Evento" ? ` · ${order.deliveryDate} a las ${order.deliveryTime} · Seña cobrada: ${currency(deposit)}` : ""}</p>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="space-y-6 p-5 sm:p-6">

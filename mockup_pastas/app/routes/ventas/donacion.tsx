@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import { useEffect, useState, type FormEvent } from "react";
 import { useFetcher, useLoaderData } from "react-router";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
@@ -104,7 +105,7 @@ function DonationForm({ onClose, onSaved }: { onClose: () => void; onSaved: (num
 
 function DonationDetails({ donation, onClose }: { donation: Donation; onClose: () => void }) {
   const { getUnidad } = useProductionCatalogs();
-  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"><SalesFormHeader title={`Donación ${donation.number}`} onCancel={onClose} /><section className="space-y-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
+  return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8"><SalesFormHeader title={`Donación ${donation.number}`} onCancel={onClose} action={<PrintVoucher title="Constancia de donación" document={donation} recipient={donation.clientName} signature />} /><section className="space-y-5 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
     <dl className="grid gap-4 text-sm sm:grid-cols-3"><div><dt className="text-gray-500">Cliente destinatario</dt><dd className="mt-1 font-semibold text-gray-900">{donation.clientName}</dd></div><div><dt className="text-gray-500">Fecha de donación</dt><dd className="mt-1 text-gray-900">{donation.date}</dd></div><div><dt className="text-gray-500">Estado</dt><dd className="mt-1 font-semibold text-emerald-700">Registrada</dd></div></dl>
     <h2 className="font-semibold text-gray-900">Productos donados</h2><ul className="divide-y divide-gray-100">{donation.items.map(item => <li key={item.productId} className="flex flex-wrap justify-between gap-3 py-3"><div><p className="font-medium text-gray-900">{item.productName}</p><p className="text-sm text-gray-500">Vence {item.expirationDate} · {item.quantity} {getUnidad(item.unitId)}</p></div><p className="text-sm text-gray-700">Valor unitario $0 · Subtotal $0</p></li>)}</ul>
     {donation.observations && <p className="whitespace-pre-wrap rounded-lg bg-gray-50 p-4 text-sm text-gray-700">{donation.observations}</p>}<p className="border-t border-gray-100 pt-4 text-right text-lg font-semibold text-gray-900">Total donación: $0</p>

@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import BackToListButton from "~/components/BackToListButton";
 import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 import { useEffect, useMemo, useState } from "react";
@@ -365,7 +366,7 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
             {invoice.status}
           </span>
         </div>
-        <BackToListButton onClick={onClose} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={invoice.type} document={invoice} client={client} details={[{ label: "Vencimiento", value: invoice.dueDate }, { label: "Pedido asociado", value: order?.number ?? "Sin pedido" }]} /></div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

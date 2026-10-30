@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import BackToListButton from "~/components/BackToListButton";
@@ -455,7 +456,7 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
     <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
         <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
-        <BackToListButton onClick={onClose} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Recibo"} document={receipt} client={client} payments={receipt.payments} totalLabel="Total recibido" details={[...receipt.invoices.map(invoice => ({ label: `Aplicado a ${invoice.invoiceNumber}`, value: formatCurrency(invoice.amountApplied) })), ...(receipt.accountMonth ? [{ label: "Período", value: monthLabel(receipt.accountMonth) }] : []), ...(receipt.advanceOrderId ? [{ label: "Seña de pedido", value: orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId }] : [])]} /></div>
       </div>
       {receipt.accountMonth && <p className="mb-4 text-sm font-semibold text-amber-800">Pago del mes de {monthLabel(receipt.accountMonth)}</p>}
       {receipt.advanceOrderId && <p className="mb-4 text-sm font-semibold text-amber-800">Seña del evento {orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId}. {receipt.invoices.length === 0 ? "Se aplicará al emitir la factura del pedido." : "Aplicada a la factura del pedido."}</p>}

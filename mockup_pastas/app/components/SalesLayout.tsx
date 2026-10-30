@@ -25,11 +25,11 @@ export function SalesPageHeader({ title, description, action }: SalesPageHeaderP
   );
 }
 
-export function SalesFormHeader({ title, onCancel, pending = false }: { title: string; onCancel: () => void; pending?: boolean }) {
+export function SalesFormHeader({ title, onCancel, pending = false, action }: { title: string; onCancel: () => void; pending?: boolean; action?: React.ReactNode }) {
   return (
     <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
       <h1 className="text-2xl font-bold text-gray-900">{title}</h1>
-      <BackToListButton onClick={onCancel} disabled={pending} />
+      <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onCancel} disabled={pending} />{action}</div>
     </div>
   );
 }
