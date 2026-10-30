@@ -1,3 +1,4 @@
+import { cashReceiptFields, type CashSession, type CashActor } from "./cash";
 import { getCatalogs } from "./catalogs.server";
 import { validatePhones } from "./phones";
 import { validCatalogValue, deliveryNeedsAddress, catalogAddressData, type Catalogs } from "./catalogs";
@@ -31,7 +32,7 @@ import { customerAsClient } from "~/data/customer.server";
 import { getUsers, mutateUser, type Role } from "~/utils/db.server";
 import { getClientMonthlyAccount, invoiceAmounts, money } from "~/data/billing";
 
-type SalesData = { clients: Client[]; orders: Order[]; invoices: Invoice[]; receipts: Receipt[] };
+type SalesData = { clients: Client[]; orders: Order[]; invoices: Invoice[]; receipts: Receipt[]; cashSessions: CashSession[] };
 const SALES_PATH = path.join(process.cwd(), "data", "sales.json");
 let writeQueue: Promise<unknown> = Promise.resolve();
 
@@ -50,10 +51,10 @@ async function readSalesData(): Promise<SalesData> {
       throw new Error("El archivo de Ventas tiene un formato inválido.");
     }
     const data = parsed as SalesData;
-    return { ...data, clients: data.clients.map(normalizeClient), invoices: data.invoices ?? structuredClone(SAMPLE_INVOICES), receipts: data.receipts ?? structuredClone(SAMPLE_RECEIPTS) };
+    return { ...data, cashSessions: data.cashSessions ?? [], clients: data.clients.map(normalizeClient), invoices: data.invoices ?? structuredClone(SAMPLE_INVOICES), receipts: data.receipts ?? structuredClone(SAMPLE_RECEIPTS) };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw new Error("No se pudieron leer los datos de Ventas; se preservó el archivo existente.");
-    const initial = { clients: structuredClone(SAMPLE_CLIENTS), orders: structuredClone(SAMPLE_ORDERS), invoices: structuredClone(SAMPLE_INVOICES), receipts: structuredClone(SAMPLE_RECEIPTS) };
+    const initial = { cashSessions: [], clients: structuredClone(SAMPLE_CLIENTS), orders: structuredClone(SAMPLE_ORDERS), invoices: structuredClone(SAMPLE_INVOICES), receipts: structuredClone(SAMPLE_RECEIPTS) };
     await writeSalesData(initial);
     return initial;
   }
@@ -85,7 +86,7 @@ export async function getSalesData() {
   const registeredOrders = users.flatMap((user) => user.customerOrders ?? []);
   const orders = [...registeredOrders, ...data.orders].map(order => order.status !== "Cancelado" && data.invoices.some(invoice => invoice.orderId === order.id && invoice.status === "Emitido" && invoice.type !== "Nota de Crédito") ? { ...order, status: "Facturado" as const } : order);
   const clients = [...registeredClients, ...data.clients, COUNTER_CLIENT].map(client => ({ ...client, balance: money(getClientMonthlyAccount(client, orders, data.invoices, data.receipts).reduce((sum, month) => sum + month.balance, 0)) }));
-  return { clients, orders, invoices: data.invoices, receipts: data.receipts };
+  return { clients, orders, invoices: data.invoices, receipts: data.receipts, cashSessions: data.cashSessions };
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -265,7 +266,7 @@ async function persistOrder(order: Order, previous?: Order) {
   }
 }
 
-export async function saveSalesOrder(input: unknown, id?: string) {
+export async function saveSalesOrder(input: unknown, id?: string, actor?: CashActor) {
   const { clients } = await findClient(typeof asRecord(input)?.clientId === "string" ? asRecord(input)!.clientId as string : "");
   const previous = id ? (await getSalesData()).orders.find((item) => item.id === id) : undefined;
   if (id && !previous) throw new Error("El pedido ya no existe.");
@@ -291,7 +292,7 @@ export async function saveSalesOrder(input: unknown, id?: string) {
         const amount = deposit?.amount;
         const reference = text(deposit?.reference ?? "", 200);
         if (typeof amount !== "number" || !Number.isFinite(amount) || Math.abs(amount * 100 - Math.round(amount * 100)) > 0.000001 || amount < minimum || amount > finalTotal || amount <= 0 || !validCatalogValue(catalogs, "medios-pago", deposit?.method) || reference === null) throw new Error(`El evento requiere cobrar una seña de al menos $${minimum.toFixed(2)} y no mayor al total.`);
-        data.receipts.unshift({ id: `rec-${crypto.randomUUID()}`, number: `RC-0001-${String(Math.max(0, ...data.receipts.map(receipt => Number(receipt.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, date: order.date, clientId: order.clientId, advanceOrderId: order.id, invoices: [], payments: [{ id: crypto.randomUUID(), method: deposit.method, amount, reference }], total: amount, status: "Registrado", observations: `Seña de evento ${order.number}` });
+        data.receipts.unshift({ ...cashReceiptFields(data.cashSessions, actor), id: `rec-${crypto.randomUUID()}`, number: `RC-0001-${String(Math.max(0, ...data.receipts.map(receipt => Number(receipt.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, date: order.date, clientId: order.clientId, advanceOrderId: order.id, invoices: [], payments: [{ id: crypto.randomUUID(), method: deposit.method, amount, reference }], total: amount, status: "Registrado", observations: `Seña de evento ${order.number}` });
       }
       if (current) data.orders[data.orders.indexOf(current)] = order;
       else data.orders.unshift(order);

@@ -1,0 +1,21 @@
+.cash-print { display: none; }
+@media print {
+  @page { size: A4; margin: 15mm; }
+  body:has(> [data-cash-print]) > :not([data-cash-print]) { display: none !important; }
+  html:has([data-cash-print]), body:has(> [data-cash-print]) { height: auto !important; overflow: visible !important; background: white !important; }
+  .cash-print { display: block; color: #111; font: 10pt/1.5 Arial, sans-serif; }
+  .cash-print header { border-bottom: 2pt solid #ad452b; padding-bottom: 5mm; }
+  .cash-print h1 { font-size: 20pt; font-weight: bold; }
+  .cash-print h2 { font-size: 15pt; font-weight: bold; }
+  .cash-print h3 { font-weight: bold; margin: 6mm 0 3mm; }
+  .cash-print dl { max-width: 100mm; }
+  .cash-print dl div { display: flex; justify-content: space-between; gap: 6mm; border-bottom: 0.5pt solid #ccc; padding: 1mm 0; }
+  .cash-print dd { margin: 0; font-weight: bold; }
+  .cash-print .overflow-x-auto { overflow: visible; }
+  .cash-print table { width: 100%; table-layout: fixed; border-collapse: collapse; font-size: 8pt; }
+  .cash-print th, .cash-print td { border-bottom: 0.5pt solid #ccc; padding: 2mm; overflow-wrap: anywhere; white-space: normal; text-align: left; }
+  .cash-print thead { display: table-header-group; }
+  .cash-print tr { break-inside: avoid; }
+  .cash-notes { white-space: pre-wrap; }
+  .cash-print footer { margin-top: 20mm; break-inside: avoid; }
+}

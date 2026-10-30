@@ -18,6 +18,7 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Presupuestos Clientes", to: "/ventas/presupuestos" },
       { label: "Pedidos Clientes", to: "/ventas/pedidos" },
       { label: "Comprobantes de Venta", to: "/ventas/comprobantes" },
+      { label: "Caja", to: "/ventas/caja" },
       { label: "Recibos de Pago Clientes", to: "/ventas/recibos" },
       { label: "Remitos Cliente", to: "/ventas/remitos" },
       { label: "Devoluciones", to: "/ventas/devoluciones" },

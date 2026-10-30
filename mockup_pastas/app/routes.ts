@@ -23,6 +23,7 @@ export default [
         route("remitos", "routes/ventas/remitos.tsx"),
         route("devoluciones", "routes/ventas/devoluciones.tsx"),
         route("donacion", "routes/ventas/donacion.tsx"),
+        route("caja", "routes/ventas/caja.tsx"),
         route("recibos", "routes/ventas/recibos.tsx"),
       ]),
 

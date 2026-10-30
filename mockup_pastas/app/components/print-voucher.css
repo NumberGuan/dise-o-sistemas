@@ -1,0 +1,38 @@
+.print-voucher { display: none; }
+@media print {
+  @page { size: A4 portrait; margin: 15mm; }
+  body:has(> [data-print-voucher]) > :not([data-print-voucher]) { display: none !important; }
+  html:has([data-print-voucher]), body:has(> [data-print-voucher]) { background: white !important; overflow: visible !important; height: auto !important; }
+  .print-voucher { display: block; color: #18202a; font: 10pt/1.5 Arial, sans-serif; background: white; width: 100%; }
+  .print-voucher * { box-sizing: border-box; }
+  .voucher-header { display: flex; justify-content: space-between; gap: 8mm; border: 1pt solid #444; border-top: 4pt solid var(--color-brand-600); padding: 6mm; break-inside: avoid; }
+  .voucher-header h1 { margin: 2mm 0; font-size: 22pt; font-weight: bold; }
+  .voucher-header p { margin: 1mm 0; }
+  .voucher-eyebrow { font-weight: bold; letter-spacing: 1pt; color: var(--color-brand-700); }
+  .voucher-number { text-align: right; }
+  .voucher-number > strong { font-size: 13pt; }
+  .voucher-recipient { margin: 5mm 0; border: 1pt solid #aaa; padding: 4mm; break-inside: avoid; }
+  .print-voucher h2 { margin: 0 0 2mm; font-size: 9pt; text-transform: uppercase; color: #555; }
+  .print-voucher p { overflow-wrap: anywhere; }
+  .voucher-recipient p { margin: 1mm 0; }
+  .voucher-references { display: grid; grid-template-columns: 1fr 1fr; gap: 3mm; margin-bottom: 5mm; }
+  .voucher-references dt { font-size: 9pt; color: #555; }
+  .voucher-references dd { margin: 0; overflow-wrap: anywhere; }
+  .print-voucher table { width: 100%; border-collapse: collapse; margin: 5mm 0; table-layout: fixed; }
+  .print-voucher thead { display: table-header-group; }
+  .print-voucher th, .print-voucher td { padding: 3mm; border-bottom: 0.5pt solid #bbb; vertical-align: top; text-align: left; overflow-wrap: anywhere; }
+  .print-voucher th { background: #f3f3f3; font-size: 9pt; }
+  .print-voucher th:first-child { width: 40%; }
+  .print-voucher tr { break-inside: avoid; }
+  .print-voucher .numeric { text-align: right; }
+  .print-voucher small { display: block; color: #555; }
+  .voucher-totals { width: 85mm; margin: 5mm 0 5mm auto; break-inside: avoid; }
+  .voucher-totals div { display: flex; justify-content: space-between; gap: 3mm; padding: 2mm; }
+  .voucher-totals dd { margin: 0; white-space: nowrap; }
+  .voucher-grand-total { font-size: 13pt; font-weight: bold; border-top: 1pt solid #444; }
+  .voucher-observations { margin: 6mm 0; border-top: 0.5pt solid #aaa; padding-top: 3mm; }
+  .voucher-observations p { white-space: pre-wrap; }
+  .voucher-signatures { display: flex; justify-content: space-between; gap: 15mm; margin-top: 25mm; break-inside: avoid; }
+  .voucher-signatures p { border-top: 0.5pt solid #555; width: 45%; padding-top: 3mm; text-align: center; }
+  .print-voucher footer { margin-top: 10mm; padding-top: 3mm; border-top: 0.5pt solid #aaa; font-size: 8pt; color: #666; }
+}

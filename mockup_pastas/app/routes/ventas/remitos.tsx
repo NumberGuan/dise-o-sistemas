@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import BackToListButton from "~/components/BackToListButton";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
@@ -230,7 +231,7 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
         <h1 className="min-w-0 break-all text-2xl font-bold text-gray-900">Remito {remit.number}</h1>
-        <BackToListButton onClick={onClose} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Remito"} document={remit} client={client} signature details={[{ label: "Pedido asociado", value: order?.number ?? remit.orderId }]} /></div>
       </div>
 
       {notice && <p role="status" className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
