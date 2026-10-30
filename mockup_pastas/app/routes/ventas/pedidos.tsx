@@ -2,7 +2,7 @@ import PrintVoucher from "~/components/PrintVoucher";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Link, redirect, useFetcher, useLoaderData, useRevalidator, useSearchParams } from "react-router";
+import { Link, redirect, useFetcher, useLoaderData, useRevalidator, useSearchParams, useNavigate } from "react-router";
 import { deliveryNeedsAddress, catalogOptions, catalogDefaultValue } from "~/data/catalogs";
 import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 
@@ -476,11 +476,12 @@ type OrderDetailsProps = {
   order: Order;
   client: Client | undefined;
   onClose: () => void;
+  backLabel?: string;
   onEdit: () => void;
   onChangeStatus: (status: OrderStatus) => void;
 };
 
-function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderDetailsProps) {
+function OrderDetails({ order, client, onClose, onEdit, onChangeStatus, backLabel }: OrderDetailsProps) {
   const catalogs = useCatalogs();
   const { invoices, receipts } = useLoaderData<typeof loader>();
   const deposit = receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
@@ -488,7 +489,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
   const activeRemit = SAMPLE_REMITS.find(remit => remit.orderId === order.id && remit.status !== "Anulado");
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={`Pedido ${order.number}`} onCancel={onClose} action={<PrintVoucher title="Pedido de cliente" document={order} client={client} details={[{ label: "Fecha de entrega", value: order.deliveryDate }, { label: "Dirección de entrega", value: order.deliveryAddress ?? order.customDeliveryAddress ?? "Sin informar" }]} />} />
+      <SalesFormHeader title={`Pedido ${order.number}`} onCancel={onClose} backLabel={backLabel} action={<PrintVoucher title="Pedido de cliente" document={order} client={client} details={[{ label: "Fecha de entrega", value: order.deliveryDate }, { label: "Dirección de entrega", value: order.deliveryAddress ?? order.customDeliveryAddress ?? "Sin informar" }]} />} />
       <p className="mb-4 text-sm font-semibold text-amber-800">Tipo: {order.kind ?? "Regular"} · {order.fulfillment ?? "Envío"}{order.kind === "Evento" ? ` · ${order.deliveryDate} a las ${order.deliveryTime} · Seña cobrada: ${currency(deposit)}` : ""}</p>
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="space-y-6 p-5 sm:p-6">
@@ -615,6 +616,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus }: OrderD
 
 export default function Pedidos() {
   const initialData = useLoaderData<typeof loader>();
+  const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();
   const revalidator = useRevalidator();
   const clients = initialData.clients;
@@ -670,7 +672,13 @@ export default function Pedidos() {
     if (order) setSelectedOrder(order);
   }, [orders, searchParams]);
 
-  function closeOrderDetails() {
+  const returnClientId = searchParams.get("volverCliente");
+  const cameFromClient = Boolean(selectedOrder && returnClientId === selectedOrder.clientId && clients.some(client => client.id === returnClientId));
+  function closeOrderDetails(returnToClient = true) {
+    if (returnToClient && cameFromClient && returnClientId) {
+      navigate(`/ventas/clientes?cliente=${encodeURIComponent(returnClientId)}`);
+      return;
+    }
     setSelectedOrder(null);
     if (searchParams.has("pedido")) {
       const nextParams = new URLSearchParams(searchParams);
@@ -711,7 +719,8 @@ export default function Pedidos() {
         order={selectedOrder}
         client={clients.find(client => client.id === selectedOrder.clientId)}
         onClose={closeOrderDetails}
-        onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(); }}
+        backLabel={cameFromClient ? "Volver al cliente" : undefined}
+        onEdit={() => { setEditingOrder(selectedOrder); closeOrderDetails(false); }}
         onChangeStatus={changeOrderStatus}
       />
     </>;

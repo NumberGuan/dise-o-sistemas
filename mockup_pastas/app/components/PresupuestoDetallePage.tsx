@@ -1,3 +1,4 @@
+import PrintVoucher from "./PrintVoucher";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
@@ -42,6 +43,8 @@ export default function PresupuestoDetallePage({
   const proveedor = getProveedorPorId(presupuesto.idProveedor);
   const vencido = presupuesto.fechaVencimiento < hoy;
   const montoTotal = getMontoPresupuesto(presupuesto.detalle);
+
+  const printAction = <PrintVoucher title="Presupuesto de proveedor" document={{ number: presupuesto.numero, date: presupuesto.fechaEmision, total: montoTotal, items: presupuesto.detalle.map(linea => ({ productName: getMateriaPrimaPorId(linea.idMateriaPrima)?.nombre ?? "Materia prima", quantity: linea.cantidad, unitPrice: linea.cantidad ? linea.subtotal / linea.cantidad : undefined, subtotal: linea.subtotal })) }} recipient={proveedor?.nombre} recipientLabel="Proveedor" details={[{ label: "Vencimiento", value: presupuesto.fechaVencimiento }]} signature />;
 
   const contenido = (
     <>
@@ -144,7 +147,7 @@ export default function PresupuestoDetallePage({
   );
 
   if (onClose) {
-    return contenido;
+    return <><div className="mb-4 flex justify-end">{printAction}</div>{contenido}</>;
   }
 
   return (
@@ -169,7 +172,7 @@ export default function PresupuestoDetallePage({
             Presupuesto recibido por mensaje desde {proveedor?.nombre ?? "el proveedor"}.
           </p>
         </div>
-        <BackToListButton onClick={irVolver} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={irVolver} />{printAction}</div>
       </div>
       {contenido}
     </div>

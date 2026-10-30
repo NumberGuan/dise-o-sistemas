@@ -1,3 +1,4 @@
+import PrintVoucher from "./PrintVoucher";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
@@ -39,6 +40,8 @@ export default function RemitoProveedorDetallePage({
     ? getOrdenes().find((o) => o.id === remito.idOrdenCompraProveedor)
     : undefined;
   const cantidadTotal = getCantidadTotalRemito(remito.detalle);
+
+  const printAction = <PrintVoucher title="Remito de proveedor" document={{ number: remito.numero, date: remito.fecha,  items: remito.detalle.map(linea => ({ productName: getMateriaPrimaPorId(linea.idMateriaPrima)?.nombre ?? "Materia prima", quantity: linea.cantidad })) }} recipient={proveedor?.nombre} recipientLabel="Proveedor" details={[{ label: "Orden de compra", value: orden?.numero ?? "Sin vincular" }]} signature />;
 
   const contenido = (
     <>
@@ -134,7 +137,7 @@ export default function RemitoProveedorDetallePage({
   );
 
   if (onClose) {
-    return contenido;
+    return <><div className="mb-4 flex justify-end">{printAction}</div>{contenido}</>;
   }
 
   return (
@@ -146,7 +149,7 @@ export default function RemitoProveedorDetallePage({
             Remito recibido del proveedor {proveedor?.nombre ?? "—"}.
           </p>
         </div>
-        <BackToListButton onClick={irVolver} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={irVolver} />{printAction}</div>
       </div>
       {contenido}
     </div>

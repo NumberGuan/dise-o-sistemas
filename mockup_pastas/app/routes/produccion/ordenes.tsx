@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import { useProductionCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
@@ -136,7 +137,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
             <AnimatedBadge value={order.estado} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.estado)}`} />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2"><PrintVoucher title="Orden de producción" document={{ number: numero(order), date: order.fechaEmision, status: order.estado, items: order.detalle.map(line => { const product = getProducto(line.idProducto); return { productName: `${product?.nombre ?? "Producto"} · ${product ? getUnidad(product.idUnidad) : ""}`, quantity: line.cantidadRealGenerada ?? undefined }; }) }} recipient={empleado(order.idEmpleado)} recipientLabel="Responsable de producción" details={[{ label: "Lote", value: String(order.nmrLote) }, { label: "Inicio", value: order.fechaInicio ?? "Sin iniciar" }, { label: "Finalización", value: order.fechaFinalizacion ?? "Pendiente" }, { label: "Cantidades", value: "Producción real registrada. Un guion indica una cantidad aún no registrada." }]} signature />
           {order.estado === "Pendiente" && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}
 
         </div>
