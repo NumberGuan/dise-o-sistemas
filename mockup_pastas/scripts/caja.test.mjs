@@ -1,0 +1,64 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import { createServer } from "vite";
+
+test("Caja: persistencia, cobros, concurrencia y cierre inmutable", async () => {
+  const cwd = process.cwd();
+  const root = fileURLToPath(new URL("../", import.meta.url));
+  const temporary = await fs.mkdtemp(path.join(os.tmpdir(), "pastas-caja-"));
+  const server = await createServer({ configFile: false, root, resolve: { alias: { "~": path.join(root, "app") } }, server: { middlewareMode: true, hmr: false }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } });
+  try {
+    process.chdir(temporary);
+    await fs.mkdir("data");
+    await fs.writeFile("data/users.json", "[]");
+    const sales = await server.ssrLoadModule("/app/data/sales.server.ts");
+    const cash = await server.ssrLoadModule("/app/data/cash.server.ts");
+    const model = await server.ssrLoadModule("/app/data/cash.ts");
+    const billing = await server.ssrLoadModule("/app/data/billing.server.ts");
+    const actor = { id: "test-user", name: "Responsable" };
+    const form = values => { const result = new FormData(); for (const [key, value] of Object.entries(values)) result.set(key, String(value)); return result; };
+    const update = values => cash.updateCash(form(values), actor);
+    await sales.mutateSalesData(async data => { data.receipts = []; });
+    let data = await sales.getSalesData();
+    const invoice = data.invoices.find(row => row.type !== "Nota de Crédito" && row.status === "Emitido");
+    const receipt = { clientId: invoice.clientId, date: "2026-10-29", status: "Registrado", invoices: [{ invoiceId: invoice.id, amountApplied: 100 }], payments: [{ method: "Efectivo", amount: 60 }, { method: "Transferencia", amount: 40 }] };
+    await assert.rejects(billing.saveSalesReceipt(receipt, undefined, actor), /Abrí una caja/);
+    await assert.rejects(update({ intent: "open", opening: "" }), /importe válido/);
+    const opened = await Promise.allSettled([update({ intent: "open", opening: 1000 }), update({ intent: "open", opening: 1000 })]);
+    assert.equal(opened.filter(result => result.status === "fulfilled").length, 1);
+    data = await sales.getSalesData();
+    const id = data.cashSessions[0].id;
+    await billing.saveSalesReceipt(receipt, undefined, actor);
+    await update({ intent: "movement", sessionId: id, kind: "Ingreso", amount: 50, concept: "Aporte" });
+    await update({ intent: "movement", sessionId: id, kind: "Egreso", amount: 20, concept: "Gasto" });
+    await assert.rejects(update({ intent: "movement", sessionId: id, kind: "Egreso", amount: 99999, concept: "Retiro" }), /supera/);
+    data = await sales.getSalesData();
+    const summary = model.cashSummary(data.cashSessions[0], data.receipts);
+    assert.equal(summary.collected, 100);
+    assert.equal(summary.cashCollected, 60);
+    assert.equal(summary.expected, 1090);
+    assert.equal(data.receipts[0].registeredBy.name, actor.name);
+    const close = { intent: "close", sessionId: id, counted: 1080, expected: 1090, revision: "1:2", confirm: "yes", notes: "Faltante a revisar" };
+    await assert.rejects(update({ ...close, notes: "" }), /Explicá/);
+    await assert.rejects(update({ ...close, expected: 1000 }), /cambiaron/);
+    await update(close);
+    data = await sales.getSalesData();
+    assert.equal(data.cashSessions[0].difference, -10);
+    const snapshot = JSON.stringify(data.cashSessions[0].snapshot);
+    await assert.rejects(update({ intent: "movement", sessionId: id, kind: "Ingreso", amount: 10, concept: "Fuera de turno" }), /Abrí una caja/);
+    await assert.rejects(billing.saveSalesReceipt({ ...data.receipts[0], status: "Anulado" }, data.receipts[0].id, actor), /caja cerrada/);
+    await update({ intent: "open", opening: 100 });
+    data = await sales.getSalesData();
+    assert.equal(JSON.stringify(data.cashSessions.find(row => row.id === id).snapshot), snapshot);
+    assert.equal(model.cashSummary(data.cashSessions[0], data.receipts).collected, 0);
+    assert.equal(data.cashSessions[0].number, "CA-000002");
+  } finally {
+    await server.close();
+    process.chdir(cwd);
+    await fs.rm(temporary, { recursive: true, force: true });
+  }
+});

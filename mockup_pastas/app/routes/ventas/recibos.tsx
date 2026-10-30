@@ -3,7 +3,7 @@ import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import BackToListButton from "~/components/BackToListButton";
 import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
-import { useLoaderData, useFetcher, useSearchParams } from "react-router";
+import { Link, useLoaderData, useFetcher, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
 import {
@@ -28,13 +28,13 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 };
 
 export const action = async ({ request }: Route.ActionArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
+  const actor = await requireUserAndRole(request, ["Ventas"]);
   try {
     const data = await request.formData();
     const raw = data.get("document");
     const id = data.get("id");
     if (typeof raw !== "string" || raw.length > 200000 || (id !== null && (typeof id !== "string" || id.length > 120))) throw new Error("Los datos enviados no son validos.");
-    await saveSalesReceipt(JSON.parse(raw), typeof id === "string" ? id : undefined);
+    await saveSalesReceipt(JSON.parse(raw), typeof id === "string" ? id : undefined, actor);
     return { success: true };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "No se pudo guardar el documento." };
@@ -80,7 +80,7 @@ type ReceiptFormProps = {
 };
 
 function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) {
-  const { clients, invoices, orders } = useLoaderData<typeof loader>();
+  const { clients, invoices, orders, cashSessions } = useLoaderData<typeof loader>();
   const [params] = useSearchParams();
   const [accountMonth, setAccountMonth] = useState(receipt?.accountMonth ?? params.get("mes") ?? "");
   const isNew = !receipt;
@@ -193,6 +193,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <SalesFormHeader title={isNew ? "Nuevo recibo" : `Editar recibo ${receipt.number}`} onCancel={onCancel} />
+      <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{cashSessions.some(session => !session.closedAt) ? "El cobro se incorporará a la caja abierta al registrar el recibo." : "No hay caja abierta. Podés guardar un borrador, pero necesitás abrir caja para registrar el cobro."} <Link to="/ventas/caja" className="font-semibold underline">Ir a Caja</Link></p>
 
       {errorMsg && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">

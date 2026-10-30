@@ -149,3 +149,14 @@ Clientes, empleados y proveedores permiten cargar un teléfono principal obligat
 La pantalla `/ventas/donacion` permite registrar un cliente activo, fecha, productos, cantidades y observaciones. El valor unitario, los subtotales y el total se calculan siempre en $0 en el servidor; estas operaciones no generan deuda ni se agregan a los pedidos comerciales. Se admiten productos del catálogo de muestra de Producción con stock y vencimiento entre la fecha elegida y los siete días siguientes. No se admiten fechas futuras, productos vencidos para esa fecha ni destinatarios genéricos de mostrador.
 
 Las donaciones se guardan en `data/donaciones.json`, con nombres y vencimientos conservados en cada detalle. Las escrituras se serializan y las cantidades ya donadas se reservan contra el stock de muestra para evitar asignarlas nuevamente. El módulo de Producción continúa administrando sus productos durante la sesión; no hay un inventario persistente unificado entre módulos. Las fechas de muestra pueden no ofrecer productos elegibles para hoy. `npm run test:donaciones` ejecuta las pruebas en una carpeta temporal aislada.
+
+
+## Caja de ventas
+
+Desde **Ventas → Caja** se abre un turno con saldo inicial, se registran ingresos y egresos en efectivo, se realiza el arqueo y se imprime el cierre. Solo puede existir un turno abierto. Los recibos nuevos y las señas de eventos requieren una caja abierta; sus datos de caja, fecha/hora y responsable se asignan en el servidor. Los recibos históricos sin caja permanecen fuera de los nuevos turnos.
+
+El arqueo considera el medio **Efectivo**; tarjetas, transferencias y otros métodos se resumen por separado. Los cobros se registran desde Recibos, para evitar duplicarlos como ingresos manuales. Una diferencia entre el efectivo esperado y el contado requiere una observación. El cierre guarda una copia de los recibos y totales y no permite anular sus recibos posteriormente. Los movimientos manuales de corrección deben documentarse en un turno abierto.
+
+La persistencia usa `cashSessions` dentro del archivo existente `data/sales.json`, sin descartar sus datos previos. Comparte la cola de escritura de ventas para evitar dos aperturas simultáneas o cobros perdidos durante el cierre en una única instancia.
+
+Validación del circuito de caja con datos temporales: `npm run test:caja`.
