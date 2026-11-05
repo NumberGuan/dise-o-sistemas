@@ -198,3 +198,36 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
   outline-color: #dc2626;
 }
 [aria-invalid="true"] { scroll-margin-block: 12rem 3rem; }
+
+/* La navegación lateral usa un indicador fino con los tonos de la marca. */
+.sidebar-scrollbar {
+  scrollbar-color: var(--color-brand-600) var(--color-gray-50);
+  scrollbar-width: thin;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 3px;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  margin-block: 8px;
+  border-radius: 999px;
+  background: var(--color-gray-50);
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  border: 0;
+  border-radius: 999px;
+  background: var(--color-brand-600);
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--color-brand-500);
+}
+
+@supports selector(::-webkit-scrollbar) {
+  .sidebar-scrollbar {
+    scrollbar-width: auto;
+    scrollbar-color: auto;
+  }
+}

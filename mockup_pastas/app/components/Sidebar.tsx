@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router";
 
-import { AnimatePresence, motion } from "motion/react";
+import { motion } from "motion/react";
 
 import { CloseIcon, Logo } from "~/components/icons";
-import { Chevron, Collapse, EASE_OUT, SPRING_BOUNCE } from "~/components/motion";
+import { Chevron, EASE_OUT } from "~/components/motion";
 import { NAV_SECTIONS } from "~/data/navigation";
 
 import type { PublicUser } from "~/utils/db.server";
@@ -176,16 +176,16 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
           )}
         </div>
 
-        <nav className="min-h-0 flex-1 overflow-y-auto px-3 py-4" aria-label="Navegación principal">
-          <ul className="space-y-1.5">
+        <nav className="min-h-0 flex-1 overflow-hidden px-3 py-4" aria-label="Navegación principal">
+          <ul className="flex h-full min-h-0 flex-col gap-1.5">
             {filteredSections.map((section) => {
               const expanded = expandedSection === section.label;
               const active = activeSection?.label === section.label;
 
               return (
-                <li key={section.to}>
+                <li key={section.to} className={open && expanded && section.items.length > 0 ? "flex min-h-0 flex-1 flex-col" : "shrink-0"}>
                   <div
-                    className={`relative flex min-h-11 items-center rounded-lg transition-colors ${
+                    className={`relative flex min-h-11 shrink-0 items-center rounded-lg transition-colors ${
                       active
                         ? "bg-gray-100 text-amber-700 before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-r-full before:bg-amber-600"
                         : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -223,9 +223,8 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                     )}
                   </div>
 
-                  <AnimatePresence initial={false}>
                     {open && expanded && section.items.length > 0 && (
-                      <Collapse id={`sidebar-${section.label}`} transition={SPRING_BOUNCE}>
+                      <div id={`sidebar-${section.label}`} className="sidebar-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
                         <div className="ml-6 mt-1.5 space-y-0.5 border-l border-gray-200 pl-3">
                           {section.items.map((item) => (
                             <NavLink
@@ -255,9 +254,8 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                             </NavLink>
                           ))}
                         </div>
-                      </Collapse>
+                      </div>
                     )}
-                  </AnimatePresence>
                 </li>
               );
             })}
