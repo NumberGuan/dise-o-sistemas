@@ -1,10 +1,10 @@
 import { CatalogField } from "~/components/InlineCatalog";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import { getCatalogs } from "~/data/catalogs.server";
 import { catalogDefaultValue, deliveryNeedsAddress, validCatalogValue } from "~/data/catalogs";
 import CustomerCartLine from "~/components/CustomerCartLine";
-import { Link, useFetcher, useLoaderData } from "react-router";
+import { Link, useFetcher, useFetchers, useLoaderData } from "react-router";
 import { randomUUID } from "node:crypto";
 
 import { SAMPLE_ORDERS, SAMPLE_PRODUCTS, getClientAddresses, formatClientAddress } from "~/data/sales";
@@ -178,6 +178,11 @@ export default function ClienteCarrito() {
   const catalogs = useCatalogs();
   const [fulfillment, setFulfillment] = useState(catalogDefaultValue(catalogs, "modalidades-entrega", "Envío"));
   const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
+  const fetchers = useFetchers();
+  const checkoutFormRef = useRef<HTMLFormElement>(null);
+  const confirmationRef = useRef<HTMLDialogElement>(null);
+  const isBusy = fetchers.some((current) => current.state !== "idle");
+  const canCheckout = !isBusy && cart.length > 0 && total !== null && isActive && (!needsAddress || hasDeliveryAddress);
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
@@ -210,7 +215,11 @@ export default function ClienteCarrito() {
         </section>
       )}
 
-      {cart.length > 0 && <fetcher.Form noValidate method="post" className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
+      {cart.length > 0 && <fetcher.Form ref={checkoutFormRef} noValidate method="post" onSubmit={(event) => {
+        event.preventDefault();
+        if (canCheckout) confirmationRef.current?.showModal();
+      }} className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
+        <input type="hidden" name="intent" value="checkout" />
         <label className="mb-4 block text-sm font-semibold text-gray-800">Modalidad de entrega<CatalogField catalog="modalidades-entrega" onCreated={entry => setFulfillment(entry.value)} disabled={fetcher.state !== "idle"}><select name="fulfillment" value={fulfillment} onChange={event => setFulfillment(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm"><CatalogOptions catalog="modalidades-entrega" /></select></CatalogField></label>
         {needsAddress && <label className="mb-4 block text-sm font-semibold text-gray-800">Dirección de entrega<select name="deliveryAddressId" required defaultValue={addresses[0]?.id ?? ""} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm">{!addresses.length && <option value="">Agregá una dirección en Mi perfil</option>}{addresses.map((address, index) => <option key={address.id} value={address.id}>{address.label}{index === 0 ? " (principal)" : ""} · {formatClientAddress(address)}</option>)}</select></label>}
         <h2 className="text-lg font-semibold text-gray-900">Datos para el pedido</h2>
@@ -220,8 +229,34 @@ export default function ClienteCarrito() {
         <label htmlFor="order-observations" className="mt-4 block text-sm font-medium text-gray-700">Observaciones de entrega</label>
         <textarea id="order-observations" name="observations" rows={2} maxLength={500} className="mt-1 w-full rounded-xl border border-[#e5d9cb] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-amber-700" placeholder="Indicaciones para recibir el pedido" />
         {fetcher.state === "idle" && fetcher.data?.error && <p role="alert" className="mt-3 text-sm text-red-700">{fetcher.data.error} {fetcher.data.error.includes("Mi perfil") && <Link to="/compras/perfil" className="font-semibold underline">Completar perfil</Link>}</p>}
-        <div className="mt-4 flex flex-col gap-3 border-t border-[#f0e7dd] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button name="intent" value="checkout" type="submit" disabled={fetcher.state !== "idle" || total === null || !isActive || (needsAddress && !hasDeliveryAddress)} className="min-h-11 shrink-0 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
+        <div className="mt-4 flex flex-col gap-3 border-t border-[#f0e7dd] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button type="submit" disabled={!canCheckout} className="min-h-11 shrink-0 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
       </fetcher.Form>}
+      <dialog ref={confirmationRef} aria-labelledby="checkout-confirmation-title" aria-describedby="checkout-confirmation-description" className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-[#eadfd3] bg-white p-5 text-gray-900 shadow-xl backdrop:bg-black/50 sm:p-6">
+        <h2 id="checkout-confirmation-title" className="text-xl font-semibold">¿Deseás confirmar el pedido?</h2>
+        <p id="checkout-confirmation-description" className="mt-2 text-sm text-gray-600">Revisá los productos que vas a comprar antes de confirmar.</p>
+        <ul aria-label="Productos a comprar" className="mt-5 divide-y divide-[#f0e7dd] border-y border-[#eadfd3]">
+          {cart.map((item) => <li key={item.productId} className="flex items-start justify-between gap-4 py-4">
+            <div className="min-w-0">
+              <p className="break-words font-semibold">{item.product?.name ?? "Producto fuera del catálogo"}</p>
+              <p className="mt-1 text-sm text-gray-600">Cantidad: {item.quantity}{item.product && ` · ${currency.format(item.product.price)} por unidad`}</p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold tabular-nums">{item.subtotal === null ? "Sin precio" : currency.format(item.subtotal)}</span>
+          </li>)}
+        </ul>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <span className="font-medium">Total del pedido</span>
+          <strong className="text-xl tabular-nums">{total === null ? "No disponible" : currency.format(total)}</strong>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-gray-500">El pedido quedará pendiente para que Ventas lo gestione.</p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button type="button" autoFocus onClick={() => confirmationRef.current?.close()} className="min-h-11 rounded-xl border border-[#e5d9cb] px-4 text-sm font-semibold hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Volver al carrito</button>
+          <button type="button" disabled={!canCheckout} onClick={() => {
+            if (!canCheckout || !checkoutFormRef.current) return;
+            void fetcher.submit(checkoutFormRef.current);
+            confirmationRef.current?.close();
+          }} className="min-h-11 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 disabled:opacity-50">Sí, confirmar pedido</button>
+        </div>
+      </dialog>
       {fetcher.state === "idle" && fetcher.data?.success && fetcher.data.intent === "checkout" && <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Pedido confirmado. Ya podés consultarlo en Mis pedidos.</p>}
 
       <aside className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5" aria-labelledby="order-flow-title">
