@@ -183,7 +183,7 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
               const active = activeSection?.label === section.label;
 
               return (
-                <li key={section.to} className={open && expanded && section.items.length > 0 ? "flex min-h-0 flex-1 flex-col" : "shrink-0"}>
+                <li key={section.to} className="shrink-0">
                   <div
                     className={`relative flex min-h-11 shrink-0 items-center rounded-lg transition-colors ${
                       active
@@ -224,7 +224,7 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                   </div>
 
                     {open && expanded && section.items.length > 0 && (
-                      <div id={`sidebar-${section.label}`} className="sidebar-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                      <div id={`sidebar-${section.label}`} className="sidebar-scrollbar max-h-[35vh] overflow-y-auto overscroll-contain">
                         <div className="ml-6 mt-1.5 space-y-0.5 border-l border-gray-200 pl-3">
                           {section.items.map((item) => (
                             <NavLink
