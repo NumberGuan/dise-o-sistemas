@@ -160,3 +160,9 @@ El arqueo considera el medio **Efectivo**; tarjetas, transferencias y otros mét
 La persistencia usa `cashSessions` dentro del archivo existente `data/sales.json`, sin descartar sus datos previos. Comparte la cola de escritura de ventas para evitar dos aperturas simultáneas o cobros perdidos durante el cierre en una única instancia.
 
 Validación del circuito de caja con datos temporales: `npm run test:caja`.
+
+## Compartir comprobantes
+
+Todos los comprobantes que permiten imprimir también ofrecen **Compartir comprobante**, incluidos los de Ventas, Compras, Producción, Mantenimiento y los pedidos del portal de clientes. La opción genera un PDF A4 a partir del mismo contenido y diseño de impresión, con el tipo y número de comprobante en el nombre del archivo.
+
+Una vez generado, **Elegir aplicación** abre el menú del dispositivo para compartir el PDF mediante las aplicaciones disponibles (por ejemplo, correo o WhatsApp). Esta opción requiere un navegador compatible con compartir archivos y un contexto seguro (HTTPS o localhost). **Descargar PDF** está disponible como alternativa para adjuntar el archivo manualmente. Cancelar el menú conserva el PDF disponible; un error permite descargarlo sin perder el comprobante.

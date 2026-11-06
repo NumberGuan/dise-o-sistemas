@@ -1,6 +1,7 @@
 import { useEffect, useState, useId, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { formatClientAddress, type Client } from "~/data/sales";
+import ShareVoucher from "./ShareVoucher";
 import "./print-voucher.css";
 
 type Voucher = {
@@ -31,6 +32,7 @@ const dateLabel = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.s
 
 export default function PrintVoucher({ title, document: voucher, client, recipient, details = [], payments, totalLabel = "Total", signature = false, recipientLabel = "Datos del destinatario", children }: Props) {
   const [ready, setReady] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const printId = useId();
   useEffect(() => { setReady(true); }, []);
   useEffect(() => {
@@ -41,12 +43,19 @@ export default function PrintVoucher({ title, document: voucher, client, recipie
     window.print();
   }
   return <>
+    <div className="inline-flex max-w-full flex-wrap items-center gap-2">
     <button type="button" disabled={!ready} onClick={print} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M6 9V3h12v6M6 18H3v-8h18v8h-3M6 14h12v7H6zM17 11h1" /></svg>
       Imprimir comprobante
     </button>
+    <button type="button" disabled={!ready} onClick={() => setSharing(true)} className="inline-flex items-center gap-2 rounded-lg border border-amber-600 bg-white px-4 py-2.5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50">
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4" /></svg>
+      Compartir comprobante
+    </button>
+    </div>
+    {sharing && <ShareVoucher printId={printId} title={title} number={voucher.number} onClose={() => setSharing(false)} />}
     {ready && createPortal(<article id={printId} data-print-voucher="true" className="print-voucher">
-      <header className="voucher-header"><div><p className="voucher-eyebrow">FÁBRICA DE PASTAS</p><h1>{title}</h1><p>Documento del sistema · copia impresa</p></div><div className="voucher-number"><strong>N.º {voucher.number}</strong><p>Fecha: {dateLabel(voucher.date)}</p>{voucher.status && <p>Estado: <strong>{voucher.status}</strong></p>}</div></header>
+      <header className="voucher-header"><div><p className="voucher-eyebrow">FÁBRICA DE PASTAS</p><h1>{title}</h1><p>Documento del sistema · copia del comprobante</p></div><div className="voucher-number"><strong>N.º {voucher.number}</strong><p>Fecha: {dateLabel(voucher.date)}</p>{voucher.status && <p>Estado: <strong>{voucher.status}</strong></p>}</div></header>
       <section className="voucher-recipient"><h2>{recipientLabel}</h2><strong>{client?.name ?? recipient ?? "Destinatario no registrado"}</strong>{client && <><p>{client.documentType}: {client.cuitCuil || "Sin informar"} · IVA: {client.ivaType || "Sin informar"}</p><p>Domicilio: {formatClientAddress(client) || "Sin informar"}</p>{client.email && <p>Correo: {client.email}</p>}</>}</section>
       {details.length > 0 && <dl className="voucher-references">{details.map((detail, index) => <div key={index}><dt>{detail.label}</dt><dd>{detail.value || "—"}</dd></div>)}</dl>}
       {voucher.items && <table><thead><tr><th>Descripción</th><th className="numeric">Cantidad</th>{voucher.items.some(item => item.unitPrice !== undefined) && <><th className="numeric">Precio unitario</th><th className="numeric">Importe</th></>}</tr></thead><tbody>{voucher.items.map((item, index) => <tr key={index}><td>{item.productName}{item.expirationDate && <small>Vencimiento: {dateLabel(item.expirationDate)}</small>}</td><td className="numeric">{item.quantity?.toLocaleString("es-AR") ?? "—"}</td>{voucher.items!.some(line => line.unitPrice !== undefined) && <><td className="numeric">{item.unitPrice === undefined ? "—" : money(item.unitPrice)}</td><td className="numeric">{item.subtotal === undefined ? "—" : money(item.subtotal)}</td></>}</tr>)}</tbody></table>}

@@ -4,11 +4,14 @@
   body:has(> [data-print-voucher]) > :not([data-print-voucher]) { display: none !important; }
   html:has([data-print-voucher]), body:has(> [data-print-voucher]) { background: white !important; overflow: visible !important; height: auto !important; }
   .print-voucher.voucher-selected { display: block; color: #18202a; font: 10pt/1.5 Arial, sans-serif; background: white; width: 100%; }
+}
+  .print-voucher { color: #18202a; font: 10pt/1.5 Arial, sans-serif; background: white; }
+  .print-voucher.voucher-export { display: block; width: 180mm; }
   .print-voucher * { box-sizing: border-box; }
-  .voucher-header { display: flex; justify-content: space-between; gap: 8mm; border: 1pt solid #444; border-top: 4pt solid var(--color-brand-600); padding: 6mm; break-inside: avoid; }
+  .voucher-header { display: flex; justify-content: space-between; gap: 8mm; border: 1pt solid #444; border-top: 4pt solid #b45309; padding: 6mm; break-inside: avoid; }
   .voucher-header h1 { margin: 2mm 0; font-size: 22pt; font-weight: bold; }
   .voucher-header p { margin: 1mm 0; }
-  .voucher-eyebrow { font-weight: bold; letter-spacing: 1pt; color: var(--color-brand-700); }
+  .voucher-eyebrow { font-weight: bold; letter-spacing: 1pt; color: #92400e; }
   .voucher-number { text-align: right; }
   .voucher-number > strong { font-size: 13pt; }
   .voucher-recipient { margin: 5mm 0; border: 1pt solid #aaa; padding: 4mm; break-inside: avoid; }
@@ -35,9 +38,8 @@
   .voucher-signatures { display: flex; justify-content: space-between; gap: 15mm; margin-top: 25mm; break-inside: avoid; }
   .voucher-signatures p { border-top: 0.5pt solid #555; width: 45%; padding-top: 3mm; text-align: center; }
   .print-voucher footer { margin-top: 10mm; padding-top: 3mm; border-top: 0.5pt solid #aaa; font-size: 8pt; color: #666; }
-}
-
-@media print {
   .print-voucher .overflow-x-auto { overflow: visible; }
   .print-voucher td { white-space: normal; }
-}
+
+.share-voucher-dialog { margin: auto; width: min(32rem, calc(100% - 2rem)); max-height: calc(100dvh - 2rem); overflow: auto; border: 0; border-radius: 1rem; padding: 1.5rem; background: white; color: #18202a; box-shadow: 0 20px 60px #0003; }
+.share-voucher-dialog::backdrop { background: #0008; }
