@@ -65,6 +65,8 @@ test("Catálogo público, carrito de visitante y acceso para comprar", async t =
       let data = await cart.loader({ request: request("/carrito", cookie) });
       assert.equal(data.cart[0].quantity, 2);
       assert.equal(data.total, 4000);
+      cookie = cookieOf(await guest.updateGuestCart(request("/catalogo", cookie, { intent: "add-to-cart", productId: "p-1", quantity: "5" })));
+      assert.equal((await cart.loader({ request: request("/carrito", cookie) })).cart[0].quantity, 7);
       cookie = cookieOf(await guest.updateGuestCart(request("/carrito", cookie, { intent: "update-quantity", productId: "p-1", quantity: "3" })));
       assert.equal((await cart.loader({ request: request("/carrito", cookie) })).total, 6000);
       cookie = cookieOf(await guest.updateGuestCart(request("/carrito", cookie, { intent: "remove-item", productId: "p-1" })));
@@ -77,6 +79,8 @@ test("Catálogo público, carrito de visitante y acceso para comprar", async t =
       for (const quantity of ["-1", "1.5", "1001", "", "NaN"]) {
         const invalid = await guest.updateGuestCart(request("/carrito", cookie, { intent: "update-quantity", productId: "p-1", quantity }));
         assert.equal(invalid.init.status, 400);
+        const invalidAdd = await guest.updateGuestCart(request("/catalogo", cookie, { intent: "add-to-cart", productId: "p-1", quantity }));
+        assert.equal(invalidAdd.init.status, 400);
       }
     });
     await t.test("Un visitante no puede guardar favoritos ni confirmar una compra", async () => {

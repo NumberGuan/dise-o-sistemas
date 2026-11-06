@@ -11,7 +11,7 @@ export default function CustomerCartLine({ item, disabled = false }: { item: Car
   return (
     <li className="flex flex-col gap-4 px-4 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
       <div className="flex min-w-0 items-center gap-4">
-        <img src="/hero-pastas.jpg" alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
+        <img src={item.product ? `/products/${item.product.id}.jpg` : "/hero-pastas.jpg"} alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
         <div className="min-w-0">
           <h2 className="font-semibold text-gray-900">{item.product?.name ?? "Producto fuera del catálogo"}</h2>
           {item.product ? (

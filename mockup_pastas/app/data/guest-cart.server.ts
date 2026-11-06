@@ -19,7 +19,9 @@ export async function updateGuestCart(request: Request) {
   const cart = guestCartItems(session.get("guestCart"));
   const current = cart.find(item => item.productId === productId);
   const rawQuantity = form.get("quantity");
-  const quantity = intent === "remove-item" ? 0 : intent === "add-to-cart" ? (current?.quantity ?? 0) + 1 : typeof rawQuantity === "string" && rawQuantity.trim() ? Number(rawQuantity) : NaN;
+  const quantityToAdd = rawQuantity === null ? 1 : typeof rawQuantity === "string" && rawQuantity.trim() ? Number(rawQuantity) : NaN;
+  if (intent === "add-to-cart" && (!Number.isSafeInteger(quantityToAdd) || quantityToAdd < 1 || quantityToAdd > MAX_GUEST_QUANTITY)) return data({ error: `Elegí una cantidad entre 1 y ${MAX_GUEST_QUANTITY}.` }, { status: 400 });
+  const quantity = intent === "remove-item" ? 0 : intent === "add-to-cart" ? (current?.quantity ?? 0) + quantityToAdd : typeof rawQuantity === "string" && rawQuantity.trim() ? Number(rawQuantity) : NaN;
   if (!Number.isSafeInteger(quantity) || quantity < 0 || quantity > MAX_GUEST_QUANTITY) return data({ error: `La cantidad debe estar entre 0 y ${MAX_GUEST_QUANTITY}.` }, { status: 400 });
   const next = cart.filter(item => item.productId !== productId);
   if (quantity > 0) next.push({ productId, quantity });

@@ -60,11 +60,16 @@ export async function updateCustomerProductData(user: User, formData: FormData):
 
     if (intent === "add-to-cart") {
       const product = SAMPLE_PRODUCTS.find((item) => item.id === productId)!;
+      const rawQuantity = formData.get("quantity");
+      const quantityToAdd = rawQuantity === null ? 1 : typeof rawQuantity === "string" && rawQuantity.trim() ? Number(rawQuantity) : Number.NaN;
+      if (!Number.isSafeInteger(quantityToAdd) || quantityToAdd < 1 || quantityToAdd > 1000) {
+        return { error: "Elegí una cantidad entre 1 y 1000." };
+      }
       let invalidQuantity = false;
       await mutateUser(user.id, (current) => {
         const cart = (current.cart ?? []).map((item) => ({ ...item }));
         const existing = cart.find((item) => item.productId === productId);
-        const nextQuantity = (existing?.quantity ?? 0) + 1;
+        const nextQuantity = (existing?.quantity ?? 0) + quantityToAdd;
         if (!Number.isSafeInteger(nextQuantity) || !Number.isSafeInteger(product.price * nextQuantity)) {
           invalidQuantity = true;
           return;
