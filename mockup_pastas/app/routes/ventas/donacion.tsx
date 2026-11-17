@@ -6,7 +6,7 @@ import { useProductionCatalogs } from "~/components/CatalogProvider";
 import { currentSalesDate } from "~/data/billing";
 import { COUNTER_CLIENT } from "~/data/sales";
 import { getSalesData } from "~/data/sales.server";
-import { PRODUCTOS_PRODUCCION } from "~/data/produccion";
+import { PRODUCTOS_PRODUCCION, getVencimientoProducto } from "~/data/produccion";
 import { canDonateProduct, donationAvailability, DONATION_EXPIRY_DAYS, type Donation } from "~/data/donaciones";
 import { getDonations, saveDonation } from "~/data/donaciones.server";
 import { requireUserAndRole } from "~/utils/session.server";
@@ -80,7 +80,7 @@ function DonationForm({ onClose, onSaved }: { onClose: () => void; onSaved: (num
         <section aria-labelledby="donation-products" className="space-y-4">
           <div><h2 id="donation-products" className="font-semibold text-gray-900">Productos a donar</h2><p className="mt-1 text-sm text-gray-500">Se ofrecen productos con existencias que vencen entre la fecha de donación y los {DONATION_EXPIRY_DAYS} días siguientes. El valor unitario y el total son $0.</p></div>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
-            <label className={`${label} flex-1`}>Producto<select value={productId} onChange={event => setProductId(event.target.value)} className={field}><option value="">Seleccionar producto…</option>{options.map(product => <option key={product.idProducto} value={product.idProducto}>{product.nombre} · Vence {product.fechaVencimiento} · Disponible {donationAvailability(product, donations)} {getUnidad(product.idUnidad)}</option>)}</select></label>
+            <label className={`${label} flex-1`}>Producto<select value={productId} onChange={event => setProductId(event.target.value)} className={field}><option value="">Seleccionar producto…</option>{options.map(product => <option key={product.idProducto} value={product.idProducto}>{product.nombre} · Vence {getVencimientoProducto(product.idProducto)} · Disponible {donationAvailability(product, donations)} {getUnidad(product.idUnidad)}</option>)}</select></label>
             <button type="button" disabled={!productId} className={button} onClick={() => { setItems(current => [...current, { productId: Number(productId), quantity: Math.min(1, donationAvailability(products.find(product => product.idProducto === Number(productId))!, donations)) }]); setProductId(""); }}>Agregar producto</button>
           </div>
           {!eligible.length && <p role="status" className="rounded-lg bg-amber-50 p-4 text-sm text-amber-900">No hay productos disponibles próximos a vencer para esta fecha. Los productos vencidos o sin existencias no se pueden donar.</p>}
@@ -90,7 +90,7 @@ function DonationForm({ onClose, onSaved }: { onClose: () => void; onSaved: (num
             const available = donationAvailability(product, donations);
             const valid = canDonateProduct(product, date) && item.quantity > 0 && item.quantity <= available;
             return <article key={item.productId} className="rounded-xl border border-gray-200 p-4">
-              <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-gray-900">{product.nombre}</h3><p className="mt-1 text-sm text-gray-600">Vencimiento: {product.fechaVencimiento} · Disponible para donar: {available} {getUnidad(product.idUnidad)}</p></div><button type="button" className="text-sm font-semibold text-red-700" aria-label={`Quitar ${product.nombre}`} onClick={() => setItems(current => current.filter(row => row.productId !== item.productId))}>Quitar</button></div>
+              <div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="font-semibold text-gray-900">{product.nombre}</h3><p className="mt-1 text-sm text-gray-600">Vencimiento del lote: {getVencimientoProducto(product.idProducto)} · Disponible para donar: {available} {getUnidad(product.idUnidad)}</p></div><button type="button" className="text-sm font-semibold text-red-700" aria-label={`Quitar ${product.nombre}`} onClick={() => setItems(current => current.filter(row => row.productId !== item.productId))}>Quitar</button></div>
               <div className="mt-3 grid items-end gap-4 sm:grid-cols-3"><label className={label}>Cantidad ({getUnidad(product.idUnidad)}) *<input type="number" required min="0.001" max={available} step="0.001" value={Number.isNaN(item.quantity) ? "" : item.quantity} onChange={event => setItems(current => current.map(row => row.productId === item.productId ? { ...row, quantity: event.target.valueAsNumber } : row))} className={field} /></label><p className="py-2 text-sm text-gray-600">Valor unitario: <strong>$0</strong></p><p className="py-2 text-sm text-gray-600">Subtotal: <strong>$0</strong></p></div>
               {!valid && <p role="alert" className="mt-2 text-sm text-red-700">Revisá la cantidad o quitá el producto si su vencimiento ya no corresponde a la fecha elegida.</p>}
             </article>;

@@ -13,14 +13,6 @@ import { rowMotion, toast } from "~/components/motion";
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
 const filterClass = "h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
-const today = () => new Date().toISOString().slice(0, 10);
-
-function vencimientoBadge(fecha: string) {
-  if (fecha < today()) return { label: "Vencido", className: "bg-red-100 text-red-800" };
-  const dias = (new Date(fecha).getTime() - new Date(today()).getTime()) / 86_400_000;
-  if (dias <= 3) return { label: "Vence pronto", className: "bg-amber-100 text-amber-800" };
-  return null;
-}
 
 function ProductForm({ product, onCancel, onSave }: { product: Producto | null; onCancel: () => void; onSave: (p: Producto) => void }) {
   const { UNIDADES, TIPOS_PRODUCTO } = useProductionCatalogs();
@@ -31,7 +23,6 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
   const [unidad, setUnidad] = useState(String(product?.idUnidad ?? ""));
   const [precio, setPrecio] = useState(product ? String(product.precio) : "");
   const [stock, setStock] = useState(product ? String(product.stockProducto) : "0");
-  const [vencimiento, setVencimiento] = useState(product?.fechaVencimiento ?? "");
   const [error, setError] = useState("");
 
   function submit(e: FormEvent) {
@@ -39,9 +30,8 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
     if (!nombre.trim() || !tipo || !receta || !unidad) return setError("Nombre, tipo, receta y unidad son obligatorios.");
     if (!(Number(precio) > 0)) return setError("Ingresá un precio mayor a cero.");
     if (stock === "" || Number(stock) < 0) return setError("El stock no puede ser negativo.");
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimiento)) return setError("Ingresá una fecha de vencimiento válida.");
     if (PRODUCTOS_PRODUCCION.some((p) => p.nombre.toLowerCase() === nombre.trim().toLowerCase() && p.idProducto !== id)) return setError("Ya existe un producto con ese nombre.");
-    onSave({ idProducto: id, nombre: nombre.trim(), idTipoProducto: Number(tipo), idReceta: Number(receta), idUnidad: Number(unidad), precio: Number(precio), stockProducto: Number(stock), fechaVencimiento: vencimiento });
+    onSave({ idProducto: id, nombre: nombre.trim(), idTipoProducto: Number(tipo), idReceta: Number(receta), idUnidad: Number(unidad), precio: Number(precio), stockProducto: Number(stock) });
   }
 
   return (
@@ -85,9 +75,6 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
           <label className={labelClass}>Stock <span className="text-rose-600">*</span>
             <input type="number" min="0" step="0.01" required value={stock} onChange={(e) => setStock(e.target.value)} className={field} />
           </label>
-          <label className={labelClass}>Fecha de vencimiento <span className="text-rose-600">*</span>
-            <input type="date" required value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} className={field} />
-          </label>
         </div>
         <div className="flex flex-col-reverse gap-2 border-t border-gray-100 pt-4 sm:flex-row sm:justify-end">
           <button type="button" onClick={onCancel} className="rounded-lg border border-gray-300 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Cancelar</button>
@@ -125,7 +112,6 @@ function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClo
               ["Tipo", getTipoProducto(product.idTipoProducto)],
               ["Precio", formatCurrency(product.precio)],
               ["Stock", formatCantidad(product.stockProducto, product.idUnidad)],
-              ["Fecha de vencimiento", product.fechaVencimiento],
               ["Receta", receta?.nombre ?? "—"],
             ].map(([label, value]) => (
               <div key={label}>
@@ -237,21 +223,19 @@ export default function Productos() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr_1fr] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
+            <div className="hidden lg:grid lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
               <div className="min-w-0 text-left">Código / Nombre</div>
               <div className="min-w-0 text-center">Tipo</div>
               <div className="min-w-0 text-center">Receta</div>
               <div className="min-w-0 text-center">Precio</div>
               <div className="min-w-0 text-center">Stock</div>
-              <div className="min-w-0 text-center">Vencimiento</div>
               <div className="min-w-0 text-center">Acciones</div>
             </div>
             <div className="divide-y divide-gray-100">
               <AnimatePresence mode="popLayout">
               {filtered.map((p, index) => {
-                const aviso = vencimientoBadge(p.fechaVencimiento);
                 return (
-                  <motion.article key={p.idProducto} {...rowMotion(index)} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
+                  <motion.article key={p.idProducto} {...rowMotion(index)} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
                     <div className="col-span-2 min-w-0 text-left lg:col-span-1">
                       <p className="mb-1 text-xs font-medium text-gray-500">{codigo("PRO", p.idProducto)}</p>
                       <h3 className="break-words font-semibold leading-5 text-gray-900">{p.nombre}</h3>
@@ -273,11 +257,6 @@ export default function Productos() {
                       {p.stockProducto === 0
                         ? <span className="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800">Sin stock</span>
                         : <span className="text-sm text-gray-900">{formatCantidad(p.stockProducto, p.idUnidad)}</span>}
-                    </div>
-                    <div className="flex flex-col items-start gap-1 lg:items-center">
-                      <span className="text-xs font-medium text-gray-500 lg:hidden">Vencimiento</span>
-                      <span className="text-sm text-gray-900">{p.fechaVencimiento}</span>
-                      {aviso && <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${aviso.className}`}>{aviso.label}</span>}
                     </div>
                     <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:justify-center lg:border-0 lg:pt-0">
                       <button type="button" onClick={() => setSelected(p)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
