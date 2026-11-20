@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import { useProductionCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
@@ -7,9 +8,9 @@ import { Link } from "react-router";
 import { SAMPLE_EMPLOYEES } from "~/data/employees";
 import { SAMPLE_MACHINES } from "~/data/maintenance";
 import {
-  ESTADOS_ORDEN_PRODUCCION, ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION,
-  codigo, getProducto, getReceta, siguienteId,
-  type DetalleOrdenProduccion, type EstadoOrdenProduccion, type OrdenProduccion,
+  ESTADOS_ORDEN_PRODUCCION, MATERIAS_PRIMAS_PRODUCCION, ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION,
+  codigo, consumoDeReceta, consumoTotal, getMateriaPrima, getProducto, getReceta, siguienteId,
+  type ConsumoMateriaPrima, type DetalleOrdenProduccion, type EstadoOrdenProduccion, type OrdenProduccion,
 } from "~/data/produccion";
 import { AnimatedBadge, Collapse, EASE_OUT, HoldToConfirm, rowMotion, toast } from "~/components/motion";
 
@@ -20,15 +21,83 @@ const today = () => new Date().toISOString().slice(0, 10);
 const numero = (o: OrdenProduccion) => codigo("OP", o.idOrdenProduccion, 4);
 const empleado = (id: string) => SAMPLE_EMPLOYEES.find((e) => e.id === id)?.name ?? "—";
 
-type ProductoRow = { key: string; idProducto: string };
+type MateriaRow = { key: string; idMateriaPrima: string; cantidad: string };
+type ProductoRow = { key: string; idProducto: string; tandas: number; materias: MateriaRow[] };
+
+const MAX_TANDAS = 99;
+const escalar = (cantidad: string, factor: number) => cantidad === "" || !Number.isFinite(Number(cantidad)) ? cantidad : String(Math.round(Number(cantidad) * factor * 1000) / 1000);
+
+function TandasCounter({ value, onChange, label }: { value: number; onChange: (next: number) => void; label: string }) {
+  const btn = "flex h-10 w-10 items-center justify-center text-lg font-semibold text-gray-700 transition hover:bg-amber-50 hover:text-amber-800 disabled:cursor-not-allowed disabled:text-gray-300 disabled:hover:bg-transparent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-amber-600";
+  return (
+    <div className="mt-1 inline-flex h-10 items-stretch overflow-hidden rounded-lg border border-gray-300 bg-white">
+      <button type="button" onClick={() => onChange(value - 1)} disabled={value <= 1} className={btn} aria-label={`Restar cantidad de ${label}`}>−</button>
+      <input
+        type="number" min="1" max={MAX_TANDAS} step="1" inputMode="numeric" value={value}
+        onChange={(e) => { const n = Math.trunc(Number(e.target.value)); if (n >= 1 && n <= MAX_TANDAS) onChange(n); }}
+        aria-label={`Cantidad de ${label}`}
+        className="w-12 border-x border-gray-300 text-center text-sm font-semibold tabular-nums text-gray-900 outline-none [appearance:textfield] focus:bg-amber-50 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+      />
+      <button type="button" onClick={() => onChange(value + 1)} disabled={value >= MAX_TANDAS} className={btn} aria-label={`Sumar cantidad de ${label}`}>+</button>
+    </div>
+  );
+}
+
+let rowSeq = 0;
+const nextKey = (prefix: string) => `${prefix}-${++rowSeq}`;
+const toMateriaRows = (consumo: ConsumoMateriaPrima[]): MateriaRow[] => consumo.map((m) => ({ key: nextKey("mp"), idMateriaPrima: String(m.idMateriaPrima), cantidad: String(m.cantidad) }));
+const stockDe = (idMateriaPrima: number) => getMateriaPrima(idMateriaPrima)?.stockMateriaPrima ?? 0;
+const nombresMp = (consumo: ConsumoMateriaPrima[]) => consumo.map((m) => getMateriaPrima(m.idMateriaPrima)?.nombre).join(", ");
+
+// Materias primas cuyo consumo total supera el stock disponible.
+const faltantes = (consumo: ConsumoMateriaPrima[]) => consumo.filter((m) => m.cantidad > stockDe(m.idMateriaPrima));
+
+function ConsumoResumen({ consumo }: { consumo: ConsumoMateriaPrima[] }) {
+  const { formatCantidad } = useProductionCatalogs();
+  if (consumo.length === 0) return <p className="text-sm text-gray-500">Sin materias primas cargadas.</p>;
+  return (
+    <ul className="divide-y divide-gray-100 text-sm">
+      {consumo.map((m) => {
+        const mp = getMateriaPrima(m.idMateriaPrima);
+        const falta = m.cantidad > stockDe(m.idMateriaPrima);
+        return (
+          <li key={m.idMateriaPrima} className="flex items-center justify-between gap-3 py-2">
+            <span className="text-gray-800">{mp?.nombre ?? "—"}</span>
+            <span className={`text-right tabular-nums ${falta ? "font-semibold text-rose-700" : "text-gray-900"}`}>
+              {mp ? formatCantidad(m.cantidad, mp.idUnidad) : m.cantidad}
+              <span className="block text-xs font-normal text-gray-500">Stock: {mp ? formatCantidad(mp.stockMateriaPrima, mp.idUnidad) : "—"}</span>
+            </span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
 
 function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProduccion | null; onCancel: () => void; onSave: (o: OrdenProduccion) => void }) {
   const [id] = useState(order?.idOrdenProduccion ?? siguienteId(ORDENES_PRODUCCION.map((o) => o.idOrdenProduccion)));
   const [fechaEmision, setFechaEmision] = useState(order?.fechaEmision ?? today());
   const [idEmpleado, setIdEmpleado] = useState(order?.idEmpleado ?? "");
   const [lote, setLote] = useState(String(order?.nmrLote ?? siguienteId(ORDENES_PRODUCCION.map((o) => o.nmrLote))));
-  const [productos, setProductos] = useState<ProductoRow[]>(() => (order?.detalle ?? []).map((d, i) => ({ key: `p-${i}`, idProducto: String(d.idProducto) })));
+  const { getUnidad } = useProductionCatalogs();
+  const [productos, setProductos] = useState<ProductoRow[]>(() => (order?.detalle ?? []).map((d) => ({ key: nextKey("p"), idProducto: String(d.idProducto), tandas: d.tandas ?? 1, materias: toMateriaRows(d.materiasPrimas) })));
   const [error, setError] = useState("");
+
+  const updateRow = (key: string, change: (row: ProductoRow) => ProductoRow) => setProductos((rows) => rows.map((row) => row.key === key ? change(row) : row));
+  const updateMateria = (rowKey: string, mpKey: string, patch: Partial<MateriaRow>) => updateRow(rowKey, (row) => ({ ...row, materias: row.materias.map((m) => m.key === mpKey ? { ...m, ...patch } : m) }));
+  // Al elegir el producto se precargan las cantidades de su receta.
+  const selectProducto = (rowKey: string, idProducto: string) => updateRow(rowKey, (row) => ({ ...row, idProducto, materias: idProducto ? toMateriaRows(consumoDeReceta(Number(idProducto), row.tandas)) : [] }));
+  // Escala proporcionalmente las cantidades actuales (respeta ajustes manuales).
+  const setTandas = (rowKey: string, tandas: number) => updateRow(rowKey, (row) => ({ ...row, tandas, materias: row.materias.map((m) => ({ ...m, cantidad: escalar(m.cantidad, tandas / row.tandas) })) }));
+
+  const detalleBorrador: DetalleOrdenProduccion[] = productos.filter((p) => p.idProducto).map((p) => ({
+    idProducto: Number(p.idProducto),
+    tandas: p.tandas,
+    cantidadRealGenerada: null,
+    materiasPrimas: p.materias.filter((m) => m.idMateriaPrima && Number(m.cantidad) > 0).map((m) => ({ idMateriaPrima: Number(m.idMateriaPrima), cantidad: Number(m.cantidad) })),
+  }));
+  const consumo = consumoTotal(detalleBorrador);
+  const sinStock = faltantes(consumo);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -39,9 +108,15 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
     if (productos.length === 0) return setError("Agregá al menos un producto a la orden.");
     if (productos.some((p) => !p.idProducto)) return setError("Seleccioná un producto en cada fila.");
     if (new Set(productos.map((p) => p.idProducto)).size !== productos.length) return setError("Hay productos repetidos.");
+    for (const p of productos) {
+      const nombre = getProducto(Number(p.idProducto))?.nombre ?? "el producto";
+      if (p.materias.length === 0) return setError(`Agregá al menos una materia prima para ${nombre}.`);
+      if (p.materias.some((m) => !m.idMateriaPrima)) return setError(`Seleccioná la materia prima de cada fila de ${nombre}.`);
+      if (p.materias.some((m) => !(Number(m.cantidad) > 0))) return setError(`Ingresá cantidades mayores a cero para ${nombre}.`);
+      if (new Set(p.materias.map((m) => m.idMateriaPrima)).size !== p.materias.length) return setError(`Hay materias primas repetidas en ${nombre}.`);
+    }
 
-    const detalle: DetalleOrdenProduccion[] = productos.map((p) => ({ idProducto: Number(p.idProducto), cantidadRealGenerada: null }));
-    onSave({ idOrdenProduccion: id, idEmpleado, fechaEmision, nmrLote: Number(lote), detalle, estado: order?.estado ?? "Pendiente", fechaInicio: order?.fechaInicio ?? null, fechaFinalizacion: order?.fechaFinalizacion ?? null });
+    onSave({ idOrdenProduccion: id, idEmpleado, fechaEmision, nmrLote: Number(lote), detalle: detalleBorrador, estado: order?.estado ?? "Pendiente", fechaInicio: order?.fechaInicio ?? null, fechaFinalizacion: order?.fechaFinalizacion ?? null, fechaVencimiento: order?.fechaVencimiento ?? null });
   }
 
   return (
@@ -73,29 +148,62 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
         <div data-validation-message={productos.length ? "" : "Agregá al menos un producto a la orden."} className="mt-8">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Productos a elaborar</h3>
-            <button type="button" onClick={() => setProductos([...productos, { key: `p-${Date.now()}`, idProducto: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar producto</button>
+            <button type="button" onClick={() => setProductos([...productos, { key: nextKey("p"), idProducto: "", tandas: 1, materias: [] }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar producto</button>
           </div>
           <div className="mt-4">
             {productos.length === 0 && <p className="text-sm text-gray-500">No hay productos agregados a esta orden.</p>}
             <AnimatePresence initial={false}>
-            {productos.map((p, idx) => {
+            {productos.map((p) => {
               const receta = p.idProducto ? getReceta(getProducto(Number(p.idProducto))?.idReceta ?? 0) : undefined;
               return (
                 <Collapse key={p.key} className="pb-3">
                 <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
-                  <button type="button" onClick={() => setProductos(productos.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar producto">✕</button>
-                  <div className="grid gap-4 pr-6 sm:grid-cols-2">
+                  <button type="button" onClick={() => setProductos(productos.filter((x) => x.key !== p.key))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar producto">✕</button>
+                  <div className="grid gap-4 pr-6 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
                     <label className={labelClass}>Producto <span className="text-rose-600">*</span>
-                      <select required value={p.idProducto} onChange={(e) => setProductos(productos.map((x, i) => i === idx ? { ...x, idProducto: e.target.value } : x))} className={field}>
+                      <select required value={p.idProducto} onChange={(e) => selectProducto(p.key, e.target.value)} className={field}>
                         <option value="">Seleccionar...</option>
                         {PRODUCTOS_PRODUCCION.map((x) => <option key={x.idProducto} value={x.idProducto}>{x.nombre}</option>)}
                       </select>
                     </label>
                     <div>
+                      <p className={labelClass}>Cantidad</p>
+                      <TandasCounter value={p.tandas} onChange={(n) => setTandas(p.key, n)} label={getProducto(Number(p.idProducto))?.nombre ?? "producto"} />
+                    </div>
+                    <div>
                       <p className={labelClass}>Receta</p>
                       <p className="mt-1 flex h-10 items-center text-sm text-gray-700">{receta?.nombre ?? "—"}</p>
                     </div>
                   </div>
+                  {p.idProducto && (
+                    <div className="mt-4 border-t border-gray-200 pt-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-sm font-semibold text-gray-800">Materia prima a utilizar</p>
+                        <button type="button" onClick={() => updateRow(p.key, (row) => ({ ...row, materias: [...row.materias, { key: nextKey("mp"), idMateriaPrima: "", cantidad: "" }] }))} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar materia prima</button>
+                      </div>
+                      <p className="mt-1 text-xs text-gray-500">Cantidades de la receta × {p.tandas}. Podés ajustarlas; al cambiar la cantidad se escalan proporcionalmente.</p>
+                      {p.materias.length === 0 && <p className="mt-3 text-sm text-gray-500">Sin materias primas cargadas.</p>}
+                      <div className="mt-3 space-y-2">
+                        {p.materias.map((m) => {
+                          const mp = m.idMateriaPrima ? getMateriaPrima(Number(m.idMateriaPrima)) : undefined;
+                          return (
+                            <div key={m.key} className="grid grid-cols-[minmax(0,1fr)_7rem_auto] items-end gap-2">
+                              <label className="block text-xs font-medium text-gray-600">Materia prima
+                                <select value={m.idMateriaPrima} onChange={(e) => updateMateria(p.key, m.key, { idMateriaPrima: e.target.value })} className={field}>
+                                  <option value="">Seleccionar...</option>
+                                  {MATERIAS_PRIMAS_PRODUCCION.map((x) => <option key={x.idMateriaPrima} value={x.idMateriaPrima}>{x.nombre}</option>)}
+                                </select>
+                              </label>
+                              <label className="block text-xs font-medium text-gray-600">Cantidad{mp && ` (${getUnidad(mp.idUnidad)})`}
+                                <input type="number" min="0" step="0.01" inputMode="decimal" value={m.cantidad} onChange={(e) => updateMateria(p.key, m.key, { cantidad: e.target.value })} className={field} />
+                              </label>
+                              <button type="button" onClick={() => updateRow(p.key, (row) => ({ ...row, materias: row.materias.filter((x) => x.key !== m.key) }))} className="mb-0.5 p-2 text-gray-400 hover:text-red-600" aria-label={`Quitar ${mp?.nombre ?? "materia prima"}`}>✕</button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 </Collapse>
               );
@@ -103,6 +211,15 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
             </AnimatePresence>
           </div>
         </div>
+
+        {consumo.length > 0 && (
+          <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
+            <h3 className="font-semibold text-gray-900">Total de materia prima de la orden</h3>
+            <p className="mt-1 text-xs text-gray-500">Se descuenta del stock al iniciar la producción.</p>
+            {sinStock.length > 0 && <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">No alcanza el stock de {nombresMp(sinStock)}. Podés guardar la orden, pero no iniciarla hasta reponer.</p>}
+            <div className="mt-2"><ConsumoResumen consumo={consumo} /></div>
+          </div>
+        )}
       </form>
 
       <div className="flex flex-col-reverse gap-2 border-t border-gray-100 bg-gray-50 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
@@ -117,14 +234,17 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
   order: OrdenProduccion;
   onClose: () => void;
   onEdit: () => void;
-  onTransition: (next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string) => string | void;
+  onTransition: (next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string, vencimiento: string) => string | void;
 }) {
   const { getUnidad, formatCantidad } = useProductionCatalogs();
   const [cantidades, setCantidades] = useState<Record<number, string>>(() => Object.fromEntries(order.detalle.map((d) => [d.idProducto, d.cantidadRealGenerada == null ? "" : String(d.cantidadRealGenerada)])));
   const [fechaFin, setFechaFin] = useState(today());
+  const [vencimiento, setVencimiento] = useState("");
   const [error, setError] = useState("");
+  const consumo = consumoTotal(order.detalle);
+  const consumoNota = order.estado === "Pendiente" ? "Se descontará del stock al iniciar la producción." : order.estado === "Cancelada" ? "La orden se canceló sin consumir materia prima." : "Ya descontada del stock.";
 
-  const handleTransition = (next: EstadoOrdenProduccion) => setError(onTransition(next, cantidades, fechaFin) ?? "");
+  const handleTransition = (next: EstadoOrdenProduccion) => setError(onTransition(next, cantidades, fechaFin, vencimiento) ?? "");
 
   return (
     <RecordPage onBack={onClose}>
@@ -136,7 +256,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
             <AnimatedBadge value={order.estado} className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.estado)}`} />
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2"><PrintVoucher title="Orden de producción" document={{ number: numero(order), date: order.fechaEmision, status: order.estado, items: order.detalle.map(line => { const product = getProducto(line.idProducto); return { productName: `${product?.nombre ?? "Producto"} · ${product ? getUnidad(product.idUnidad) : ""}`, quantity: line.cantidadRealGenerada ?? undefined }; }) }} recipient={empleado(order.idEmpleado)} recipientLabel="Responsable de producción" details={[{ label: "Lote", value: String(order.nmrLote) }, { label: "Inicio", value: order.fechaInicio ?? "Sin iniciar" }, { label: "Finalización", value: order.fechaFinalizacion ?? "Pendiente" }, { label: "Cantidades", value: "Producción real registrada. Un guion indica una cantidad aún no registrada." }]} signature />
           {order.estado === "Pendiente" && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}
 
         </div>
@@ -157,6 +277,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                       <div>
                         <span className="text-xs font-semibold text-gray-500">{codigo("PRO", d.idProducto)}</span>
                         <span className="ml-2 font-semibold text-gray-900">{producto?.nombre ?? "—"}</span>
+                        <span className="ml-2 rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">Cantidad: {d.tandas ?? 1}</span>
                       </div>
                       {receta && <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="rounded border bg-white px-2 py-1 text-xs font-medium text-gray-600 hover:text-amber-800">{receta.nombre}</Link>}
                     </div>
@@ -164,6 +285,15 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                       <div>
                         <p className="text-xs text-gray-500">Máquinas de la receta</p>
                         <p className="mt-1 text-sm text-gray-900">{maquinas || "Sin máquinas asignadas"}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500">Materia prima a utilizar</p>
+                        <ul className="mt-1 space-y-0.5 text-sm text-gray-900">
+                          {d.materiasPrimas.length === 0 ? <li className="text-gray-500">Sin materias primas cargadas</li> : d.materiasPrimas.map((m) => {
+                            const mp = getMateriaPrima(m.idMateriaPrima);
+                            return <li key={m.idMateriaPrima} className="flex justify-between gap-3"><span>{mp?.nombre ?? "—"}</span><span className="tabular-nums">{mp ? formatCantidad(m.cantidad, mp.idUnidad) : m.cantidad}</span></li>;
+                          })}
+                        </ul>
                       </div>
                       {order.estado === "En proceso" ? (
                         <label className={labelClass}>Cantidad real generada {producto && <span className="font-normal text-gray-500">({getUnidad(producto.idUnidad)})</span>} <span className="text-rose-600">*</span>
@@ -191,6 +321,7 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                   ["Fecha de emisión", order.fechaEmision],
                   ["Fecha de inicio", order.fechaInicio ?? "—"],
                   ["Fecha de finalización", order.fechaFinalizacion ?? "—"],
+                  ["Vencimiento del lote", order.fechaVencimiento ?? "—"],
                 ].map(([label, value]) => (
                   <div key={label}>
                     <dt className="text-xs text-gray-500">{label}</dt>
@@ -198,6 +329,12 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                   </div>
                 ))}
               </dl>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-900">Materia prima total</h3>
+              <p className="mt-1 text-xs text-gray-500">{consumoNota}</p>
+              <div className="mt-2"><ConsumoResumen consumo={consumo} /></div>
             </div>
 
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
@@ -218,7 +355,10 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
                   <label className={labelClass}>Fecha de finalización <span className="text-rose-600">*</span>
                     <input type="date" required value={fechaFin} onChange={(e) => setFechaFin(e.target.value)} className={field} />
                   </label>
-                  <p className="text-xs text-gray-500">Al finalizar, la cantidad generada se suma al stock de cada producto.</p>
+                  <label className={labelClass}>Vencimiento del lote <span className="text-rose-600">*</span>
+                    <input type="date" required value={vencimiento} onChange={(e) => setVencimiento(e.target.value)} className={field} />
+                  </label>
+                  <p className="text-xs text-gray-500">Al finalizar, la cantidad generada se suma al stock de cada producto con el vencimiento de este lote.</p>
                   <button type="button" data-validate-form onClick={() => handleTransition("Finalizada")} className="w-full rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">Finalizar orden</button>
                 </div>
               )}
@@ -272,10 +412,17 @@ export default function OrdenesProduccion() {
     toast(`La orden ${numero(order)} se ${isNew ? "creó" : "actualizó"} correctamente.`);
   }
 
-  function transition(next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string) {
+  function transition(next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string, vencimiento: string) {
     if (!selected) return;
     if (next === "En proceso") {
-      toast(`Se inició la producción del lote ${selected.nmrLote}.`, "info");
+      const consumo = consumoTotal(selected.detalle);
+      const sinStock = faltantes(consumo);
+      if (sinStock.length > 0) return `No hay stock suficiente de ${nombresMp(sinStock)}.`;
+      consumo.forEach((m) => {
+        const i = MATERIAS_PRIMAS_PRODUCCION.findIndex((x) => x.idMateriaPrima === m.idMateriaPrima);
+        if (i >= 0) MATERIAS_PRIMAS_PRODUCCION[i] = { ...MATERIAS_PRIMAS_PRODUCCION[i], stockMateriaPrima: Math.round((MATERIAS_PRIMAS_PRODUCCION[i].stockMateriaPrima - m.cantidad) * 1000) / 1000 };
+      });
+      toast(`Se inició la producción del lote ${selected.nmrLote} y se descontó la materia prima.`, "info");
       return persist({ ...selected, estado: next, fechaInicio: today() });
     }
     if (next === "Cancelada") {
@@ -285,6 +432,8 @@ export default function OrdenesProduccion() {
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaFin)) return "Ingresá una fecha de finalización válida.";
     if (selected.fechaInicio && fechaFin < selected.fechaInicio) return "La fecha de finalización no puede ser anterior a la de inicio.";
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimiento)) return "Ingresá el vencimiento del lote.";
+    if (vencimiento < fechaFin) return "El vencimiento del lote no puede ser anterior a la fecha de finalización.";
     if (selected.detalle.some((d) => cantidades[d.idProducto] === "" || !(Number(cantidades[d.idProducto]) >= 0))) return "Ingresá la cantidad real generada de cada producto.";
 
     const detalle = selected.detalle.map((d) => ({ ...d, cantidadRealGenerada: Number(cantidades[d.idProducto]) }));
@@ -292,7 +441,7 @@ export default function OrdenesProduccion() {
       const i = PRODUCTOS_PRODUCCION.findIndex((p) => p.idProducto === d.idProducto);
       if (i >= 0) PRODUCTOS_PRODUCCION[i] = { ...PRODUCTOS_PRODUCCION[i], stockProducto: PRODUCTOS_PRODUCCION[i].stockProducto + d.cantidadRealGenerada };
     });
-    persist({ ...selected, estado: next, fechaFinalizacion: fechaFin, detalle });
+    persist({ ...selected, estado: next, fechaFinalizacion: fechaFin, fechaVencimiento: vencimiento, detalle });
     detalle.forEach((d) => {
       const producto = getProducto(d.idProducto);
       if (producto) toast(`Stock de ${producto.nombre}: +${formatCantidad(d.cantidadRealGenerada, producto.idUnidad)}`);

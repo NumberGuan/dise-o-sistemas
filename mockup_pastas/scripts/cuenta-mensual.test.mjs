@@ -37,6 +37,11 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
     await fs.writeFile("data/sales.json", JSON.stringify({ clients: [client], orders: [order("first", previous), order("second", previous), order("current", current), order("cancelled", previous, "Cancelado")], invoices: [], receipts: [] }));
     const sales = await server.ssrLoadModule("/app/data/sales.server.ts");
     const service = await server.ssrLoadModule("/app/data/billing.server.ts");
+    const cash = await server.ssrLoadModule("/app/data/cash.server.ts");
+    const opening = new FormData();
+    opening.set("intent", "open");
+    opening.set("opening", "0");
+    await cash.updateCash(opening, { id: "test", name: "Caja de pruebas" });
     const invoiceInput = id => ({ orderId: id, clientId: client.id, type: "Factura A", date: `${current}-01`, dueDate: `${current}-28`, status: "Emitido", observations: "", discount: 0, total: 1 });
     const receiptInput = (invoices, extras = {}) => ({ clientId: client.id, date: `${current}-10`, status: "Registrado", observations: "", invoices: invoices.map(invoice => ({ invoiceId: invoice.id, amountApplied: invoice.total })), payments: [{ method: "Transferencia", amount: billing.money(invoices.reduce((sum, invoice) => sum + invoice.total, 0)), reference: "Prueba" }], ...extras });
     await t.test("Los medios de pago se acumulan y se aplican sin superar los saldos de las facturas", () => {

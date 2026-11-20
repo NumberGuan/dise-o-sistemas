@@ -515,6 +515,9 @@ export type ReceiptInvoiceDetail = {
 };
 
 export type Receipt = {
+  cashSessionId?: string;
+  registeredAt?: string;
+  registeredBy?: { id: string; name: string };
   id: string;
   number: string;
   date: string;

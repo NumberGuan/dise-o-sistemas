@@ -1,3 +1,4 @@
+import AuthPasswordField from "~/components/AuthPasswordField";
 import { Form, useActionData, useSearchParams, useNavigation, redirect } from "react-router";
 import { createUserSession } from "~/utils/session.server";
 import { getUserByEmail, verifyPassword } from "~/utils/db.server";
@@ -91,23 +92,13 @@ export default function Login() {
                 Contraseña
               </label>
             </div>
-            <div className="relative mt-1 rounded-md shadow-sm">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
-                placeholder="••••••••"
-              />
-            </div>
+            <AuthPasswordField invalid={Boolean(actionData?.error)} />
           </div>
           
         </div>
 
         {actionData?.error && (
-          <div className="rounded-md bg-red-50 p-4">
+          <div id="auth-error" role="alert" className="rounded-md bg-red-50 p-4">
             <div className="text-sm text-red-700">{actionData.error}</div>
           </div>
         )}

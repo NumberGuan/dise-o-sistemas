@@ -1,3 +1,4 @@
+import AuthPasswordField from "~/components/AuthPasswordField";
 import { Form, Link, useActionData, useNavigation, useSearchParams } from "react-router";
 import { localRedirect } from "~/utils/redirect";
 import crypto from "node:crypto";
@@ -98,6 +99,7 @@ export default function Register() {
               minLength={2}
               maxLength={100}
                 className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
+                autoComplete="name"
                 placeholder="Juan Pérez"
               />
             </div>
@@ -122,25 +124,13 @@ export default function Register() {
             <label htmlFor="password" className="block text-sm font-medium text-gray-700">
               Contraseña (mínimo 6 caracteres)
             </label>
-            <div className="relative mt-1 rounded-md shadow-sm">
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={6}
-                maxLength={128}
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
-                placeholder="••••••••"
-              />
-            </div>
+            <AuthPasswordField newPassword invalid={Boolean(actionData?.error)} />
           </div>
           <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">Las cuentas creadas desde este formulario tienen acceso de Cliente.</p>
         </div>
 
         {actionData?.error && (
-          <div className="rounded-md bg-red-50 p-4 mt-4">
+          <div id="auth-error" role="alert" className="rounded-md bg-red-50 p-4 mt-4">
             <div className="text-sm text-red-700">{actionData.error}</div>
           </div>
         )}

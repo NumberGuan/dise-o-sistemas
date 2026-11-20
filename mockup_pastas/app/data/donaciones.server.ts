@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { PRODUCTOS_PRODUCCION } from "./produccion";
+import { PRODUCTOS_PRODUCCION, getVencimientoProducto } from "./produccion";
 import { getSalesData } from "./sales.server";
 import { currentSalesDate } from "./billing";
 import { COUNTER_CLIENT } from "./sales";
@@ -65,7 +65,7 @@ export async function saveDonation(input: unknown, role: Role) {
       const quantity = raw.quantity;
       if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0 || Math.abs(quantity * 1000 - Math.round(quantity * 1000)) > 0.000001) throw new Error("Ingresá cantidades mayores que cero, con hasta 3 decimales.");
       if (quantity > donationAvailability(product, donations)) throw new Error(`La cantidad de ${product.nombre} supera las existencias disponibles para donar.`);
-      return { productId: product.idProducto, productName: product.nombre, unitId: product.idUnidad, expirationDate: product.fechaVencimiento, quantity, unitPrice: 0, subtotal: 0 };
+      return { productId: product.idProducto, productName: product.nombre, unitId: product.idUnidad, expirationDate: getVencimientoProducto(product.idProducto) ?? "", quantity, unitPrice: 0, subtotal: 0 };
     });
     const next = Math.max(0, ...donations.map(donation => Number(donation.number.slice(4)) || 0)) + 1;
     const donation: Donation = { id: crypto.randomUUID(), number: `DON-${String(next).padStart(6, "0")}`, clientId: client.id, clientName: client.name, date, items, total: 0, observations: row.observations.trim() };

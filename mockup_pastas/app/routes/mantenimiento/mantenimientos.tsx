@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
@@ -210,7 +211,7 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
             <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.status)}`}>{order.status}</span>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2"><PrintVoucher title="Orden de mantenimiento" document={{ number: order.number, date: order.issueDate, status: order.status, observations: order.observations, ...(order.status === "Finalizado" ? { total: order.items.reduce((sum, item) => sum + (item.cost ?? 0), 0) } : {}), items: order.items.map(item => ({ productName: `${SAMPLE_MACHINES.find(machine => machine.id === item.machineId)?.name ?? "Máquina"} · ${item.type} · ${item.description}${item.workPerformed ? ` · Trabajo realizado: ${item.workPerformed}` : ""}`, quantity: 1, ...(order.status === "Finalizado" ? { unitPrice: item.cost ?? 0, subtotal: item.cost ?? 0 } : {}) })) }} recipient={responsibleName} recipientLabel="Responsable del mantenimiento" details={[{ label: "Fecha programada", value: order.estimatedDate }, { label: "Inicio", value: order.startDate ?? "Sin iniciar" }, { label: "Finalización", value: order.endDate ?? "Pendiente" }]} signature />
           {order.status === "Programado" && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}
 
         </div>

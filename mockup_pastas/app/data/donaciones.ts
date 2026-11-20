@@ -1,4 +1,4 @@
-import type { Producto } from "./produccion";
+import { getVencimientoProducto, type Producto } from "./produccion";
 
 export const DONATION_EXPIRY_DAYS = 7;
 export type DonationItem = {
@@ -32,8 +32,9 @@ export function daysToExpiration(expirationDate: string, date: string) {
 }
 
 export function canDonateProduct(product: Producto, date: string) {
-  if (!validDonationDate(date) || !validDonationDate(product.fechaVencimiento)) return false;
-  const days = daysToExpiration(product.fechaVencimiento, date);
+  const vencimiento = getVencimientoProducto(product.idProducto);
+  if (!validDonationDate(date) || !validDonationDate(vencimiento)) return false;
+  const days = daysToExpiration(vencimiento, date);
   return product.stockProducto > 0 && days >= 0 && days <= DONATION_EXPIRY_DAYS;
 }
 
@@ -41,7 +42,7 @@ export function canDonateProduct(product: Producto, date: string) {
 // para que dos donaciones no puedan asignar las mismas existencias.
 export function donationAvailability(product: Producto, donations: Donation[]) {
   const donated = donations.flatMap(donation => donation.items)
-    .filter(item => item.productId === product.idProducto && item.expirationDate === product.fechaVencimiento)
+    .filter(item => item.productId === product.idProducto && item.expirationDate === getVencimientoProducto(product.idProducto))
     .reduce((sum, item) => sum + item.quantity, 0);
   return Math.max(0, Math.round((product.stockProducto - donated) * 1000) / 1000);
 }

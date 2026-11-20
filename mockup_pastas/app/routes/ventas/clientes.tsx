@@ -6,7 +6,7 @@ import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
 import { getClientMonthlyAccount } from "~/data/billing";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { useFetcher, useLoaderData } from "react-router";
+import { Link, useFetcher, useLoaderData, useSearchParams } from "react-router";
 
 import ClientAddressesEditor from "~/components/ClientAddressesEditor";
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
@@ -142,34 +142,46 @@ function ClientForm({ client, onCancel, onSave, pending, serverError, canChangeC
 function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: Client; orders: Order[]; onClose: () => void; onEdit: () => void; canEdit: boolean }) {
   const { invoices, receipts } = useLoaderData<typeof loader>();
   const months = getClientMonthlyAccount(client, orders, invoices, receipts);
-  const activity = orders.filter((order) => order.clientId === client.id).sort((a, b) => b.date.localeCompare(a.date));
+  const activity = orders.filter(order => order.clientId === client.id).sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number));
+  const currency = (value: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(value);
+  const date = (value: string) => value ? value.split("-").reverse().join("/") : "Sin programar";
+  const statusClass: Record<string, string> = {
+    Pendiente: "bg-amber-100 text-amber-800", "En preparación": "bg-sky-100 text-sky-800",
+    "Listo para remito": "bg-emerald-100 text-emerald-800", Facturado: "bg-purple-100 text-purple-800", Cancelado: "bg-red-100 text-red-800",
+  };
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <SalesFormHeader title={`Cliente ${client.name}`} onCancel={onClose} />
       <section aria-labelledby="client-detail-title" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-          <div><p className="text-xs font-medium uppercase tracking-wide text-gray-500">{client.code} · {client.type}</p><h2 id="client-detail-title" className="mt-1 text-lg font-semibold text-gray-900">Datos del cliente</h2></div>
+          <div><p className="text-xs font-medium uppercase tracking-wide text-gray-500">{client.code} · {client.type}</p><h2 id="client-detail-title" className="mt-1 text-lg font-semibold">Datos del cliente</h2></div>
           {canEdit && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar cliente</button>}
         </div>
-        <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Información del cliente</h3>
-            <dl className="mt-3 space-y-3 text-sm">
-              {[["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Correo", client.email], ["Calle", client.street], ["Altura", client.streetNumber], ["Dirección fija de facturación", formatClientAddress(client)], ...(client.type === "Comercio" ? [["Saldo", new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(client.balance)]] : []), ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-0.5 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
+        <div className="grid gap-7 p-5 sm:p-6 lg:grid-cols-2">
+          <div><h3 className="text-sm font-semibold">Información y contacto</h3>
+            <dl className="mt-4 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
+              {[["Nombre / razón social", client.name], ["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Correo", client.email], ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-1 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
               <PhoneDetails primary={client.phone} additional={client.additionalPhones} />
             </dl>
-            {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
-            <h3 className="mt-5 text-sm font-semibold text-gray-900">Dirección fija y complementarias</h3>
-            <ul className="mt-2 space-y-2 text-sm text-gray-700">{getClientAddresses(client).map((address, index) => <li key={address.id}><strong>{index === 0 ? "Dirección fija · Facturación" : address.label}</strong><p>{formatClientAddress(address)}</p></li>)}</ul>
-            {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 text-sm text-amber-900">{client.notes}</p></div>}
           </div>
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Actividad de Ventas</h3>
-            <p className="mt-1 text-xs text-gray-500">Pedidos registrados para este cliente.</p>
-            {activity.length ? <ol className="mt-4 divide-y divide-gray-100">{activity.map((order) => <li key={order.id} className="py-3 first:pt-0"><span className="text-xs font-medium text-amber-700">Pedido · {order.number}</span><span className="mt-1 block text-sm font-medium text-gray-900">{order.items.map((item) => item.productName).join(", ")}</span><span className="mt-1 block text-xs text-gray-500">{order.date} · {order.status} · ${order.total.toLocaleString("es-AR")}</span></li>)}</ol> : <p className="mt-4 rounded-lg bg-gray-50 px-3 py-4 text-sm text-gray-500">Todavía no hay pedidos registrados.</p>}
+          <div><h3 className="text-sm font-semibold">Dirección fija y complementarias</h3>
+            <ul className="mt-4 space-y-3 text-sm text-gray-700">{getClientAddresses(client).map((address, index) => <li key={address.id} className="rounded-lg bg-gray-50 p-3"><p className="font-medium text-gray-900">{index === 0 ? "Dirección fija · Facturación" : address.label}</p><p className="mt-1">{formatClientAddress(address)}</p></li>)}</ul>
+            {!getClientAddresses(client).length && <p className="mt-4 text-sm text-gray-500">Sin domicilios registrados.</p>}
+            {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 whitespace-pre-wrap text-sm text-amber-900">{client.notes}</p></div>}
           </div>
         </div>
       </section>
+
+      <section aria-labelledby="client-orders-title" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 sm:px-6"><div><h2 id="client-orders-title" className="text-lg font-semibold">Pedidos del cliente</h2><p className="mt-1 text-sm text-gray-500">{activity.length} {activity.length === 1 ? "pedido registrado" : "pedidos registrados"} · Más recientes primero</p></div><p className="text-xs text-gray-500">Abrí un pedido para consultar su detalle.</p></div>
+        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500"><tr>{["Pedido", "Fecha", "Tipo", "Entrega", "Estado", "Total", "Acciones"].map(label => <th key={label} className="whitespace-nowrap px-5 py-3 font-medium">{label}</th>)}</tr></thead>
+          <tbody className="divide-y divide-gray-100">{activity.map(order => <tr key={order.id} className="hover:bg-gray-50">
+              <td className="whitespace-nowrap px-5 py-4 font-semibold">{order.number}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.date)}</td><td className="px-5 py-4">{order.kind ?? "Regular"}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.deliveryDate)}</td><td className="whitespace-nowrap px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass[order.status] ?? "bg-gray-100 text-gray-700"}`}>{order.status}</span></td><td className="whitespace-nowrap px-5 py-4 font-semibold">{currency(order.total)}</td><td className="px-5 py-4"><Link to={`/ventas/pedidos?pedido=${encodeURIComponent(order.id)}&volverCliente=${encodeURIComponent(client.id)}`} aria-label={`Ver detalle del pedido ${order.number}`} className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</Link></td>
+            </tr>
+)}{!activity.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-500">Este cliente todavía no tiene pedidos registrados.</td></tr>}</tbody>
+        </table></div>
+      </section>
+      {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
     </div>
   );
 }
@@ -181,7 +193,14 @@ export default function Clientes() {
   const [statusFilter, setStatusFilter] = useState("Todos los estados");
   const [localityFilter, setLocalityFilter] = useState("Todas las localidades");
   const [editingClient, setEditingClient] = useState<Client | null | undefined>(undefined);
-  const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedClient = clients.find(client => client.id === searchParams.get("cliente")) ?? null;
+  function setSelectedClient(client: Client | null) {
+    const next = new URLSearchParams(searchParams);
+    if (client) next.set("cliente", client.id);
+    else next.delete("cliente");
+    setSearchParams(next);
+  }
   const [notice, setNotice] = useState("");
   const serverError = fetcher.data && "error" in fetcher.data ? fetcher.data.error : "";
 

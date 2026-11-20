@@ -1,3 +1,4 @@
+import { cashReceiptFields, type CashActor } from "./cash";
 import { getCatalogs } from "./catalogs.server";
 import { validCatalogValue } from "./catalogs";
 import crypto from "node:crypto";
@@ -68,7 +69,7 @@ export async function saveSalesInvoice(input: unknown, id?: string) {
   });
 }
 
-export async function saveSalesReceipt(input: unknown, id?: string) {
+export async function saveSalesReceipt(input: unknown, id?: string, actor?: CashActor) {
   const catalogs = await getCatalogs();
   return mutateSalesData(async data => {
     const row = record(input);
@@ -77,6 +78,7 @@ export async function saveSalesReceipt(input: unknown, id?: string) {
     const status = choice(row.status, RECEIPT_STATUSES);
     if (previous && previous.status !== "Borrador") {
       if (previous.status !== "Registrado" || status !== "Anulado") throw new Error("Solo se pueden editar recibos en borrador.");
+      if (previous.cashSessionId && data.cashSessions.find(session => session.id === previous.cashSessionId)?.closedAt) throw new Error("El recibo pertenece a una caja cerrada. Registrá un ajuste en una caja abierta para documentar la corrección.");
       data.receipts[data.receipts.indexOf(previous)] = { ...previous, status };
       return;
     }
@@ -116,7 +118,7 @@ export async function saveSalesReceipt(input: unknown, id?: string) {
       const month = getClientMonthlyAccount(client, orders, data.invoices, data.receipts.filter(receipt => receipt.id !== id), receiptDate.slice(0, 7)).find(month => month.month === accountMonth);
       if (!month || month.unbilled || month.balance <= 0 || invoices.length !== month.invoiceIds.length || invoices.some(detail => !month.invoiceIds.includes(detail.invoiceId)) || applied !== month.balance) throw new Error("Para saldar el mes deben estar facturados todos sus pedidos e incluirse todo el saldo pendiente.");
     }
-    const receipt: Receipt = { id: previous?.id ?? `rec-${crypto.randomUUID()}`, number: previous?.number ?? `RC-0001-${String(Math.max(0, ...data.receipts.map(receipt => Number(receipt.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, clientId, date: receiptDate, invoices, payments, total, status, observations: string(row.observations ?? ""), accountMonth };
+    const receipt: Receipt = { ...(status === "Registrado" ? cashReceiptFields(data.cashSessions, actor) : {}), id: previous?.id ?? `rec-${crypto.randomUUID()}`, number: previous?.number ?? `RC-0001-${String(Math.max(0, ...data.receipts.map(receipt => Number(receipt.number.slice(-8)) || 0)) + 1).padStart(8, "0")}`, clientId, date: receiptDate, invoices, payments, total, status, observations: string(row.observations ?? ""), accountMonth };
     if (previous) data.receipts[data.receipts.indexOf(previous)] = receipt;
     else data.receipts.unshift(receipt);
   });

@@ -1,8 +1,9 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import BackToListButton from "~/components/BackToListButton";
 import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
-import { useLoaderData, useFetcher, useSearchParams } from "react-router";
+import { Link, useLoaderData, useFetcher, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
 import {
@@ -27,13 +28,13 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 };
 
 export const action = async ({ request }: Route.ActionArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
+  const actor = await requireUserAndRole(request, ["Ventas"]);
   try {
     const data = await request.formData();
     const raw = data.get("document");
     const id = data.get("id");
     if (typeof raw !== "string" || raw.length > 200000 || (id !== null && (typeof id !== "string" || id.length > 120))) throw new Error("Los datos enviados no son validos.");
-    await saveSalesReceipt(JSON.parse(raw), typeof id === "string" ? id : undefined);
+    await saveSalesReceipt(JSON.parse(raw), typeof id === "string" ? id : undefined, actor);
     return { success: true };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "No se pudo guardar el documento." };
@@ -79,7 +80,7 @@ type ReceiptFormProps = {
 };
 
 function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) {
-  const { clients, invoices, orders } = useLoaderData<typeof loader>();
+  const { clients, invoices, orders, cashSessions } = useLoaderData<typeof loader>();
   const [params] = useSearchParams();
   const [accountMonth, setAccountMonth] = useState(receipt?.accountMonth ?? params.get("mes") ?? "");
   const isNew = !receipt;
@@ -192,6 +193,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <SalesFormHeader title={isNew ? "Nuevo recibo" : `Editar recibo ${receipt.number}`} onCancel={onCancel} />
+      <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{cashSessions.some(session => !session.closedAt) ? "El cobro se incorporará a la caja abierta al registrar el recibo." : "No hay caja abierta. Podés guardar un borrador, pero necesitás abrir caja para registrar el cobro."} <Link to="/ventas/caja" className="font-semibold underline">Ir a Caja</Link></p>
 
       {errorMsg && (
         <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
@@ -455,7 +457,7 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
     <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
         <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
-        <BackToListButton onClick={onClose} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Recibo"} document={receipt} client={client} payments={receipt.payments} totalLabel="Total recibido" details={[...receipt.invoices.map(invoice => ({ label: `Aplicado a ${invoice.invoiceNumber}`, value: formatCurrency(invoice.amountApplied) })), ...(receipt.accountMonth ? [{ label: "Período", value: monthLabel(receipt.accountMonth) }] : []), ...(receipt.advanceOrderId ? [{ label: "Seña de pedido", value: orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId }] : [])]} /></div>
       </div>
       {receipt.accountMonth && <p className="mb-4 text-sm font-semibold text-amber-800">Pago del mes de {monthLabel(receipt.accountMonth)}</p>}
       {receipt.advanceOrderId && <p className="mb-4 text-sm font-semibold text-amber-800">Seña del evento {orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId}. {receipt.invoices.length === 0 ? "Se aplicará al emitir la factura del pedido." : "Aplicada a la factura del pedido."}</p>}

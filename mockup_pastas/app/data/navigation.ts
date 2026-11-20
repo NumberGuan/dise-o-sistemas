@@ -14,6 +14,7 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Ventas",
     to: "/ventas",
         items: [
+      { label: "Caja", to: "/ventas/caja" },
       { label: "Clientes", to: "/ventas/clientes" },
       { label: "Presupuestos Clientes", to: "/ventas/presupuestos" },
       { label: "Pedidos Clientes", to: "/ventas/pedidos" },

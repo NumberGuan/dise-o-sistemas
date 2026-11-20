@@ -27,7 +27,7 @@ export default function CustomerProductCard({
   return (
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
       <div className="relative aspect-[4/3] overflow-hidden bg-[#f1e8dc]">
-        <img src="/hero-pastas.jpg" alt="Pastas variadas" loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
+        <img src={`/products/${product.id}.jpg`} alt={product.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
         <span className={`absolute left-3 top-3 rounded-full border px-2.5 py-1 text-xs font-semibold shadow-sm ${stockAvailable ? "border-emerald-200 bg-emerald-50/95 text-emerald-800" : "border-amber-200 bg-amber-50/95 text-amber-900"}`}>
           {product.stock}
         </span>
@@ -58,6 +58,8 @@ export default function CustomerProductCard({
         </div>
         <cartFetcher.Form method="post" action={action} className="mt-4">
           <input type="hidden" name="productId" value={product.id} />
+          <label htmlFor={`quantity-${product.id}`} className="mb-2 block text-sm font-medium text-gray-700">Cantidad</label>
+          <input id={`quantity-${product.id}`} name="quantity" type="number" min="1" max="1000" step="1" defaultValue="1" required disabled={cartDisabled || cartFetcher.state !== "idle"} className="mb-3 h-11 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 disabled:opacity-70" />
           <button
             type="submit"
             name="intent"
@@ -66,7 +68,7 @@ export default function CustomerProductCard({
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-900 disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4L20 8H6" /><circle cx="9.5" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /><path d="M12 8v5m-2.5-2.5h5" /></svg>
-            {cartFetcher.state !== "idle" ? "Guardando…" : cartQuantity > 0 ? `Agregar otro · ${cartQuantity} en carrito` : "Agregar al carrito"}
+            {cartFetcher.state !== "idle" ? "Guardando…" : cartQuantity > 0 ? `Agregar al carrito · ${cartQuantity} en carrito` : "Agregar al carrito"}
           </button>
         </cartFetcher.Form>
         {favoriteFetcher.state === "idle" && favoriteFetcher.data?.error && <p role="alert" className="mt-2 text-xs text-red-700">{favoriteFetcher.data.error}</p>}

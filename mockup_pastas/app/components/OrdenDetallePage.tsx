@@ -1,3 +1,4 @@
+import PrintVoucher from "./PrintVoucher";
 import BackToListButton from "~/components/BackToListButton";
 import { Link, useNavigate } from "react-router";
 
@@ -41,6 +42,8 @@ export default function OrdenDetallePage({
     : undefined;
   const comprobante = getComprobantePorOrden(orden.id);
   const montoTotal = getMontoTotal(orden.detalle);
+
+  const printAction = <PrintVoucher title="Orden de compra" document={{ number: orden.numero, date: orden.fechaEmision, total: montoTotal, items: orden.detalle.map(linea => { const marca = getMarcaPorId(linea.idMarca); return { productName: `${marca?.producto.nombre ?? "Materia prima"} · ${marca?.marca.nombre ?? "Sin marca"}`, quantity: linea.cantidad, unitPrice: marca?.marca.precioUnitario, subtotal: linea.subtotal }; }) }} recipient={proveedor?.nombre} recipientLabel="Proveedor" details={[{ label: "Presupuesto vinculado", value: presupuesto?.numero ?? "Sin vincular" }]} signature />;
 
   const contenido = (
     <>
@@ -160,7 +163,7 @@ export default function OrdenDetallePage({
   );
 
   if (onClose) {
-    return contenido;
+    return <><div className="mb-4 flex justify-end">{printAction}</div>{contenido}</>;
   }
 
   return (
@@ -172,7 +175,7 @@ export default function OrdenDetallePage({
             Orden de compra al proveedor {proveedor?.nombre ?? "—"}.
           </p>
         </div>
-        <BackToListButton onClick={irVolver} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={irVolver} />{printAction}</div>
       </div>
       {contenido}
     </div>

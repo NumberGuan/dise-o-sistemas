@@ -1,3 +1,4 @@
+import PrintVoucher from "~/components/PrintVoucher";
 import BackToListButton from "~/components/BackToListButton";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
@@ -332,7 +333,7 @@ function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrde
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
       <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
         <h1 className="text-2xl font-bold text-gray-900">Presupuesto {budget.number}</h1>
-        <BackToListButton onClick={onClose} />
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Presupuesto"} document={budget} client={client} details={[{ label: "Válido hasta", value: budget.validUntil }]} /></div>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
