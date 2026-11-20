@@ -1,6 +1,7 @@
 import BackToListButton from "~/components/BackToListButton";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 
+import { getComprobantePorOrden } from "~/data/facturacion-proveedores";
 import {
   PRESUPUESTOS,
   formatFecha,
@@ -38,6 +39,7 @@ export default function OrdenDetallePage({
   const presupuesto = orden.idPresupuestoProveedor
     ? PRESUPUESTOS.find((p) => p.id === orden.idPresupuestoProveedor)
     : undefined;
+  const comprobante = getComprobantePorOrden(orden.id);
   const montoTotal = getMontoTotal(orden.detalle);
 
   const contenido = (
@@ -59,6 +61,23 @@ export default function OrdenDetallePage({
             </dt>
             <dd className="mt-1 font-medium text-gray-900">
               {presupuesto?.numero ?? "Sin vincular"}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+              Comprobante de venta
+            </dt>
+            <dd className="mt-1 font-medium text-gray-900">
+              {comprobante ? (
+                <Link
+                  to={`/compras/factura-proveedor/${comprobante.id}`}
+                  className="text-amber-800 underline underline-offset-2"
+                >
+                  {comprobante.numero}
+                </Link>
+              ) : (
+                "Sin comprobante"
+              )}
             </dd>
           </div>
           <div>

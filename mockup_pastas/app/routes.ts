@@ -39,6 +39,10 @@ export default [
         route("presupuesto-proveedor/:id", "routes/compras/presupuesto-proveedor-detalle.tsx"),
         route("remito-proveedor", "routes/compras/remito-proveedor.tsx"),
         route("remito-proveedor/:id", "routes/compras/remito-proveedor-detalle.tsx"),
+        route("factura-proveedor", "routes/compras/factura-proveedor.tsx"),
+        route("factura-proveedor/:id", "routes/compras/factura-proveedor-detalle.tsx"),
+        route("recibo-pago-proveedor", "routes/compras/recibo-pago-proveedor.tsx"),
+        route("recibo-pago-proveedor/:id", "routes/compras/recibo-pago-proveedor-detalle.tsx"),
         route("remitos", "routes/compras/remitos.tsx"),
         
         // Rutas de Cliente

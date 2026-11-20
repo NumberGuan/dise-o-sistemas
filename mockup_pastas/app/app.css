@@ -165,6 +165,17 @@ body {
   color: var(--color-slateblue-950);
 }
 
+/* Hoja A4 para los comprobantes imprimibles del módulo de compras. */
+@page {
+  size: A4;
+  margin: 12mm;
+}
+
+.print-document {
+  border: 1px solid var(--color-gray-200);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
 /* Conserva la identidad en comprobantes impresos y exportaciones del navegador. */
 @media print {
   :root {
@@ -179,6 +190,54 @@ body {
     color: var(--color-slateblue-900);
     print-color-adjust: exact;
     -webkit-print-color-adjust: exact;
+  }
+
+  /* Se imprime solo el comprobante; el resto de la interfaz desaparece. */
+  body * {
+    visibility: hidden !important;
+  }
+  #documento-imprimir,
+  #documento-imprimir * {
+    visibility: visible !important;
+  }
+  body *:not(:has(#documento-imprimir)):not(#documento-imprimir):not(#documento-imprimir *) {
+    display: none !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+
+  .print-preview,
+  .print-preview-frame {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+
+  #documento-imprimir.print-document {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  #documento-imprimir tr,
+  #documento-imprimir section,
+  #documento-imprimir header,
+  #documento-imprimir footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }
 /* Keep validation feedback visible below its field, including table cells. */

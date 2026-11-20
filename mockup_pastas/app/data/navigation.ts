@@ -32,6 +32,8 @@ export const NAV_SECTIONS: NavSection[] = [
       { label: "Órdenes a Proveedores", to: "/compras/ordenes" },
       { label: "Presupuesto Proveedor", to: "/compras/presupuesto-proveedor" },
       { label: "Remitos Proveedor", to: "/compras/remito-proveedor" },
+      { label: "Facturas de Proveedores", to: "/compras/factura-proveedor" },
+      { label: "Recibos de Pago a Proveedores", to: "/compras/recibo-pago-proveedor" },
     ],
   },
   {
