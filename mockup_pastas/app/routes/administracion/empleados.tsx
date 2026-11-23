@@ -1,3 +1,7 @@
+import EmployeeDocument, { ProductionSection as EmployeeSection } from "~/components/ProductionDocument";
+import { SortableList } from "~/components/SortableRows";
+import ModulePageHeader from "~/components/ModulePageHeader";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import { CatalogField } from "~/components/InlineCatalog";
 import PhoneFields, { PhoneDetails } from "~/components/PhoneFields";
 import { validatePhones } from "~/data/phones";
@@ -159,13 +163,13 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
 
   return (
     <RecordPage onBack={onCancel}>
-      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+      <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Administración</p>
           <h1 className="text-2xl font-bold text-gray-900">{isNew ? "Formulario Nuevo Empleado" : `Editar ${employee.name}`}</h1>
           <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
-      </div>
+      </FormalPageHeader>
       <form noValidate onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
         {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -230,67 +234,33 @@ type EmployeeDetailProps = {
 };
 
 function EmployeeDetail({ employee, onBack, onEdit, onToggleStatus }: EmployeeDetailProps) {
-  return (
-    <RecordPage onBack={onBack}>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{employee.code}</p>
-          <div className="flex items-center gap-3 mt-1">
-            <h1 className="text-2xl font-bold text-gray-900">{employee.name}</h1>
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${employeeStatusClass(employee.status)}`}>{employee.status}</span>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
-
-        </div>
-      </div>
-      <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Información de contacto</h3>
-          <dl className="mt-3 space-y-3 text-sm">
-            <div>
-              <dt className="text-xs text-gray-500">DNI</dt>
-              <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.dni}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-500">Email</dt>
-              <dd className="mt-0.5 break-all font-medium text-gray-800">{employee.email}</dd>
-            </div>
-            <PhoneDetails primary={employee.phone} additional={employee.additionalPhones} />
-            <div><dt className="text-xs text-gray-500">Domicilio</dt><dd className="mt-0.5 font-medium text-gray-800">{employee.address ? formatClientAddress(employee.address) : "Sin domicilio cargado"}</dd></div>
-          </dl>
-
-          <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-2">
-             <button onClick={onToggleStatus} className={`rounded-lg border px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 ${employee.status === "Activo" ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 focus-visible:outline-red-600" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-emerald-600"}`}>
-               {employee.status === "Activo" ? "Desactivar empleado" : "Activar empleado"}
-             </button>
-          </div>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Datos laborales</h3>
-          <dl className="mt-3 grid gap-x-8 gap-y-3 sm:grid-cols-2 text-sm">
-            <div>
-              <dt className="text-xs text-gray-500">Cargo</dt>
-              <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.role}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-500">Fecha de ingreso</dt>
-              <dd className="mt-0.5 break-words font-medium text-gray-800">{formatDate(employee.hireDate)}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-500">Horas trabajadas</dt>
-              <dd className="mt-0.5 break-words font-medium text-gray-800">{employee.hoursWorked.toLocaleString("es-AR")}</dd>
-            </div>
-            <div>
-              <dt className="text-xs text-gray-500">Sueldo base</dt>
-              <dd className="mt-0.5 break-words font-medium text-gray-800">{formatCurrency(employee.salary)}</dd>
-            </div>
-          </dl>
-        </div>
-      </div>
-    </RecordPage>
-  );
+  return <EmployeeDocument moduleLabel="Administración" title="Ficha de empleado" name={employee.name} code={employee.code} status={employee.status} onClose={onBack}
+    actions={<button type="button" onClick={onEdit} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Editar empleado</button>}
+    metadata={[
+      { label: "DNI", value: employee.dni },
+      { label: "Cargo", value: employee.role },
+      { label: "Fecha de ingreso", value: formatDate(employee.hireDate) },
+    ]}
+    controlsLabel="Gestión del empleado"
+    controls={<button type="button" onClick={onToggleStatus} className={`rounded-lg border px-4 py-2 text-sm font-medium focus-visible:outline-2 focus-visible:outline-offset-2 ${employee.status === "Activo" ? "border-red-200 bg-red-50 text-red-700 hover:bg-red-100 focus-visible:outline-red-600" : "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 focus-visible:outline-emerald-600"}`}>
+      {employee.status === "Activo" ? "Desactivar empleado" : "Activar empleado"}
+    </button>}>
+    <EmployeeSection title="Datos de contacto">
+      <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+        <div><dt>Correo electrónico</dt><dd>{employee.email || "Sin informar"}</dd></div>
+        <PhoneDetails primary={employee.phone} additional={employee.additionalPhones} />
+      </dl>
+    </EmployeeSection>
+    <EmployeeSection title="Domicilio registrado">
+      <p>{employee.address ? formatClientAddress(employee.address) || "Sin domicilio cargado" : "Sin domicilio cargado"}</p>
+    </EmployeeSection>
+    <EmployeeSection title="Información laboral registrada">
+      <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+        <div><dt>Horas trabajadas</dt><dd>{employee.hoursWorked.toLocaleString("es-AR")} h</dd></div>
+        <div><dt>Sueldo base (ARS)</dt><dd>{formatCurrency(employee.salary)}</dd></div>
+      </dl>
+    </EmployeeSection>
+  </EmployeeDocument>;
 }
 
 export default function Empleados() {
@@ -353,14 +323,14 @@ export default function Empleados() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <ModulePageHeader className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-amber-700">Administración</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Empleados</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Alta, consulta y actualización del equipo de trabajo.</p>
         </div>
-        <button type="button" onClick={() => setEditingEmployee(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nuevo Empleado</button>
-      </header>
+      </ModulePageHeader>
+      <div className="mt-5 flex justify-end"><button type="button" onClick={() => setEditingEmployee(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nuevo Empleado</button></div>
 
       {notice && (
         <div role="status" className="mt-5 flex items-start justify-between gap-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
@@ -406,44 +376,52 @@ export default function Empleados() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-left">Código / Nombre</div>
-              <div className="min-w-0 text-center">Cargo</div>
-              <div className="min-w-0 text-center">Ingreso</div>
-              <div className="min-w-0 text-center">Sueldo base</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {filteredEmployees.map((employee) => (
-                <article key={employee.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] lg:gap-5 lg:px-5">
-                  <div className="col-span-2 min-w-0 lg:col-span-1 text-left">
-                    <p className="mb-1 text-xs font-medium text-gray-500">{employee.code}</p>
-                    <h3 className="break-words font-semibold leading-5 text-gray-900">{employee.name}</h3>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cargo</p>
-                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{employee.role}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Fecha de ingreso</p>
-                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{formatDate(employee.hireDate)}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Sueldo base</p>
-                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{formatCurrency(employee.salary)}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-1 lg:items-center">
-                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${employeeStatusClass(employee.status)}`}>{employee.status}</span>
-                  </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                    <button type="button" onClick={() => setSelectedEmployee(employee)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Consultar</button>
-                    <button type="button" onClick={() => setEditingEmployee(employee)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <SortableList
+              rows={filteredEmployees}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] items-center gap-2 lg:gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              newest="Ingreso"
+              tieBreaker={row => row.code}
+              columns={[
+                [["Código", row => row.code], "min-w-0 text-left", [["Nombre", row => row.name]]],
+                [["Cargo", row => row.role], "min-w-0 text-left lg:text-center"],
+                [["Ingreso", row => row.hireDate], "min-w-0 text-left lg:text-center"],
+                [["Sueldo base", row => row.salary], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+                {mapRows((employee) => (
+                  <article key={employee.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_auto] lg:gap-5 lg:px-5">
+                    <div className="col-span-2 min-w-0 lg:col-span-1 text-left">
+                      <p className="mb-1 text-xs font-medium text-gray-500">{employee.code}</p>
+                      <h3 className="break-words font-semibold leading-5 text-gray-900">{employee.name}</h3>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Cargo</p>
+                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{employee.role}</p>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Fecha de ingreso</p>
+                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{formatDate(employee.hireDate)}</p>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Sueldo base</p>
+                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{formatCurrency(employee.salary)}</p>
+                    </div>
+                    <div className="flex flex-col items-start gap-1 lg:items-center">
+                      <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${employeeStatusClass(employee.status)}`}>{employee.status}</span>
+                    </div>
+                    <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                      <button type="button" onClick={() => setSelectedEmployee(employee)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Consultar</button>
+                      <button type="button" onClick={() => setEditingEmployee(employee)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                    </div>
+                  </article>
+                ))}
+              </div>}
+            </SortableList>
           </>
         )}
       </section>

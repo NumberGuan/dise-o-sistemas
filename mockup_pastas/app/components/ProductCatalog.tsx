@@ -13,7 +13,7 @@ export default function ProductCatalog({ products, favorites, cart, query, avail
     <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
       <ShopPageHero
         title="Catálogo de productos"
-        art="catalogo"
+        art={publicMode ? "catalogo" : undefined}
         label={publicMode ? "Fábrica de Pastas" : undefined}
         description={publicMode ? "Explorá nuestros productos y armá tu carrito. Para confirmar el pedido, ingresá o creá una cuenta." : "Consultá el catálogo actual, guardá tus favoritos y armá tu carrito."}
       />

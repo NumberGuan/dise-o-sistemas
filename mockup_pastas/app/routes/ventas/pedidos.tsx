@@ -1,4 +1,5 @@
-import PrintVoucher from "~/components/PrintVoucher";
+import SalesDocument from "~/components/SalesDocument";
+import { SortableList, SortableTable } from "~/components/SortableRows";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
@@ -370,37 +371,38 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
 
                 {items.length > 0 ? (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm text-gray-900">
-                      <thead className="bg-gray-50 text-gray-500">
-                        <tr>
-                          <th className="px-4 py-2 font-medium">Producto</th>
-                          <th className="px-4 py-2 text-right font-medium">Cant.</th>
-                          <th className="px-4 py-2 text-right font-medium">Precio</th>
-                          <th className="px-4 py-2 text-right font-medium">Subtotal</th>
-                          <th className="px-4 py-2"></th>
+                    <SortableTable
+                      rows={items}
+                      className="w-full text-left text-sm text-gray-900"
+                      headClassName="bg-gray-50 text-gray-500"
+                      bodyClassName="divide-y divide-gray-100"
+                      columns={[
+                        [["Producto", row => row.productName], "px-4 py-2 font-medium"],
+                        [["Cant.", row => row.quantity], "px-4 py-2 text-right font-medium"],
+                        [["Precio", row => row.unitPrice], "px-4 py-2 text-right font-medium"],
+                        [["Subtotal", row => row.subtotal], "px-4 py-2 text-right font-medium"],
+                        ["", "px-4 py-2"],
+                      ]}
+                    >
+                      {mapRows => mapRows(item => (
+                        <tr key={item.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 py-2">{item.productName}</td>
+                          <td className="px-4 py-2 text-right">{item.quantity}</td>
+                          <td className="px-4 py-2 text-right">${item.unitPrice}</td>
+                          <td className="px-4 py-2 text-right font-medium text-gray-900">${item.subtotal}</td>
+                          <td className="px-4 py-2 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(item.id)}
+                              className="text-red-500 hover:text-red-700"
+                              title="Eliminar producto"
+                            >
+                              ✕
+                            </button>
+                          </td>
                         </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-100">
-                        {items.map(item => (
-                          <tr key={item.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-4 py-2">{item.productName}</td>
-                            <td className="px-4 py-2 text-right">{item.quantity}</td>
-                            <td className="px-4 py-2 text-right">${item.unitPrice}</td>
-                            <td className="px-4 py-2 text-right font-medium text-gray-900">${item.subtotal}</td>
-                            <td className="px-4 py-2 text-center">
-                              <button
-                                type="button"
-                                onClick={() => handleRemoveItem(item.id)}
-                                className="text-red-500 hover:text-red-700"
-                                title="Eliminar producto"
-                              >
-                                ✕
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                      ))}
+                    </SortableTable>
                   </div>
                 ) : (
                   <div className="p-6 text-center text-sm text-gray-500">
@@ -488,88 +490,15 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus, backLabe
   const deposit = receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
   const activeInvoice = invoices.find(invoice => invoice.orderId === order.id && invoice.status !== "Anulado");
   const activeRemit = SAMPLE_REMITS.find(remit => remit.orderId === order.id && remit.status !== "Anulado");
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={`Pedido ${order.number}`} onCancel={onClose} backLabel={backLabel} action={<PrintVoucher title="Pedido de cliente" document={order} client={client} details={[{ label: "Fecha de entrega", value: order.deliveryDate }, { label: "Dirección de entrega", value: order.deliveryAddress ?? order.customDeliveryAddress ?? "Sin informar" }]} />} />
-      <p className="mb-4 text-sm font-semibold text-amber-800">Tipo: {order.kind ?? "Regular"} · {order.fulfillment ?? "Envío"}{order.kind === "Evento" ? ` · ${order.deliveryDate} a las ${order.deliveryTime} · Seña cobrada: ${currency(deposit)}` : ""}</p>
-      <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="space-y-6 p-5 sm:p-6">
-          <div className="flex justify-between items-center">
-            <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wider ${getStatusClass(order.status)}`}>
-              {order.status}
-            </span>
-            <span className="text-sm font-medium text-gray-500">{order.date}</span>
-          </div>
+  return <SalesDocument onClose={onClose} title="Pedido cliente" document={order} client={client} backLabel={backLabel} details={[
+      { label: "Tipo de pedido", value: order.kind ?? "Regular" },
+      { label: "Modalidad de entrega", value: order.fulfillment ?? "Envío" },
+      { label: "Fecha de entrega", value: order.deliveryDate },
+      { label: "Dirección de entrega", value: !deliveryNeedsAddress(catalogs, order.fulfillment ?? "Envío") ? "Retiro en local" : order.deliveryAddress || order.customDeliveryAddress || (client ? formatClientAddress(client) : "Sin informar") },
+      { label: "Vendedor", value: SAMPLE_EMPLOYEES.find(employee => employee.id === order.employeeId)?.name ?? "No asignado" },
+      ...(order.kind === "Evento" ? [{ label: "Hora de entrega", value: order.deliveryTime ?? "Sin informar" }, { label: "Seña cobrada", value: currency(deposit) }] : []),
+    ]} actions={<>
 
-          <div className="rounded-xl border border-gray-100 bg-gray-50 p-5">
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Datos del Cliente y Venta</h3>
-            <p className="font-semibold text-gray-900 text-base">{client?.name || "Cliente desconocido"}</p>
-            {client && (
-              <div className="mt-3 grid grid-cols-2 gap-y-2 gap-x-4 text-sm text-gray-600">
-                <p><span className="font-medium text-gray-700">{client.documentType}:</span> {client.cuitCuil || "-"}</p>
-                <p><span className="font-medium text-gray-700">IVA:</span> {client.ivaType || "-"}</p>
-                <p className="col-span-2"><span className="font-medium text-gray-700">Localidad:</span> {client.locality}</p>
-              </div>
-            )}
-            <div className="mt-3 border-t border-gray-200 pt-3 text-sm text-gray-600">
-              <p><span className="font-medium text-gray-700">Vendedor:</span> {order.employeeId ? SAMPLE_EMPLOYEES.find(e => e.id === order.employeeId)?.name : "No asignado"}</p>
-            </div>
-          </div>
-
-          <div>
-            <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400">Productos</h3>
-            <ul className="divide-y divide-gray-100 border-y border-gray-100">
-              {order.items.map(item => (
-                <li key={item.id} className="flex justify-between py-3 text-sm">
-                  <div>
-                    <p className="font-medium text-gray-900">{item.productName}</p>
-                    <p className="text-gray-500 mt-0.5">{item.quantity} uni. x ${item.unitPrice}</p>
-                  </div>
-                  <div className="font-medium text-gray-900">${item.subtotal}</div>
-                </li>
-              ))}
-            </ul>
-            <div className="mt-4 flex flex-col items-end gap-1.5 text-sm">
-              <p className="text-gray-500">Subtotal: ${order.subtotal}</p>
-              {order.discount > 0 && <p className="text-red-600 font-medium">Descuento: -${order.discount}</p>}
-              <p className="text-lg font-bold text-gray-900 mt-1">Total: ${order.total}</p>
-            </div>
-          </div>
-
-          {(order.deliveryDate || order.deliveryAddressType) && (
-            <div>
-              {order.deliveryDate && (
-                <>
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Entrega Estimada</h3>
-              <p className="text-sm font-medium text-gray-800">{order.deliveryDate}</p>
-                </>
-              )}
-              {order.deliveryAddressType && (
-                <>
-              <h3 className="mt-4 mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Dirección de Entrega</h3>
-              <p className="text-sm font-medium text-gray-800">
-                {order.deliveryAddress || (order.deliveryAddressType === "custom"
-                  ? order.customDeliveryAddress 
-                  : (client ? formatClientAddress(client) : "Dirección del cliente no disponible"))}
-                <span className="ml-2 text-xs font-normal text-gray-500">
-                  ({!deliveryNeedsAddress(catalogs, order.fulfillment ?? "Envío") ? "Retiro" : order.deliveryAddressType === "custom" ? "Alternativa" : "Del cliente"})
-                </span>
-              </p>
-                </>
-              )}
-            </div>
-          )}
-
-          {order.observations && (
-            <div>
-              <h3 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-gray-400">Observaciones</h3>
-              <p className="text-sm text-gray-700 whitespace-pre-wrap rounded-lg bg-yellow-50/50 p-3 border border-yellow-100">{order.observations}</p>
-            </div>
-          )}
-
-        </div>
-        
-        <div className="border-t border-gray-100 p-5 bg-gray-50 space-y-3">
           {(activeInvoice || order.status !== "Cancelado") && (
             <Link to={activeInvoice ? `/ventas/comprobantes?comprobante=${encodeURIComponent(activeInvoice.id)}` : `/ventas/comprobantes?pedido=${encodeURIComponent(order.id)}`} className="block w-full rounded-lg bg-amber-700 px-4 py-2.5 text-center text-sm font-medium text-white shadow-sm hover:bg-amber-800">
               {activeInvoice ? `Consultar factura ${activeInvoice.number}` : "Generar factura"}
@@ -609,10 +538,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus, backLabe
               Cancelar Pedido
             </button>
           )}
-        </div>
-      </div>
-    </div>
-  );
+    </>} />;
 }
 
 export default function Pedidos() {
@@ -784,47 +710,55 @@ export default function Pedidos() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-5 items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-center">Número / Fecha</div>
-              <div className="min-w-0 text-center">Cliente</div>
-              <div className="min-w-0 text-center">Total</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-            {filteredOrders.map(order => {
-              const client = clients.find(c => c.id === order.clientId);
-              return (
-                <article key={order.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-5 lg:px-5">
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="mb-1 text-xs font-medium text-gray-500">{order.date}</p>
-                    <h3 className="font-semibold leading-5 text-gray-900">{order.number}</h3>
-                    <p className="mt-1 text-xs font-medium text-amber-800">{order.kind ?? "Regular"}{order.kind === "Evento" ? ` · ${order.deliveryDate} ${order.deliveryTime}` : ""}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
-                    <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
-                  </div>
-                  <div className="min-w-0 lg:text-center text-left">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">${order.total}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-1 lg:items-center">
-                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(order.status)}`}>
-                      {order.status}
-                    </span>
-                  </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                    <button type="button" onClick={() => setSelectedOrder(order)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                    {order.status !== "Cancelado" && order.status !== "Facturado" && !SAMPLE_REMITS.some(remit => remit.orderId === order.id && remit.status !== "Anulado") && (
-                      <button type="button" onClick={() => setEditingOrder(order)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+            <SortableList
+              rows={filteredOrders}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-5 items-center gap-2 lg:gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              newest="Fecha"
+              tieBreaker={row => row.number}
+              columns={[
+                [["Número", row => row.number], "min-w-0 text-left lg:text-center", [["Fecha", row => row.date], ["Tipo", row => row.kind ?? 'Regular']]],
+                [["Cliente", row => clients.find(client => client.id === row.clientId)?.name], "min-w-0 text-left lg:text-center"],
+                [["Total", row => row.total], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+                {mapRows(order => {
+                  const client = clients.find(c => c.id === order.clientId);
+                  return (
+                    <article key={order.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-5 lg:px-5">
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="mb-1 text-xs font-medium text-gray-500">{order.date}</p>
+                        <h3 className="font-semibold leading-5 text-gray-900">{order.number}</h3>
+                        <p className="mt-1 text-xs font-medium text-amber-800">{order.kind ?? "Regular"}{order.kind === "Evento" ? ` · ${order.deliveryDate} ${order.deliveryTime}` : ""}</p>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
+                        <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
+                      </div>
+                      <div className="min-w-0 lg:text-center text-left">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">${order.total}</p>
+                      </div>
+                      <div className="flex flex-col items-start gap-1 lg:items-center">
+                        <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(order.status)}`}>
+                          {order.status}
+                        </span>
+                      </div>
+                      <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                        <button type="button" onClick={() => setSelectedOrder(order)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                        {order.status !== "Cancelado" && order.status !== "Facturado" && !SAMPLE_REMITS.some(remit => remit.orderId === order.id && remit.status !== "Anulado") && (
+                          <button type="button" onClick={() => setEditingOrder(order)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>}
+            </SortableList>
           </>
         )}
       </section>

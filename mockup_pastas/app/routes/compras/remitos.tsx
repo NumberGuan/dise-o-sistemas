@@ -1,5 +1,5 @@
 import { PlaceholderPage } from "~/components/PlaceholderPage";
 
 export default function RemitosProveedor() {
-  return <PlaceholderPage title="Remitos Proveedor" />;
+  return <PlaceholderPage title="Remito Proveedor" />;
 }

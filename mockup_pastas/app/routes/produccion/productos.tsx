@@ -1,3 +1,7 @@
+import ProductionDocument, { ProductionSection, productionDate } from "~/components/ProductionDocument";
+import { SortableList } from "~/components/SortableRows";
+import ModulePageHeader from "~/components/ModulePageHeader";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import { CatalogField } from "~/components/InlineCatalog";
 import { useProductionCatalogs } from "~/components/CatalogProvider";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
@@ -14,7 +18,7 @@ const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 
 const labelClass = "block text-sm font-medium text-gray-700";
 const filterClass = "h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 
-function ProductForm({ product, onCancel, onSave }: { product: Producto | null; onCancel: () => void; onSave: (p: Producto) => void }) {
+export function ProductForm({ product, onCancel, onSave, recipeDraft }: { product: Producto | null; onCancel: () => void; onSave: (p: Producto) => void; recipeDraft?: { idReceta: number; nombre: string } }) {
   const { UNIDADES, TIPOS_PRODUCTO, SUBTIPOS_PRODUCTO } = useProductionCatalogs();
   const [id] = useState(product?.idProducto ?? siguienteId(PRODUCTOS_PRODUCCION.map((p) => p.idProducto)));
   const [nombre, setNombre] = useState(product?.nombre ?? "");
@@ -22,7 +26,7 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
   const [subtipo, setSubtipo] = useState(String(product?.idSubtipoProducto ?? ""));
   const subtipos = SUBTIPOS_PRODUCTO.filter(s => String(s.idTipoProducto) === tipo && (s.active || s.idSubtipoProducto === product?.idSubtipoProducto));
   const changeTipo = (value: string) => { setTipo(value); setSubtipo(""); };
-  const [receta, setReceta] = useState(String(product?.idReceta ?? ""));
+  const [receta, setReceta] = useState(String(recipeDraft?.idReceta ?? product?.idReceta ?? ""));
   const [unidad, setUnidad] = useState(String(product?.idUnidad ?? ""));
   const [precio, setPrecio] = useState(product ? String(product.precio) : "");
   const [stock, setStock] = useState(product ? String(product.stockProducto) : "0");
@@ -35,18 +39,20 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
     if (!(Number(precio) > 0)) return setError("Ingresá un precio mayor a cero.");
     if (stock === "" || Number(stock) < 0) return setError("El stock no puede ser negativo.");
     if (PRODUCTOS_PRODUCCION.some((p) => p.nombre.toLowerCase() === nombre.trim().toLowerCase() && p.idProducto !== id)) return setError("Ya existe un producto con ese nombre.");
+    if (product && product.idReceta !== Number(receta) && !PRODUCTOS_PRODUCCION.some(p => p.idProducto !== id && p.idReceta === product.idReceta)) return setError("No podés dejar la receta anterior sin producto asociado. Primero asociá otro producto desde esa receta.");
+    if (PRODUCTOS_PRODUCCION.some(p => p.idProducto !== id && p.idReceta === Number(receta) && p.idUnidad !== Number(unidad))) return setError("Los productos que comparten receta deben usar la misma unidad de rendimiento.");
     onSave({ idProducto: id, nombre: nombre.trim(), idTipoProducto: Number(tipo), idSubtipoProducto: Number(subtipo), idReceta: Number(receta), idUnidad: Number(unidad), precio: Number(precio), stockProducto: Number(stock) });
   }
 
   return (
     <RecordPage onBack={onCancel}>
-      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+      <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Producción</p>
           <h1 className="text-2xl font-bold text-gray-900">{product ? "Editar producto" : "Formulario Nuevo Producto"}</h1>
           <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
-      </div>
+      </FormalPageHeader>
       <form noValidate onSubmit={submit} className="space-y-5 p-5 sm:p-6">
         {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -69,9 +75,9 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
             </select></CatalogField>
           </label>
           <label className={labelClass}>Receta <span className="text-rose-600">*</span>
-            <select required value={receta} onChange={(e) => setReceta(e.target.value)} className={field}>
+            <select required disabled={Boolean(recipeDraft)} value={receta} onChange={(e) => setReceta(e.target.value)} className={`${field} disabled:bg-gray-100`}>
               <option value="">Seleccionar...</option>
-              {RECETAS.map((r) => <option key={r.idReceta} value={r.idReceta}>{r.nombre}</option>)}
+              {recipeDraft ? <option value={recipeDraft.idReceta}>{recipeDraft.nombre || "Receta en preparación"}</option> : RECETAS.map((r) => <option key={r.idReceta} value={r.idReceta}>{r.nombre}</option>)}
             </select>
           </label>
           <label className={labelClass}>Unidad <span className="text-rose-600">*</span>
@@ -103,66 +109,23 @@ function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClo
     .filter((o) => o.detalle.some((d) => d.idProducto === product.idProducto))
     .sort((a, b) => b.fechaEmision.localeCompare(a.fechaEmision));
 
-  return (
-    <RecordPage onBack={onClose}>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{codigo("PRO", product.idProducto)} · {getTipoProducto(product.idTipoProducto)}</p>
-          <h1 className="mt-1 text-2xl font-bold text-gray-900">{product.nombre}</h1>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
-
-        </div>
-      </div>
-      <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Información del producto</h3>
-          <dl className="mt-3 space-y-3 text-sm">
-            {[
-              ["Tipo", getTipoProducto(product.idTipoProducto)],
-              ["Subtipo", getSubtipoProducto(product.idSubtipoProducto)],
-              ["Precio", formatCurrency(product.precio)],
-              ["Stock", formatCantidad(product.stockProducto, product.idUnidad)],
-              ["Receta", receta?.nombre ?? "—"],
-            ].map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-xs text-gray-500">{label}</dt>
-                <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
-              </div>
-            ))}
-          </dl>
-          {receta && (
-            <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="mt-6 block rounded-lg border border-gray-300 px-4 py-2 text-center text-sm font-medium text-gray-700 hover:bg-gray-50">Ver receta</Link>
-          )}
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Órdenes de producción</h3>
-          <ol className="mt-4 divide-y divide-gray-100">
-            {ordenes.length === 0 ? (
-              <p className="text-sm text-gray-500">Este producto todavía no figura en ninguna orden.</p>
-            ) : ordenes.map((o) => {
-              const cantidad = o.detalle.find((d) => d.idProducto === product.idProducto)?.cantidadRealGenerada;
-              return (
-                <li key={o.idOrdenProduccion} className="py-3 first:pt-0">
-                  <Link to={`/produccion/ordenes?orden=${o.idOrdenProduccion}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
-                    <span>
-                      <span className="text-xs font-medium text-gray-500">{codigo("OP", o.idOrdenProduccion, 4)} · Lote {o.nmrLote}</span>
-                      <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">
-                        {cantidad != null ? `Se generaron ${formatCantidad(cantidad, product.idUnidad)}` : "Sin cantidad registrada"}
-                      </span>
-                      <span className="mt-1 block text-xs text-gray-500">Emitida el {o.fechaEmision}</span>
-                    </span>
-                    <span className="text-xs font-medium text-gray-500">{o.estado}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </div>
-    </RecordPage>
-  );
+  return <ProductionDocument title="Ficha técnica de producto" name={product.nombre} code={codigo("PRO", product.idProducto)} onClose={onClose}
+    actions={<button type="button" onClick={onEdit} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar producto</button>}
+    metadata={[
+      { label: "Tipo de producto", value: getTipoProducto(product.idTipoProducto) },
+      { label: "Subtipo", value: getSubtipoProducto(product.idSubtipoProducto) },
+      { label: "Unidad de venta", value: formatCantidad(1, product.idUnidad) },
+      { label: "Precio de venta (ARS)", value: formatCurrency(product.precio) },
+      { label: "Stock disponible", value: formatCantidad(product.stockProducto, product.idUnidad) },
+      { label: "Receta asociada", value: receta ? <Link to={`/produccion/recetas?receta=${receta.idReceta}`}>{receta.nombre}</Link> : "Sin receta" },
+    ]}>
+    <ProductionSection title="Trazabilidad · Órdenes de producción">
+      {ordenes.length ? <div className="production-document-table"><table><thead><tr><th scope="col">Orden / Lote</th><th scope="col">Emisión</th><th scope="col">Estado</th><th scope="col" className="numeric">Producción real</th></tr></thead><tbody>{ordenes.map(order => {
+        const quantity = order.detalle.find(line => line.idProducto === product.idProducto)?.cantidadRealGenerada;
+        return <tr key={order.idOrdenProduccion}><td><Link to={`/produccion/ordenes?orden=${order.idOrdenProduccion}`}>{codigo("OP", order.idOrdenProduccion, 4)}</Link><small>Lote {order.nmrLote}</small></td><td>{productionDate(order.fechaEmision)}</td><td>{order.estado}</td><td className="numeric">{quantity != null ? formatCantidad(quantity, product.idUnidad) : "Sin registrar"}</td></tr>;
+      })}</tbody></table></div> : <p>Este producto todavía no figura en ninguna orden.</p>}
+    </ProductionSection>
+  </ProductionDocument>;
 }
 
 export default function Productos() {
@@ -202,14 +165,14 @@ export default function Productos() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <ModulePageHeader className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-amber-700">Producción</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Productos</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Productos que elabora la fábrica, con su receta, precio y stock disponible.</p>
         </div>
-        <button type="button" onClick={() => setEditing(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nuevo Producto</button>
-      </header>
+      </ModulePageHeader>
+      <div className="mt-5 flex justify-end"><button type="button" onClick={() => setEditing(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nuevo Producto</button></div>
 
       <section className="mt-7 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-gray-200 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
@@ -235,51 +198,58 @@ export default function Productos() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-left">Código / Nombre</div>
-              <div className="min-w-0 text-center">Tipo / Subtipo</div>
-              <div className="min-w-0 text-center">Receta</div>
-              <div className="min-w-0 text-center">Precio</div>
-              <div className="min-w-0 text-center">Stock</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-              <AnimatePresence mode="popLayout">
-              {filtered.map((p, index) => {
-                return (
-                  <motion.article key={p.idProducto} {...rowMotion(index)} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
-                    <div className="col-span-2 min-w-0 text-left lg:col-span-1">
-                      <p className="mb-1 text-xs font-medium text-gray-500">{codigo("PRO", p.idProducto)}</p>
-                      <h3 className="break-words font-semibold leading-5 text-gray-900">{p.nombre}</h3>
-                    </div>
-                    <div className="min-w-0 text-left lg:text-center">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo / Subtipo</p>
-                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{getTipoProducto(p.idTipoProducto)}</p>
-                      <p className="break-words text-xs text-gray-500">{getSubtipoProducto(p.idSubtipoProducto)}</p>
-                    </div>
-                    <div className="min-w-0 text-left lg:text-center">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Receta</p>
-                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{getReceta(p.idReceta)?.nombre ?? "—"}</p>
-                    </div>
-                    <div className="min-w-0 text-left lg:text-center">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Precio</p>
-                      <p className="mt-1 text-sm text-gray-900 lg:mt-0">{formatCurrency(p.precio)}</p>
-                    </div>
-                    <div className="flex flex-col items-start gap-1 lg:items-center">
-                      <span className="text-xs font-medium text-gray-500 lg:hidden">Stock</span>
-                      {p.stockProducto === 0
-                        ? <span className="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800">Sin stock</span>
-                        : <span className="text-sm text-gray-900">{formatCantidad(p.stockProducto, p.idUnidad)}</span>}
-                    </div>
-                    <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:justify-center lg:border-0 lg:pt-0">
-                      <button type="button" onClick={() => setSelected(p)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                      <button type="button" onClick={() => setEditing(p)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                    </div>
-                  </motion.article>
-                );
-              })}
-              </AnimatePresence>
-            </div>
+            <SortableList
+              rows={filtered}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr] items-center gap-2 lg:gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              newest="Código"
+              columns={[
+                [["Código", row => row.idProducto], "min-w-0 text-left", [["Nombre", row => row.nombre]]],
+                [["Tipo", row => getTipoProducto(row.idTipoProducto)], "min-w-0 text-left lg:text-center", [["Subtipo", row => getSubtipoProducto(row.idSubtipoProducto)]]],
+                [["Receta", row => getReceta(row.idReceta)?.nombre], "min-w-0 text-left lg:text-center"],
+                [["Precio", row => row.precio], "min-w-0 text-left lg:text-center"],
+                [["Stock", row => row.stockProducto], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+                <AnimatePresence mode="popLayout">
+                {mapRows((p, index) => {
+                  return (
+                    <motion.article key={p.idProducto} {...rowMotion(index)} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
+                      <div className="col-span-2 min-w-0 text-left lg:col-span-1">
+                        <p className="mb-1 text-xs font-medium text-gray-500">{codigo("PRO", p.idProducto)}</p>
+                        <h3 className="break-words font-semibold leading-5 text-gray-900">{p.nombre}</h3>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo / Subtipo</p>
+                        <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{getTipoProducto(p.idTipoProducto)}</p>
+                        <p className="break-words text-xs text-gray-500">{getSubtipoProducto(p.idSubtipoProducto)}</p>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Receta</p>
+                        <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{getReceta(p.idReceta)?.nombre ?? "—"}</p>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Precio</p>
+                        <p className="mt-1 text-sm text-gray-900 lg:mt-0">{formatCurrency(p.precio)}</p>
+                      </div>
+                      <div className="flex flex-col items-start gap-1 lg:items-center">
+                        <span className="text-xs font-medium text-gray-500 lg:hidden">Stock</span>
+                        {p.stockProducto === 0
+                          ? <span className="inline-flex rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-800">Sin stock</span>
+                          : <span className="text-sm text-gray-900">{formatCantidad(p.stockProducto, p.idUnidad)}</span>}
+                      </div>
+                      <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:justify-center lg:border-0 lg:pt-0">
+                        <button type="button" onClick={() => setSelected(p)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                        <button type="button" onClick={() => setEditing(p)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                      </div>
+                    </motion.article>
+                  );
+                })}
+                </AnimatePresence>
+              </div>}
+            </SortableList>
           </>
         )}
       </section>

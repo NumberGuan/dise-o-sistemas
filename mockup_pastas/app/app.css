@@ -22,18 +22,63 @@
   background: #fff;
 }
 
-.form-heading,
-.record-page > .form-sheet > div:has(h1) {
-  border-bottom: 1px solid var(--color-gray-200);
-  padding: 1.25rem clamp(1rem, 3vw, 1.5rem);
-  background: var(--color-gray-50);
-  border-start-start-radius: calc(1rem - 2px);
-  border-start-end-radius: calc(1rem - 2px);
+.module-page-header {
+  position: relative;
+  isolation: isolate;
+  min-width: 0;
+  min-height: 8.5rem;
+  align-content: center;
+  border: 1px solid #eadfd3;
+  border-radius: 0.875rem;
+  padding: 1.5rem clamp(1rem, 3vw, 2rem);
+  background: #fffaf4;
 }
 
-.page-surface :is(.form-heading, .record-page > .form-sheet > div) h1 {
+.module-page-header-image {
+  position: absolute;
+  z-index: -1;
+  inset: 0 0 0 auto;
+  width: 64%;
+  height: 100%;
+  border-radius: inherit;
+  object-fit: cover;
+  object-position: center right;
+  mask-image: linear-gradient(to right, transparent 2%, #000 90%);
+  opacity: 0.38;
+}
+
+.formal-page-header {
+  min-width: 0;
+  border-bottom: 1px solid var(--color-gray-300);
+  padding-block: 0.75rem 1rem;
+  background: white;
+}
+
+.form-sheet > .formal-page-header {
+  padding: 1.25rem clamp(1rem, 3vw, 1.5rem);
+  border-radius: calc(1rem - 2px) calc(1rem - 2px) 0 0;
+}
+
+:is(.module-page-header, .formal-page-header) h1 {
+  color: var(--color-slateblue-900);
+  font-size: clamp(1.6rem, 1.3rem + 0.8vw, 2rem);
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+  overflow-wrap: anywhere;
+}
+
+.page-surface :is(.module-page-header, .formal-page-header, .print-document) h1 {
   border-left: 0;
   padding-left: 0;
+}
+
+@media (min-width: 40rem) {
+  .module-page-header-image {
+    width: 54%;
+    mask-image: linear-gradient(to right, transparent, #000 95%);
+    opacity: 0.64;
+  }
 }
 
 .form-sheet-body {
@@ -69,7 +114,7 @@
 }
 
 @media screen {
-  .purchases-page h1:not(.form-heading h1)::before {
+  .purchases-page .module-page-header h1::before {
     display: block;
     margin-bottom: 0.3rem;
     color: var(--color-brand-700);
@@ -268,79 +313,56 @@ body {
   color: var(--color-slateblue-950);
 }
 
-/* Hoja A4 para los comprobantes imprimibles del módulo de compras. */
-@page {
-  size: A4;
-  margin: 12mm;
-}
-
 .print-document {
   border: 1px solid var(--color-gray-200);
   box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
 }
 
-/* Conserva la identidad en comprobantes impresos y exportaciones del navegador. */
 @media print {
-  :root {
-    --color-white: #ffffff;
-    --color-gray-50: #ffffff;
-    --color-gray-100: #f3f6fa;
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
   }
 
-  html,
-  body {
-    background: #ffffff !important;
-    color: var(--color-slateblue-900);
+  body:has(#documento-imprimir) {
+    background: white;
     print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
   }
 
-  /* Se imprime solo el comprobante; el resto de la interfaz desaparece. */
-  body * {
-    visibility: hidden !important;
-  }
-  #documento-imprimir,
-  #documento-imprimir * {
-    visibility: visible !important;
-  }
-  body *:not(:has(#documento-imprimir)):not(#documento-imprimir):not(#documento-imprimir *) {
-    display: none !important;
-  }
-  .no-print {
+  body:has(#documento-imprimir):not(:has(> .voucher-selected))
+    *:not(:has(#documento-imprimir), #documento-imprimir, #documento-imprimir *) {
     display: none !important;
   }
 
-  .print-preview,
-  .print-preview-frame {
+  body *:has(#documento-imprimir) {
+    display: block;
+    min-height: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
     border: 0 !important;
-    border-radius: 0 !important;
     box-shadow: none !important;
     background: transparent !important;
     overflow: visible !important;
+    transform: none !important;
   }
 
   #documento-imprimir.print-document {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
     width: 100% !important;
     max-width: none !important;
     margin: 0 !important;
     padding: 0 !important;
     border: 0 !important;
     box-shadow: none !important;
-    background: #ffffff !important;
-    color: #000000 !important;
+    background: white !important;
+    color: black !important;
   }
 
-  #documento-imprimir tr,
-  #documento-imprimir section,
-  #documento-imprimir header,
-  #documento-imprimir footer {
+  #documento-imprimir thead {
+    display: table-header-group;
+  }
+
+  #documento-imprimir :is(tr, section, header, footer) {
     break-inside: avoid;
-    page-break-inside: avoid;
   }
 }
 /* Keep validation feedback visible below its field, including table cells. */

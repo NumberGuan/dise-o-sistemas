@@ -9,17 +9,18 @@ type Props = {
   catalog: CatalogKey;
   entry?: CatalogEntry;
   initialParentId?: string;
+  initialMateriaPrima?: number;
   renderParentField?: (catalog: CatalogKey, select: ReactElement, onCreated: (entry: CatalogEntry) => void) => ReactNode;
 };
 
-export function CatalogEntryFields({ catalog, entry, initialParentId, renderParentField }: Props) {
+export function CatalogEntryFields({ catalog, entry, initialParentId, initialMateriaPrima, renderParentField }: Props) {
   const catalogs = useCatalogs();
   const definition = catalogDefinition(catalog)!;
   const parentKey = "parent" in definition ? definition.parent : undefined;
   const parentDefinition = parentKey ? catalogDefinition(parentKey) : undefined;
   const parents = parentKey ? catalogs[parentKey] : [];
   const [parentId, setParentId] = useState(initialParentId ?? "");
-  const materials = catalog === "marcas" && entry ? brandRawMaterials(entry) : [];
+  const materials = catalog === "marcas" && entry ? brandRawMaterials(entry) : initialMateriaPrima ? [initialMateriaPrima] : [];
 
   function parentLabel(parent: CatalogEntry) {
     const province = catalog === "calles" ? catalogs.provincias.find(item => item.id === parent.parentId) : undefined;

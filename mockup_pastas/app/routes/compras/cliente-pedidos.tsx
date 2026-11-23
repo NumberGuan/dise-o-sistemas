@@ -1,9 +1,11 @@
+import { SortableTable } from "~/components/SortableRows";
 import { useState } from "react";
 import { Link, data, redirect, useActionData, useLoaderData, useSearchParams } from "react-router";
 
 import CustomerOrderEditor from "~/components/CustomerOrderEditor";
 import PrintVoucher from "~/components/PrintVoucher";
 import ShopPageHero from "~/components/ShopPageHero";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import { getClientAddresses, type Order, type OrderStatus } from "~/data/sales";
 import { customerAsClient } from "~/data/customer.server";
 import { customerOrderVersion, getSalesData, saveCustomerOrderEdit } from "~/data/sales.server";
@@ -12,7 +14,6 @@ import type { Route } from "./+types/cliente-pedidos";
 export { default as ErrorBoundary } from "~/components/CustomerErrorBoundary";
 
 const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 2 });
-const orderNumber = new Intl.Collator("es-AR", { numeric: true });
 const ordersUrl = "/compras/pedidos";
 const actionClass = "inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-semibold text-amber-900 hover:bg-amber-50 hover:underline focus-visible:outline-2 focus-visible:outline-amber-700";
 const statusClasses: Record<OrderStatus, string> = {
@@ -22,13 +23,6 @@ const statusClasses: Record<OrderStatus, string> = {
   "Facturado": "bg-purple-100 text-purple-900",
   "Cancelado": "bg-red-100 text-red-900",
 };
-const sortColumns = [
-  { field: "number", label: "Número de pedido" },
-  { field: "date", label: "Fecha" },
-  { field: "status", label: "Estado" },
-] as const;
-type SortField = (typeof sortColumns)[number]["field"];
-
 function orderUrl(id: string, view?: "editar" | "guardado") {
   const params = new URLSearchParams({ pedido: id });
   if (view) params.set("vista", view);
@@ -118,14 +112,10 @@ export default function ClientePedidos() {
   const actionData = useActionData<typeof action>();
   const [params] = useSearchParams();
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<{ field: SortField; descending: boolean }>({ field: "date", descending: true });
   const terms = normalizeSearch(query.trim()).split(/\s+/).filter(Boolean);
   const visibleOrders = orders.filter(item => {
     const content = normalizeSearch([item.number, item.date, formatOrderDate(item.date), item.status].join(" "));
     return terms.every(term => content.includes(term));
-  }).sort((a, b) => {
-    const value = sort.field === "number" ? orderNumber.compare(a.number, b.number) : a[sort.field].localeCompare(b[sort.field], "es-AR");
-    return (sort.descending ? -value : value) || b.date.localeCompare(a.date) || orderNumber.compare(b.number, a.number);
   });
 
   return (
@@ -134,10 +124,13 @@ export default function ClientePedidos() {
         <>
           <Link to={ordersUrl} className="text-sm font-semibold text-amber-800 underline underline-offset-4">Volver a Mis pedidos</Link>
           <div className="mb-5 mt-3">
-            <ShopPageHero title={`${version ? "Editar pedido" : "Pedido"} ${order.number}`} art="pedidos">
-              <OrderStatusLabel status={order.status} />
-              {!version && order.status === "Pendiente" && <Link to={orderUrl(order.id, "editar")} className={`${actionClass} bg-white/85`}>Editar</Link>}
-            </ShopPageHero>
+            <FormalPageHeader className="flex flex-wrap items-center justify-between gap-3">
+              <h1>{version ? "Editar pedido" : "Pedido"} {order.number}</h1>
+              <div className="flex flex-wrap items-center gap-2">
+                <OrderStatusLabel status={order.status} />
+                {!version && order.status === "Pendiente" && <Link to={orderUrl(order.id, "editar")} className={`${actionClass} bg-white`}>Editar</Link>}
+              </div>
+            </FormalPageHeader>
           </div>
           {actionData?.error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{actionData.error}</p>}
           {params.get("vista") === "guardado" && <p role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Se guardaron los cambios del pedido.</p>}
@@ -145,7 +138,7 @@ export default function ClientePedidos() {
         </>
       ) : (
         <>
-          <div className="mb-6"><ShopPageHero title="Mis pedidos" art="pedidos" /></div>
+          <div className="mb-6"><ShopPageHero title="Mis pedidos" /></div>
           {!orders.length ? (
             <section className="rounded-2xl border border-dashed border-[#dfd0c0] bg-white px-6 py-14 text-center">
               <h2 className="text-lg font-semibold">Todavía no tenés pedidos</h2>
@@ -161,22 +154,23 @@ export default function ClientePedidos() {
                 <p role="status" className="pb-2 text-sm text-gray-600">{visibleOrders.length === 1 ? "1 pedido" : `${visibleOrders.length} pedidos`}</p>
               </div>
               <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Tabla de pedidos">
-                <table className="w-full min-w-[19rem] text-left text-sm">
-                  <thead className="bg-[#fffdfa] text-gray-700">
-                    <tr>
-                      {sortColumns.map(({ field, label }) => (
-                        <th key={field} scope="col" aria-sort={sort.field === field ? sort.descending ? "descending" : "ascending" : undefined} className="px-2 sm:px-5">
-                          <button type="button" className="flex min-h-11 items-center gap-1 rounded text-left font-semibold leading-tight hover:text-amber-900 focus-visible:outline-2 focus-visible:outline-amber-700" onClick={() => setSort(current => ({ field, descending: current.field === field ? !current.descending : field === "date" }))}>
-                            {label}<span aria-hidden="true" className={sort.field === field ? "text-amber-800" : "text-gray-400"}>{sort.field === field ? sort.descending ? "↓" : "↑" : "↕"}</span>
-                          </button>
-                        </th>
-                      ))}
-                      <th scope="col" className="px-2 font-semibold sm:px-5">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#f0e7dd] border-t border-[#eadfd3]">
+                <SortableTable
+                  rows={visibleOrders}
+                  className="w-full min-w-[19rem] text-left text-sm"
+                  headClassName="bg-[#fffdfa] text-gray-700"
+                  bodyClassName="divide-y divide-[#f0e7dd] border-t border-[#eadfd3]"
+                  newest="Fecha"
+                  tieBreaker={row => row.number}
+                  columns={[
+                    [["Número de pedido", row => row.number], "px-2 py-2 font-semibold sm:px-5"],
+                    [["Fecha", row => row.date], "px-2 py-2 font-semibold sm:px-5"],
+                    [["Estado", row => row.status], "px-2 py-2 font-semibold sm:px-5"],
+                    ["Acciones", "px-2 py-2 font-semibold sm:px-5"],
+                  ]}
+                >
+                  {mapRows => <>
                     {!visibleOrders.length && <tr><td colSpan={4} className="px-5 py-10 text-center text-gray-600">No encontramos pedidos para esa búsqueda.</td></tr>}
-                    {visibleOrders.map(item => (
+                    {mapRows(item => (
                       <tr key={item.id}>
                         <th scope="row" className="px-2 py-3 font-semibold text-gray-900 [overflow-wrap:anywhere] sm:whitespace-nowrap sm:px-5">{item.number}</th>
                         <td className="whitespace-nowrap px-2 py-3 tabular-nums text-gray-700 sm:px-5"><time dateTime={item.date}>{formatOrderDate(item.date)}</time></td>
@@ -189,8 +183,8 @@ export default function ClientePedidos() {
                         </td>
                       </tr>
                     ))}
-                  </tbody>
-                </table>
+                  </>}
+                </SortableTable>
               </div>
             </section>
           )}

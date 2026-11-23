@@ -1,3 +1,6 @@
+import { SortableTable } from "~/components/SortableRows";
+import ModulePageHeader from "~/components/ModulePageHeader";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import { CatalogField } from "~/components/InlineCatalog";
 import BackToListButton from "~/components/BackToListButton";
 import { CatalogEntryFields, catalogInputClass as field } from "~/components/CatalogEntryFields";
@@ -77,25 +80,24 @@ function CatalogScreen({ definition }: { definition: (typeof CATALOG_DEFINITIONS
     <span>Volver a Administración</span>
   </Link>;
 
+  const CatalogHeader = mode ? FormalPageHeader : ModulePageHeader;
   return <div className="mx-auto max-w-7xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
     {isForm && <div className="mx-auto mb-3 flex max-w-2xl flex-wrap items-center justify-end gap-3">
       {backToAdmin}
       <BackToListButton onClick={() => setParams({})} disabled={pending} />
     </div>}
-    {!isForm && <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
-      <div><p className="text-sm font-medium text-amber-700">{definition.group}</p><h1 className="mt-1 text-2xl font-bold">{definition.title}</h1><p className="mt-2 max-w-2xl text-sm text-gray-500">{definition.description}</p></div>
-      <div className="flex flex-wrap items-center justify-end gap-2">
-        {backToAdmin}
-        {!mode && <Link to="?vista=nuevo" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">+ Agregar {definition.singular}</Link>}
-      </div>
-    </header>}
+    {!isForm && <CatalogHeader className="mb-6 flex flex-wrap items-center justify-between gap-4">
+      <div><p className="text-sm font-medium text-amber-700">{definition.group}</p><h1 className="mt-1 text-2xl font-bold">{mode === "detalle" && selected ? selected.name : definition.title}</h1><p className="mt-2 max-w-2xl text-sm text-gray-500">{definition.description}</p></div>
+      {mode && <div className="flex flex-wrap items-center justify-end gap-2">{backToAdmin}</div>}
+    </CatalogHeader>}
+    {!mode && <div className="mb-6 flex flex-wrap items-center justify-end gap-3">{backToAdmin}<Link to="?vista=nuevo" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">+ Agregar {definition.singular}</Link></div>}
     {notice && !mode && <p role="status" className="mb-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
     {mode && mode !== "nuevo" && !selected ? <div className="rounded-xl border border-gray-200 bg-white p-6"><p role="alert">El registro solicitado no existe.</p><Link to="?" className="mt-4 inline-block text-amber-800 underline">Volver al listado</Link></div>
       : isForm ? <section className="form-sheet mx-auto max-w-2xl">
-        <div className="form-heading">
+        <FormalPageHeader>
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-600">Administración</p>
           <h1 className="text-xl font-bold text-gray-900">{selected ? `Editar ${selected.name}` : `Formulario para agregar ${definition.singular}`}</h1>
-        </div>
+        </FormalPageHeader>
         <Form key={`${mode}-${selected?.id ?? "new"}`} method="post" className="form-sheet-body space-y-5">
           <p className="text-sm text-gray-500">Los campos con * son obligatorios. La baja es lógica y conserva el historial.</p>
           <input type="hidden" name="intent" value="save" />
@@ -107,7 +109,7 @@ function CatalogScreen({ definition }: { definition: (typeof CATALOG_DEFINITIONS
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><Link to="?" aria-disabled={pending} onClick={event => { if (pending) event.preventDefault(); }} className={secondary}>Cancelar</Link><button disabled={pending} type="submit" className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50">{pending ? "Guardando…" : "Guardar"}</button></div>
         </Form>
       </section> : mode === "detalle" && selected ? <section className="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold">{selected.name}</h2><dl className="mt-5 grid gap-4 text-sm">{[["Código", selected.id], ["Estado", selected.active ? "Activo" : "Inactivo"], ["Descripción", selected.description || "Sin descripción"], ...(parentDefinition ? [[parentDefinition.title, parentLabel(selected)]] : []), ...(selected.behavior ? [["Forma de entrega", selected.behavior === "pickup" ? "Retiro" : "Envío con dirección"]] : []), ...(definition.key === "marcas" ? [["Materias primas", MATERIAS_PRIMAS_PRODUCCION.filter(material => brandRawMaterials(selected).includes(material.idMateriaPrima)).map(material => material.nombre).join(", ") || "Sin materias primas asociadas"]] : [])].map(([label, value]) => <div key={label}><dt className="text-gray-500">{label}</dt><dd className="mt-1 font-medium">{value}</dd></div>)}</dl>
+        <dl className="grid gap-4 text-sm">{[["Código", selected.id], ["Estado", selected.active ? "Activo" : "Inactivo"], ["Descripción", selected.description || "Sin descripción"], ...(parentDefinition ? [[parentDefinition.title, parentLabel(selected)]] : []), ...(selected.behavior ? [["Forma de entrega", selected.behavior === "pickup" ? "Retiro" : "Envío con dirección"]] : []), ...(definition.key === "marcas" ? [["Materias primas", MATERIAS_PRIMAS_PRODUCCION.filter(material => brandRawMaterials(selected).includes(material.idMateriaPrima)).map(material => material.nombre).join(", ") || "Sin materias primas asociadas"]] : [])].map(([label, value]) => <div key={label}><dt className="text-gray-500">{label}</dt><dd className="mt-1 font-medium">{value}</dd></div>)}</dl>
         <div className="mt-6 flex gap-3"><Link to="?" className={secondary}>Volver al listado</Link><Link to={`?vista=editar&registro=${selected.id}`} className={secondary}>Editar</Link></div>
       </section> : <>
         <dl className="mb-6 grid grid-cols-3 gap-3">{[["Total", rows.length], ["Activos", rows.filter(item => item.active).length], ["Inactivos", rows.filter(item => !item.active).length]].map(([label, value]) => <div key={label} className="rounded-xl border border-gray-200 bg-white p-4"><dt className="text-sm text-gray-500">{label}</dt><dd className="mt-1 text-2xl font-bold">{value}</dd></div>)}</dl>
@@ -119,18 +121,26 @@ function CatalogScreen({ definition }: { definition: (typeof CATALOG_DEFINITIONS
           </div>
           <p role="status" className="px-5 py-3 text-xs text-gray-500">{filtered.length} registros encontrados</p>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[44rem] table-fixed text-left">
-              <thead className="border-y border-gray-200 bg-gray-50 text-sm font-semibold text-gray-700">
-                <tr><th scope="col" className="px-5 py-3">Nombre</th><th scope="col" className="w-28 px-4 py-3">Estado</th><th scope="col" className="w-52 px-5 py-3 text-right">Acciones</th></tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {filtered.length ? filtered.map(item => <tr key={item.id}>
+            <SortableTable
+              rows={filtered}
+              className="w-full min-w-[44rem] table-fixed text-left"
+              headClassName="border-y border-gray-200 bg-gray-50 text-sm font-semibold text-gray-700"
+              bodyClassName="divide-y divide-gray-200"
+              newest="Código"
+              columns={[
+                [["Nombre", row => row.name], "px-5 py-3", [["Código", row => row.id]]],
+                [["Estado", row => row.active ? 'Activo' : 'Inactivo'], "w-28 px-4 py-3"],
+                ["Acciones", "w-52 px-5 py-3 text-right"],
+              ]}
+            >
+              {mapRows => <>
+                {filtered.length ? mapRows(item => <tr key={item.id}>
                   <td className="px-5 py-4 align-middle"><p className="break-words font-semibold">{item.name}</p><p className="mt-1 text-xs text-gray-500">Código {item.id}{parentDefinition ? ` · ${parentLabel(item)}` : ""}</p>{item.description && <p className="mt-1 break-words text-sm text-gray-600">{item.description}</p>}</td>
                   <td className="px-4 py-4 align-middle"><span className={`inline-block rounded-full px-2 py-1 text-xs font-medium ${item.active ? "bg-emerald-100 text-emerald-800" : "bg-gray-100 text-gray-600"}`}>{item.active ? "Activo" : "Inactivo"}</span></td>
                   <td className="px-5 py-4 align-middle"><div className="flex justify-end gap-2"><Link to={`?vista=detalle&registro=${item.id}`} className={secondary} aria-label={`Consultar ${item.name}`}>Consultar</Link><Link to={`?vista=editar&registro=${item.id}`} className={secondary} aria-label={`Editar ${item.name}`}>Editar</Link></div></td>
                 </tr>) : <tr><td colSpan={3} className="p-10 text-center text-sm text-gray-500">No hay registros con los filtros seleccionados.</td></tr>}
-              </tbody>
-            </table>
+              </>}
+            </SortableTable>
           </div>
         </section>
         <p className="mt-4 text-xs leading-5 text-gray-500">Los registros inactivos se conservan en las operaciones existentes y dejan de ofrecerse para nuevas selecciones.</p>

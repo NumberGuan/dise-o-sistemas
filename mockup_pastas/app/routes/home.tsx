@@ -1,3 +1,4 @@
+import { SortableTable } from "~/components/SortableRows";
 import { Link, useLoaderData, redirect, useSearchParams } from "react-router";
 import { getUser } from "~/utils/session.server";
 import { getSalesData } from "~/data/sales.server";
@@ -72,7 +73,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     customerCount: new Set(active.map(order => order.clientId)).size,
     statuses: ORDER_STATUSES.map(status => ({ status, count: orders.filter(order => order.status === status).length })),
     products: [...products.values()].sort((a, b) => b.quantity - a.quantity).slice(0, 5),
-    recent: [...orders].sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number)).slice(0, 5).map(order => ({ id: order.id, number: order.number, date: order.date, total: order.total, status: order.status, client: sales.clients.find(client => client.id === order.clientId)?.name ?? "Cliente sin identificar" })),
+    recent: [...orders].sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number, "es-AR", { numeric: true })).slice(0, 5).map(order => ({ id: order.id, number: order.number, date: order.date, total: order.total, status: order.status, client: sales.clients.find(client => client.id === order.clientId)?.name ?? "Cliente sin identificar" })),
   };
 };
 
@@ -147,7 +148,24 @@ export default function Home() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:col-span-2"><div className="flex items-center justify-between px-6 py-5"><div><h2 className="font-semibold">Últimos pedidos</h2><p className="mt-1 text-xs text-gray-500">Actividad del mes seleccionado</p></div>{canManageSales && <Link to="/ventas/pedidos" className="text-xs font-semibold text-amber-700 hover:underline">Ver todos →</Link>}</div><div className="overflow-x-auto"><table className="w-full whitespace-nowrap text-left text-sm"><thead className="border-y border-gray-100 bg-gray-50 text-xs text-gray-500"><tr>{["Pedido / cliente", "Fecha", "Importe", "Estado"].map(label => <th key={label} className="px-6 py-3 font-medium">{label}</th>)}</tr></thead><tbody className="divide-y divide-gray-100">{data.recent.map(order => <tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4"><p className="font-semibold">{order.number}</p><p className="mt-1 max-w-48 truncate text-xs text-gray-500" title={order.client}>{order.client}</p></td><td className="px-6 py-4 text-gray-500">{order.date.split("-").reverse().join("/")}</td><td className="px-6 py-4 font-medium">{currency(order.total)}</td><td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses[order.status]}`}>{order.status}</span></td></tr>)}{!data.recent.length && <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500">No hay pedidos registrados en este período.</td></tr>}</tbody></table></div></section>
+        <section className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm lg:col-span-2"><div className="flex items-center justify-between px-6 py-5"><div><h2 className="font-semibold">Últimos pedidos</h2><p className="mt-1 text-xs text-gray-500">Actividad del mes seleccionado</p></div>{canManageSales && <Link to="/ventas/pedidos" className="text-xs font-semibold text-amber-700 hover:underline">Ver todos →</Link>}</div><div className="overflow-x-auto"><SortableTable
+            rows={data.recent}
+            className="w-full whitespace-nowrap text-left text-sm"
+            headClassName="border-y border-gray-100 bg-gray-50 text-xs text-gray-500"
+            bodyClassName="divide-y divide-gray-100"
+            newest="Fecha"
+            tieBreaker={row => row.number}
+            columns={[
+              [["Pedido", row => row.number], "px-6 py-3 font-medium", [["Cliente", row => row.client]]],
+              [["Fecha", row => row.date], "px-6 py-3 font-medium"],
+              [["Importe", row => row.total], "px-6 py-3 font-medium"],
+              [["Estado", row => row.status], "px-6 py-3 font-medium"],
+            ]}
+          >
+            {mapRows => <>
+              {mapRows(order => <tr key={order.id} className="hover:bg-gray-50"><td className="px-6 py-4"><p className="font-semibold">{order.number}</p><p className="mt-1 max-w-48 truncate text-xs text-gray-500" title={order.client}>{order.client}</p></td><td className="px-6 py-4 text-gray-500">{order.date.split("-").reverse().join("/")}</td><td className="px-6 py-4 font-medium">{currency(order.total)}</td><td className="px-6 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClasses[order.status]}`}>{order.status}</span></td></tr>)}{!data.recent.length && <tr><td colSpan={4} className="px-6 py-12 text-center text-gray-500">No hay pedidos registrados en este período.</td></tr>}
+            </>}
+          </SortableTable></div></section>
         <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"><h2 className="font-semibold">Productos más pedidos</h2><p className="mt-1 text-xs text-gray-500">Por unidades · excluye pedidos cancelados</p><ol className="mt-6 space-y-5">{data.products.map((product, index) => <li key={product.name}><div className="mb-2 flex items-start justify-between gap-3 text-sm"><span className="flex gap-2"><span className="font-medium text-gray-400">{String(index + 1).padStart(2, "0")}</span><span className="font-medium">{product.name}</span></span><span className="shrink-0 text-xs text-gray-500">{product.quantity} u.</span></div><div className="h-1.5 overflow-hidden rounded-full bg-gray-100"><div className="h-full rounded-full bg-brand-400" style={{ width: `${product.quantity / Math.max(1, data.products[0].quantity) * 100}%` }} /></div></li>)}</ol>{!data.products.length && <p className="py-12 text-center text-sm text-gray-500">Sin productos pedidos en este mes.</p>}</section>
       </div>
       <p className="text-xs leading-5 text-gray-400">Los indicadores corresponden al mes seleccionado. La facturación incluye impuestos y descuenta notas de crédito emitidas; el valor de los pedidos y su ticket promedio pueden diferir del importe facturado.</p>

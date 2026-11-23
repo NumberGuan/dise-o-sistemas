@@ -145,121 +145,124 @@ export const MATERIAS_PRIMAS_PRODUCCION: MateriaPrima[] = [
   { idMateriaPrima: 24, idUnidad: 1, idTipoMateriaPrima: 2, idMarca: 3, nombre: "Queso azul", stockMateriaPrima: 6, precioUltimaCompra: 13500 },
 ];
 
-type RecetaSemilla = Omit<Receta, "materiasPrimas"> & { materiasPrimas: Pick<DetalleMateriaPrima, "idMateriaPrima" | "cantidadNecesaria">[] };
+type RecetaSemilla = Omit<Receta, "materiasPrimas"> & { materiasPrimas: Pick<DetalleMateriaPrima, "idMateriaPrima" | "cantidadNecesaria" | "idUnidad">[] };
 
+// Una tanda rinde una presentación de venta: 1 kg de pasta fresca, una docena
+// de pasta rellena, un canelón/porción de lasagna, un paquete de 500 g o un frasco
+// de salsa de 250 g. Las verduras se pesan en crudo (antes de pelar y escurrir).
 const RECETAS_SEMILLA: RecetaSemilla[] = [
   {
     idReceta: 1, nombre: "Masa al huevo", tiempoCoccion: "00:04", temperatura: 100,
     procedimiento: "Mezclar la harina con los huevos y la sal. Amasar hasta obtener una masa lisa, dejar reposar 20 minutos y laminar hasta 1,5 mm. Cortar según el producto.",
-    materiasPrimas: [{ idMateriaPrima: 1, cantidadNecesaria: 10 }, { idMateriaPrima: 4, cantidadNecesaria: 2 }, { idMateriaPrima: 10, cantidadNecesaria: 0.2 }],
+    materiasPrimas: [{ idMateriaPrima: 1, idUnidad: 2, cantidadNecesaria: 650 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 6 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 5 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "07:00", horaFin: "07:30" }, { idMaquina: "maq-2", horaInicio: "07:30", horaFin: "08:15" }],
   },
   {
     idReceta: 2, nombre: "Ravioles de verdura", tiempoCoccion: "00:06", temperatura: 100,
     procedimiento: "Preparar la masa con harina 0000 y huevo. Para el relleno, blanquear la espinaca, picarla y mezclarla con la ricota. Rellenar y cortar en la raviolera.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 6 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 5, cantidadNecesaria: 4 }, { idMateriaPrima: 8, cantidadNecesaria: 3 }, { idMateriaPrima: 10, cantidadNecesaria: 0.1 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 100 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 5, idUnidad: 2, cantidadNecesaria: 100 }, { idMateriaPrima: 8, idUnidad: 2, cantidadNecesaria: 80 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "08:30", horaFin: "09:00" }, { idMaquina: "maq-3", horaInicio: "09:00", horaFin: "10:30" }],
   },
   {
     idReceta: 3, nombre: "Ñoquis de papa", tiempoCoccion: "00:03", temperatura: 100,
     procedimiento: "Hervir las papas con cáscara, pelarlas y hacer un puré. Incorporar harina, huevo y sal. Formar cilindros, cortar y marcar con tenedor.",
-    materiasPrimas: [{ idMateriaPrima: 9, cantidadNecesaria: 12 }, { idMateriaPrima: 1, cantidadNecesaria: 4 }, { idMateriaPrima: 4, cantidadNecesaria: 0.5 }, { idMateriaPrima: 10, cantidadNecesaria: 0.1 }],
+    materiasPrimas: [{ idMateriaPrima: 9, idUnidad: 2, cantidadNecesaria: 900 }, { idMateriaPrima: 1, idUnidad: 2, cantidadNecesaria: 250 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 8 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "10:30", horaFin: "11:00" }],
   },
   {
     idReceta: 4, nombre: "Sorrentinos de jamón y queso", tiempoCoccion: "00:08", temperatura: 100,
     procedimiento: "Preparar la masa con harina 0000 y huevo. Mezclar ricota, jamón picado y muzzarella rallada. Rellenar, cerrar con molde redondo y espolvorear con sémola.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 6 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 5, cantidadNecesaria: 3 }, { idMateriaPrima: 7, cantidadNecesaria: 2 }, { idMateriaPrima: 6, cantidadNecesaria: 2 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 200 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 2 }, { idMateriaPrima: 5, idUnidad: 2, cantidadNecesaria: 100 }, { idMateriaPrima: 7, idUnidad: 2, cantidadNecesaria: 100 }, { idMateriaPrima: 6, idUnidad: 2, cantidadNecesaria: 150 }, { idMateriaPrima: 3, idUnidad: 2, cantidadNecesaria: 10 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 3 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "11:00", horaFin: "11:30" }, { idMaquina: "maq-2", horaInicio: "11:30", horaFin: "12:00" }, { idMaquina: "maq-3", horaInicio: "12:00", horaFin: "13:30" }],
   },
   {
     idReceta: 5, nombre: "Spaghetti de sémola", tiempoCoccion: "00:10", temperatura: 100,
     procedimiento: "Mezclar sémola con agua y sal. Extrudir en forma de spaghetti y llevar al secadero durante 6 horas a temperatura controlada.",
-    materiasPrimas: [{ idMateriaPrima: 3, cantidadNecesaria: 15 }, { idMateriaPrima: 10, cantidadNecesaria: 0.1 }],
+    materiasPrimas: [{ idMateriaPrima: 3, idUnidad: 2, cantidadNecesaria: 500 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 3 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "08:00", horaFin: "08:40" }, { idMaquina: "maq-4", horaInicio: "09:00", horaFin: "15:00" }],
   },
   {
     idReceta: 6, nombre: "Ravioles de jamón y queso", tiempoCoccion: "00:06", temperatura: 100,
     procedimiento: "Preparar la masa con harina 0000 y huevo. Mezclar ricota, jamón picado y muzzarella. Rellenar y cortar en la raviolera.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 6 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 5, cantidadNecesaria: 2 }, { idMateriaPrima: 7, cantidadNecesaria: 2 }, { idMateriaPrima: 6, cantidadNecesaria: 2 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 100 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 5, idUnidad: 2, cantidadNecesaria: 50 }, { idMateriaPrima: 7, idUnidad: 2, cantidadNecesaria: 50 }, { idMateriaPrima: 6, idUnidad: 2, cantidadNecesaria: 60 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "07:00", horaFin: "07:30" }, { idMaquina: "maq-3", horaInicio: "07:30", horaFin: "09:00" }],
   },
   {
     idReceta: 7, nombre: "Ravioles de ricota y nuez", tiempoCoccion: "00:06", temperatura: 100,
     procedimiento: "Preparar la masa con harina 0000 y huevo. Mezclar ricota con nuez picada y queso rallado. Rellenar y cortar en la raviolera.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 6 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 5, cantidadNecesaria: 4 }, { idMateriaPrima: 17, cantidadNecesaria: 1 }, { idMateriaPrima: 23, cantidadNecesaria: 0.5 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 100 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 5, idUnidad: 2, cantidadNecesaria: 130 }, { idMateriaPrima: 17, idUnidad: 2, cantidadNecesaria: 20 }, { idMateriaPrima: 23, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "09:00", horaFin: "09:30" }, { idMaquina: "maq-3", horaInicio: "09:30", horaFin: "11:00" }],
   },
   {
     idReceta: 8, nombre: "Sorrentinos de calabaza y queso", tiempoCoccion: "00:08", temperatura: 100,
     procedimiento: "Asar la calabaza y hacer un puré. Mezclar con muzzarella y queso rallado. Rellenar la masa, cerrar con molde redondo y espolvorear con sémola.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 6 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 13, cantidadNecesaria: 5 }, { idMateriaPrima: 6, cantidadNecesaria: 2 }, { idMateriaPrima: 23, cantidadNecesaria: 0.5 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 200 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 2 }, { idMateriaPrima: 13, idUnidad: 2, cantidadNecesaria: 300 }, { idMateriaPrima: 6, idUnidad: 2, cantidadNecesaria: 120 }, { idMateriaPrima: 23, idUnidad: 2, cantidadNecesaria: 20 }, { idMateriaPrima: 3, idUnidad: 2, cantidadNecesaria: 10 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 3 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "11:00", horaFin: "11:30" }, { idMaquina: "maq-2", horaInicio: "11:30", horaFin: "12:00" }],
   },
   {
     idReceta: 9, nombre: "Canelones de verdura y ricota", tiempoCoccion: "00:25", temperatura: 180,
     procedimiento: "Preparar panqueques con harina, huevo y leche. Rellenar con espinaca blanqueada, ricota y cebolla rehogada. Enrollar y porcionar.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 3 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 20, cantidadNecesaria: 4 }, { idMateriaPrima: 8, cantidadNecesaria: 4 }, { idMateriaPrima: 5, cantidadNecesaria: 3 }, { idMateriaPrima: 14, cantidadNecesaria: 1 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 0.25 }, { idMateriaPrima: 20, idUnidad: 3, cantidadNecesaria: 0.03 }, { idMateriaPrima: 8, idUnidad: 2, cantidadNecesaria: 40 }, { idMateriaPrima: 5, idUnidad: 2, cantidadNecesaria: 40 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 10 }, { idMateriaPrima: 19, idUnidad: 3, cantidadNecesaria: 0.003 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 1 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "13:00", horaFin: "13:30" }],
   },
   {
     idReceta: 10, nombre: "Lasagna de carne", tiempoCoccion: "00:40", temperatura: 180,
     procedimiento: "Laminar masa al huevo en placas. Preparar un tuco con carne picada, cebolla y tomate. Armar capas de masa, relleno, muzzarella y salsa blanca.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 4 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 11, cantidadNecesaria: 4 }, { idMateriaPrima: 14, cantidadNecesaria: 1 }, { idMateriaPrima: 18, cantidadNecesaria: 3 }, { idMateriaPrima: 6, cantidadNecesaria: 2 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 40 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 0.5 }, { idMateriaPrima: 11, idUnidad: 2, cantidadNecesaria: 100 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 25 }, { idMateriaPrima: 18, idUnidad: 2, cantidadNecesaria: 80 }, { idMateriaPrima: 6, idUnidad: 2, cantidadNecesaria: 40 }, { idMateriaPrima: 20, idUnidad: 3, cantidadNecesaria: 0.06 }, { idMateriaPrima: 22, idUnidad: 2, cantidadNecesaria: 5 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "13:30", horaFin: "14:00" }, { idMaquina: "maq-2", horaInicio: "14:00", horaFin: "14:30" }],
   },
   {
     idReceta: 11, nombre: "Agnolottis de pollo", tiempoCoccion: "00:07", temperatura: 100,
     procedimiento: "Cocinar y procesar la pechuga con cebolla rehogada y queso rallado. Rellenar la masa al huevo y cerrar en forma de media luna.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 6 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 12, cantidadNecesaria: 4 }, { idMateriaPrima: 14, cantidadNecesaria: 1 }, { idMateriaPrima: 23, cantidadNecesaria: 0.5 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 130 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 12, idUnidad: 2, cantidadNecesaria: 180 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 25 }, { idMateriaPrima: 23, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 19, idUnidad: 3, cantidadNecesaria: 0.005 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 3 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "14:30", horaFin: "15:00" }, { idMaquina: "maq-2", horaInicio: "15:00", horaFin: "15:45" }],
   },
   {
     idReceta: 12, nombre: "Capelettis de carne", tiempoCoccion: "00:07", temperatura: 100,
     procedimiento: "Rehogar la carne picada con cebolla, condimentar y enfriar. Cortar cuadrados de masa, rellenar y doblar formando el capeletti.",
-    materiasPrimas: [{ idMateriaPrima: 2, cantidadNecesaria: 6 }, { idMateriaPrima: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 11, cantidadNecesaria: 4 }, { idMateriaPrima: 14, cantidadNecesaria: 1 }, { idMateriaPrima: 10, cantidadNecesaria: 0.1 }],
+    materiasPrimas: [{ idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 120 }, { idMateriaPrima: 4, idUnidad: 4, cantidadNecesaria: 1 }, { idMateriaPrima: 11, idUnidad: 2, cantidadNecesaria: 140 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 25 }, { idMateriaPrima: 19, idUnidad: 3, cantidadNecesaria: 0.005 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [{ idMaquina: "maq-1", horaInicio: "15:45", horaFin: "16:15" }, { idMaquina: "maq-2", horaInicio: "16:15", horaFin: "17:00" }],
   },
   {
     idReceta: 13, nombre: "Salsa fileto", tiempoCoccion: "00:30", temperatura: 90,
     procedimiento: "Rehogar cebolla en aceite de oliva, agregar tomate triturado y sal. Cocinar a fuego bajo y fraccionar en frascos de 250 g.",
-    materiasPrimas: [{ idMateriaPrima: 18, cantidadNecesaria: 8 }, { idMateriaPrima: 14, cantidadNecesaria: 1 }, { idMateriaPrima: 19, cantidadNecesaria: 0.3 }, { idMateriaPrima: 10, cantidadNecesaria: 0.1 }],
+    materiasPrimas: [{ idMateriaPrima: 18, idUnidad: 2, cantidadNecesaria: 270 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 25 }, { idMateriaPrima: 19, idUnidad: 3, cantidadNecesaria: 0.01 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [],
   },
   {
     idReceta: 14, nombre: "Salsa bolognesa", tiempoCoccion: "01:00", temperatura: 90,
     procedimiento: "Dorar carne picada con cebolla, agregar tomate triturado y cocinar lentamente. Fraccionar en frascos de 250 g.",
-    materiasPrimas: [{ idMateriaPrima: 11, cantidadNecesaria: 3 }, { idMateriaPrima: 18, cantidadNecesaria: 6 }, { idMateriaPrima: 14, cantidadNecesaria: 1 }, { idMateriaPrima: 19, cantidadNecesaria: 0.3 }, { idMateriaPrima: 10, cantidadNecesaria: 0.1 }],
+    materiasPrimas: [{ idMateriaPrima: 11, idUnidad: 2, cantidadNecesaria: 90 }, { idMateriaPrima: 18, idUnidad: 2, cantidadNecesaria: 170 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 25 }, { idMateriaPrima: 19, idUnidad: 3, cantidadNecesaria: 0.008 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [],
   },
   {
     idReceta: 15, nombre: "Salsa blanca", tiempoCoccion: "00:20", temperatura: 85,
     procedimiento: "Hacer un roux con manteca y harina, incorporar la leche de a poco sin dejar de batir. Salar y fraccionar.",
-    materiasPrimas: [{ idMateriaPrima: 20, cantidadNecesaria: 8 }, { idMateriaPrima: 22, cantidadNecesaria: 0.6 }, { idMateriaPrima: 2, cantidadNecesaria: 0.6 }, { idMateriaPrima: 10, cantidadNecesaria: 0.05 }],
+    materiasPrimas: [{ idMateriaPrima: 20, idUnidad: 3, cantidadNecesaria: 0.24 }, { idMateriaPrima: 22, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 2, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [],
   },
   {
     idReceta: 16, nombre: "Salsa cuatro quesos", tiempoCoccion: "00:15", temperatura: 85,
-    procedimiento: "Calentar la crema y fundir muzzarella, queso azul y queso rallado. Fraccionar en caliente.",
-    materiasPrimas: [{ idMateriaPrima: 21, cantidadNecesaria: 5 }, { idMateriaPrima: 6, cantidadNecesaria: 1 }, { idMateriaPrima: 24, cantidadNecesaria: 0.8 }, { idMateriaPrima: 23, cantidadNecesaria: 0.8 }],
+    procedimiento: "Calentar la crema y fundir muzzarella, queso azul, queso rallado y ricota. Fraccionar en caliente.",
+    materiasPrimas: [{ idMateriaPrima: 21, idUnidad: 3, cantidadNecesaria: 0.17 }, { idMateriaPrima: 6, idUnidad: 2, cantidadNecesaria: 25 }, { idMateriaPrima: 24, idUnidad: 2, cantidadNecesaria: 20 }, { idMateriaPrima: 23, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 5, idUnidad: 2, cantidadNecesaria: 20 }],
     maquinas: [],
   },
   {
     idReceta: 17, nombre: "Salsa rosa", tiempoCoccion: "00:25", temperatura: 85,
     procedimiento: "Preparar una base de fileto y agregar crema de leche al final de la cocción. Fraccionar en frascos de 250 g.",
-    materiasPrimas: [{ idMateriaPrima: 18, cantidadNecesaria: 6 }, { idMateriaPrima: 21, cantidadNecesaria: 2 }, { idMateriaPrima: 14, cantidadNecesaria: 0.5 }, { idMateriaPrima: 10, cantidadNecesaria: 0.1 }],
+    materiasPrimas: [{ idMateriaPrima: 18, idUnidad: 2, cantidadNecesaria: 210 }, { idMateriaPrima: 21, idUnidad: 3, cantidadNecesaria: 0.06 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [],
   },
   {
     idReceta: 18, nombre: "Salsa pesto", tiempoCoccion: "00:00", temperatura: 4,
     procedimiento: "Procesar albahaca, nuez, queso rallado y aceite de oliva hasta obtener una pasta. Envasar en frío.",
-    materiasPrimas: [{ idMateriaPrima: 16, cantidadNecesaria: 1.5 }, { idMateriaPrima: 17, cantidadNecesaria: 0.5 }, { idMateriaPrima: 23, cantidadNecesaria: 0.8 }, { idMateriaPrima: 19, cantidadNecesaria: 2 }, { idMateriaPrima: 10, cantidadNecesaria: 0.05 }],
+    materiasPrimas: [{ idMateriaPrima: 16, idUnidad: 2, cantidadNecesaria: 50 }, { idMateriaPrima: 17, idUnidad: 2, cantidadNecesaria: 30 }, { idMateriaPrima: 23, idUnidad: 2, cantidadNecesaria: 40 }, { idMateriaPrima: 19, idUnidad: 3, cantidadNecesaria: 0.13 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [],
   },
   {
     idReceta: 19, nombre: "Salsa de champiñones", tiempoCoccion: "00:20", temperatura: 85,
     procedimiento: "Saltear champiñones y cebolla en manteca, agregar crema de leche y reducir. Fraccionar en frascos de 250 g.",
-    materiasPrimas: [{ idMateriaPrima: 15, cantidadNecesaria: 2 }, { idMateriaPrima: 14, cantidadNecesaria: 0.5 }, { idMateriaPrima: 22, cantidadNecesaria: 0.3 }, { idMateriaPrima: 21, cantidadNecesaria: 4 }],
+    materiasPrimas: [{ idMateriaPrima: 15, idUnidad: 2, cantidadNecesaria: 90 }, { idMateriaPrima: 14, idUnidad: 2, cantidadNecesaria: 15 }, { idMateriaPrima: 22, idUnidad: 2, cantidadNecesaria: 10 }, { idMateriaPrima: 21, idUnidad: 3, cantidadNecesaria: 0.18 }, { idMateriaPrima: 10, idUnidad: 2, cantidadNecesaria: 2 }],
     maquinas: [],
   },
 ];
@@ -268,7 +271,7 @@ export const RECETAS: Receta[] = RECETAS_SEMILLA.map((receta) => ({
   ...receta,
   materiasPrimas: receta.materiasPrimas.map((d) => {
     const mp = MATERIAS_PRIMAS_PRODUCCION.find((m) => m.idMateriaPrima === d.idMateriaPrima)!;
-    return { ...d, idUnidad: mp.idUnidad, idMarca: mp.idMarca };
+    return { ...d, idMarca: mp.idMarca };
   }),
 }));
 
@@ -298,10 +301,42 @@ export const PRODUCTOS_PRODUCCION: Producto[] = [
 
 const redondear = (n: number) => Math.round(n * 1000) / 1000;
 
+// Las recetas usan gramos y huevos individuales; el inventario usa kg y docenas.
+export function unidadesCompatibles(idUnidad: number): number[] {
+  if ([1, 2].includes(idUnidad)) return [1, 2];
+  if ([4, 5].includes(idUnidad)) return [4, 5];
+  return [idUnidad];
+}
+
+export function convertirUnidad(cantidad: number, origen: number, destino: number): number {
+  if (!unidadesCompatibles(origen).includes(destino)) throw new Error("Las unidades de la materia prima no son compatibles.");
+  const factor = (id: number) => id === 2 ? 0.001 : id === 5 ? 12 : 1;
+  return cantidad * factor(origen) / factor(destino);
+}
+
+export function guardarRecetaConProducto(receta: Receta, producto: Producto | null) {
+  if (!producto) throw new Error("Seleccioná o creá un producto asociado a la receta.");
+  const existente = PRODUCTOS_PRODUCCION.find(p => p.idProducto === producto.idProducto);
+  if (existente && existente.idReceta !== receta.idReceta && RECETAS.some(r => r.idReceta === existente.idReceta)) {
+    throw new Error("El producto ya está asociado a otra receta.");
+  }
+  for (const materia of receta.materiasPrimas) {
+    const mp = getMateriaPrima(materia.idMateriaPrima);
+    if (!mp || !Number.isFinite(materia.cantidadNecesaria) || materia.cantidadNecesaria <= 0 || !unidadesCompatibles(mp.idUnidad).includes(materia.idUnidad)) {
+      throw new Error("Revisá las cantidades y unidades de las materias primas.");
+    }
+  }
+  const indice = RECETAS.findIndex(r => r.idReceta === receta.idReceta);
+  if (indice >= 0) RECETAS[indice] = receta;
+  else RECETAS.unshift(receta);
+  if (!existente) PRODUCTOS_PRODUCCION.unshift({ ...producto, idReceta: receta.idReceta });
+  else existente.idReceta = receta.idReceta;
+}
+
 // Cantidades por defecto de una línea: las de su receta multiplicadas por las tandas.
 export function consumoDeReceta(idProducto: number, tandas = 1): ConsumoMateriaPrima[] {
   const idReceta = PRODUCTOS_PRODUCCION.find((p) => p.idProducto === idProducto)?.idReceta;
-  return (RECETAS.find((r) => r.idReceta === idReceta)?.materiasPrimas ?? []).map((m) => ({ idMateriaPrima: m.idMateriaPrima, cantidad: redondear(m.cantidadNecesaria * tandas) }));
+  return (RECETAS.find((r) => r.idReceta === idReceta)?.materiasPrimas ?? []).map((m) => ({ idMateriaPrima: m.idMateriaPrima, cantidad: redondear(convertirUnidad(m.cantidadNecesaria * tandas, m.idUnidad, getMateriaPrima(m.idMateriaPrima)!.idUnidad)) }));
 }
 
 // Total por materia prima de toda la orden (una misma materia prima puede repetirse entre productos).
@@ -314,7 +349,7 @@ export function consumoTotal(detalle: DetalleOrdenProduccion[]): ConsumoMateriaP
 const linea = (idProducto: number, cantidadRealGenerada: number | null = null, tandas = 1): DetalleOrdenProduccion => ({ idProducto, tandas, cantidadRealGenerada, materiasPrimas: consumoDeReceta(idProducto, tandas) });
 
 export const ORDENES_PRODUCCION: OrdenProduccion[] = [
-  { idOrdenProduccion: 1, idEmpleado: "emp-1", fechaEmision: "2026-10-01", fechaInicio: "2026-10-02", fechaFinalizacion: "2026-10-02", fechaVencimiento: "2026-10-20", estado: "Finalizada", nmrLote: 261002, detalle: [linea(1, 48), linea(6, 20)] },
+  { idOrdenProduccion: 1, idEmpleado: "emp-1", fechaEmision: "2026-10-01", fechaInicio: "2026-10-02", fechaFinalizacion: "2026-10-02", fechaVencimiento: "2026-10-20", estado: "Finalizada", nmrLote: 261002, detalle: [linea(1, 48, 48), linea(6, 20, 20)] },
   { idOrdenProduccion: 2, idEmpleado: "emp-3", fechaEmision: "2026-10-05", fechaInicio: null, fechaFinalizacion: null, fechaVencimiento: null, estado: "Cancelada", nmrLote: 261006, detalle: [linea(5)] },
   { idOrdenProduccion: 3, idEmpleado: "emp-1", fechaEmision: "2026-10-12", fechaInicio: "2026-10-13", fechaFinalizacion: null, fechaVencimiento: null, estado: "En proceso", nmrLote: 261013, detalle: [linea(2), linea(4)] },
   { idOrdenProduccion: 4, idEmpleado: "emp-2", fechaEmision: "2026-10-14", fechaInicio: null, fechaFinalizacion: null, fechaVencimiento: null, estado: "Pendiente", nmrLote: 261015, detalle: [linea(3, null, 2), linea(5)] },
@@ -336,7 +371,7 @@ export const getTipoMateriaPrima = (id: number) => TIPOS_MATERIA_PRIMA.find((t) 
 export const getMarca = (id: number) => MARCAS.find((m) => m.idMarca === id)?.nombre ?? "—";
 export const getReceta = (id: number) => RECETAS.find((r) => r.idReceta === id);
 export const getProducto = (id: number) => PRODUCTOS_PRODUCCION.find((p) => p.idProducto === id);
-export const getMateriaPrima = (id: number) => MATERIAS_PRIMAS_PRODUCCION.find((m) => m.idMateriaPrima === id);
+export function getMateriaPrima(id: number) { return MATERIAS_PRIMAS_PRODUCCION.find((m) => m.idMateriaPrima === id); }
 
 export function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 2 }).format(amount);

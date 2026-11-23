@@ -1,5 +1,5 @@
-import PrintVoucher from "~/components/PrintVoucher";
-import BackToListButton from "~/components/BackToListButton";
+import SalesDocument from "~/components/SalesDocument";
+import { SortableList, SortableTable } from "~/components/SortableRows";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
@@ -230,30 +230,31 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
                   ))}
                 </ul>
                 <div className="hidden overflow-x-auto rounded-lg border border-gray-200 sm:block">
-                  <table className="w-full min-w-[620px] text-left text-sm text-gray-900">
-                    <thead className="bg-gray-50 text-gray-500">
-                      <tr>
-                        <th className="px-4 py-2 font-medium">Producto</th>
-                        <th className="px-4 py-2 text-right font-medium">Cant.</th>
-                        <th className="px-4 py-2 text-right font-medium">Precio Uni.</th>
-                        <th className="px-4 py-2 text-right font-medium">Subtotal</th>
-                        <th className="px-4 py-2 text-center font-medium">Quitar</th>
+                  <SortableTable
+                    rows={items}
+                    className="w-full min-w-[620px] text-left text-sm text-gray-900"
+                    headClassName="bg-gray-50 text-gray-500"
+                    bodyClassName="divide-y divide-gray-100"
+                    columns={[
+                      [["Producto", row => row.productName], "px-4 py-2 font-medium"],
+                      [["Cant.", row => row.quantity], "px-4 py-2 text-right font-medium"],
+                      [["Precio Uni.", row => row.unitPrice], "px-4 py-2 text-right font-medium"],
+                      [["Subtotal", row => row.subtotal], "px-4 py-2 text-right font-medium"],
+                      ["Quitar", "px-4 py-2 text-center font-medium"],
+                    ]}
+                  >
+                    {mapRows => mapRows(item => (
+                      <tr key={item.id} className="bg-white">
+                        <td className="px-4 py-2">{item.productName}</td>
+                        <td className="px-4 py-2 text-right">{item.quantity}</td>
+                        <td className="px-4 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
+                        <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCurrency(item.subtotal)}</td>
+                        <td className="px-4 py-2 text-center">
+                          <button type="button" aria-label={`Quitar ${item.productName}`} onClick={() => handleRemoveItem(item.id)} className="text-red-600 hover:text-red-800">Quitar</button>
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {items.map(item => (
-                        <tr key={item.id} className="bg-white">
-                          <td className="px-4 py-2">{item.productName}</td>
-                          <td className="px-4 py-2 text-right">{item.quantity}</td>
-                          <td className="px-4 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                          <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCurrency(item.subtotal)}</td>
-                          <td className="px-4 py-2 text-center">
-                            <button type="button" aria-label={`Quitar ${item.productName}`} onClick={() => handleRemoveItem(item.id)} className="text-red-600 hover:text-red-800">Quitar</button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    ))}
+                  </SortableTable>
                 </div>
                 </>
               )}
@@ -330,113 +331,8 @@ function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrde
   const associatedOrder = budget.orderId ? SAMPLE_ORDERS.find(order => order.id === budget.orderId) : undefined;
   const [employeeId, setEmployeeId] = useState("");
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
-        <h1 className="text-2xl font-bold text-gray-900">Presupuesto {budget.number}</h1>
-        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Presupuesto"} document={budget} client={client} details={[{ label: "Válido hasta", value: budget.validUntil }]} /></div>
-      </div>
+  return <SalesDocument onClose={onClose} title="Presupuesto cliente" document={budget} client={client} details={[{ label: "Válido hasta", value: budget.validUntil }, ...(budget.orderId ? [{ label: "Pedido asociado", value: associatedOrder?.number ?? budget.orderId, href: `/ventas/pedidos?pedido=${encodeURIComponent(budget.orderId)}` }] : [])]} actions={<>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Detalle de conceptos</h2>
-            <ul className="divide-y divide-gray-100 rounded-lg border border-gray-200 sm:hidden">
-              {budget.items.map(item => (
-                <li key={item.id} className="min-w-0 p-3 text-sm">
-                  <p className="break-words font-medium text-gray-900">{item.productName}</p>
-                  <p className="mt-1 text-xs text-gray-500">{item.quantity} × {formatCurrency(item.unitPrice)}</p>
-                  <p className="mt-1 text-right font-medium text-gray-800">{formatCurrency(item.subtotal)}</p>
-                </li>
-              ))}
-            </ul>
-            <div className="hidden overflow-x-auto rounded-lg border border-gray-200 sm:block">
-              <table className="w-full min-w-[540px] text-left text-sm text-gray-900">
-                <thead className="bg-gray-50 text-gray-500">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Producto</th>
-                    <th className="px-4 py-2 text-right font-medium">Cant.</th>
-                    <th className="px-4 py-2 text-right font-medium">Precio Uni.</th>
-                    <th className="px-4 py-2 text-right font-medium">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {budget.items.map(item => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-3">{item.productName}</td>
-                      <td className="px-4 py-3 text-right">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right">{formatCurrency(item.unitPrice)}</td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <div className="w-full max-w-xs space-y-2">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(budget.subtotal)}</span>
-                </div>
-                {budget.discount > 0 && (
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>Descuento</span>
-                    <span>- {formatCurrency(budget.discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-semibold text-gray-900">
-                  <span>Total</span>
-                  <span>{formatCurrency(budget.total)}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {budget.observations && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-              <h3 className="text-sm font-semibold text-amber-900">Observaciones</h3>
-              <p className="mt-2 text-sm text-amber-800 whitespace-pre-wrap">{budget.observations}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Información general</h2>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Estado</dt>
-                <dd>
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusClass(budget.status)}`}>
-                    {budget.status}
-                  </span>
-                </dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Cliente</dt>
-                <dd className="font-medium text-gray-900 text-right">{client?.name || "Desconocido"}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Emisión</dt>
-                <dd className="font-medium text-gray-900">{budget.date}</dd>
-              </div>
-              <div className="flex justify-between border-b border-gray-100 pb-3">
-                <dt className="text-gray-500">Válido hasta</dt>
-                <dd className="font-medium text-gray-900">{budget.validUntil}</dd>
-              </div>
-              {budget.orderId && (
-                <div className="flex justify-between pt-1">
-                  <dt className="text-gray-500">Pedido asociado</dt>
-                  <dd className="font-medium text-purple-700">
-                    <Link to={`/ventas/pedidos?pedido=${encodeURIComponent(budget.orderId)}`} className="underline underline-offset-2">{associatedOrder?.number || budget.orderId}</Link>
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-3">
             {convertedOrder && (
               <div role="status" className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
                 <p>Pedido {convertedOrder.number} creado correctamente.</p>
@@ -481,11 +377,7 @@ function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrde
                 Editar Presupuesto
               </button>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    </>} />;
 }
 
 export default function Presupuestos() {
@@ -658,51 +550,59 @@ export default function Presupuestos() {
           <SalesEmptyState entity="presupuestos" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} />
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-center">Número / Emisión</div>
-              <div className="min-w-0 text-center">Cliente</div>
-              <div className="min-w-0 text-center">Vigencia</div>
-              <div className="min-w-0 text-center">Total</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-            {filteredBudgets.map(budget => {
-              const client = SAMPLE_CLIENTS.find(c => c.id === budget.clientId);
-              return (
-                <article key={budget.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="mb-1 text-xs font-medium text-gray-500">{budget.date}</p>
-                    <h3 className="break-words font-semibold leading-5 text-gray-900">{budget.number}</h3>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
-                    <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Vigencia</p>
-                    <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{budget.validUntil}</p>
-                  </div>
-                  <div className="min-w-0 lg:text-center text-left">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(budget.total)}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-1 lg:items-center">
-                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(budget.status)}`}>
-                      {budget.status}
-                    </span>
-                  </div>
-                  <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                    <button type="button" onClick={() => setSelectedBudget(budget)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                    {(budget.status === "Borrador" || budget.status === "Enviado") && (
-                      <button type="button" onClick={() => setEditingBudget(budget)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-            </div>
+            <SortableList
+              rows={filteredBudgets}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-6 items-center gap-2 lg:gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              newest="Emisión"
+              tieBreaker={row => row.number}
+              columns={[
+                [["Número", row => row.number], "min-w-0 text-left lg:text-center", [["Emisión", row => row.date]]],
+                [["Cliente", row => SAMPLE_CLIENTS.find(client => client.id === row.clientId)?.name], "min-w-0 text-left lg:text-center"],
+                [["Vigencia", row => row.validUntil], "min-w-0 text-left lg:text-center"],
+                [["Total", row => row.total], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+              {mapRows(budget => {
+                const client = SAMPLE_CLIENTS.find(c => c.id === budget.clientId);
+                return (
+                  <article key={budget.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="mb-1 text-xs font-medium text-gray-500">{budget.date}</p>
+                      <h3 className="break-words font-semibold leading-5 text-gray-900">{budget.number}</h3>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
+                      <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Vigencia</p>
+                      <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{budget.validUntil}</p>
+                    </div>
+                    <div className="min-w-0 lg:text-center text-left">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(budget.total)}</p>
+                    </div>
+                    <div className="flex flex-col items-start gap-1 lg:items-center">
+                      <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(budget.status)}`}>
+                        {budget.status}
+                      </span>
+                    </div>
+                    <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                      <button type="button" onClick={() => setSelectedBudget(budget)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                      {(budget.status === "Borrador" || budget.status === "Enviado") && (
+                        <button type="button" onClick={() => setEditingBudget(budget)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+              </div>}
+            </SortableList>
           </>
         )}
       </SalesListPanel>

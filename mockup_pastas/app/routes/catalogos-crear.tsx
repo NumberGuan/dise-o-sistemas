@@ -1,10 +1,12 @@
 import { data } from "react-router";
 import { saveCatalogEntry } from "~/data/catalogs.server";
+import { canCreateCatalog } from "~/data/catalogs";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/catalogos-crear";
 
 export const action = async ({ request, params }: Route.ActionArgs) => {
-  await requireUserAndRole(request, ["Administrador"]);
+  const user = await requireUserAndRole(request, ["Administrador", "Producción"]);
+  if (!canCreateCatalog(user.role, params.catalogo)) throw new Response("No tenés permiso para crear opciones en este catálogo.", { status: 403 });
   try {
     const form = await request.formData();
     if (form.get("intent") !== "create" || form.has("id")) {

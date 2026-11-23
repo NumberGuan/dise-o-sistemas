@@ -1,3 +1,4 @@
+import FormalPageHeader from "~/components/FormalPageHeader";
 import BackToListButton from "~/components/BackToListButton";
 import type { ReactNode } from "react";
 
@@ -11,5 +12,5 @@ export default function RecordPage({ onBack, children }: { onBack: () => void; c
 }
 
 export function RecordNotFound({ onBack }: { onBack: () => void }) {
-  return <RecordPage onBack={onBack}><div className="p-6"><h1 className="text-2xl font-bold">Registro no encontrado</h1><p className="mt-2 text-gray-600">El registro solicitado no está disponible.</p></div></RecordPage>;
+  return <RecordPage onBack={onBack}><FormalPageHeader><h1 className="text-2xl font-bold">Registro no encontrado</h1><p className="mt-2 text-gray-600">El registro solicitado no está disponible.</p></FormalPageHeader></RecordPage>;
 }

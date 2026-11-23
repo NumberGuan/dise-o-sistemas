@@ -1,3 +1,7 @@
+import MaintenanceDocument, { MaintenanceSection, maintenanceDate } from "~/components/MaintenanceDocument";
+import { SortableList } from "~/components/SortableRows";
+import ModulePageHeader from "~/components/ModulePageHeader";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import PrintVoucher from "~/components/PrintVoucher";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
@@ -78,13 +82,13 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
 
   return (
     <RecordPage onBack={onCancel}>
-      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+      <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Mantenimiento</p>
           <h1 className="text-2xl font-bold text-gray-900">{item ? "Editar orden de mantenimiento" : "Formulario Nueva Orden de Mantenimiento"}</h1>
           <p className="mt-1 text-sm text-gray-500">{number}</p>
         </div>
-      </div>
+      </FormalPageHeader>
 
       <form id="maintenance-form" noValidate onSubmit={event => event.preventDefault()} className="flex-1 p-5 sm:p-6">
         {error && <p role="alert" className="mb-5 rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
@@ -182,7 +186,6 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
   const employee = order.responsibleType === "Empleado" ? SAMPLE_EMPLOYEES.find((e) => e.id === order.responsibleEmployeeId) : null;
   const responsibleName = order.responsibleType === "Empleado" ? (employee?.name ?? "—") : (order.externalResponsibleName ?? "—");
 
-  const catalogs = useCatalogs();
   const [items, setItems] = useState<MaintenanceOrderItem[]>(order.items);
   const [endDate, setEndDate] = useState(new Date().toISOString().slice(0, 10));
   const [error, setError] = useState("");
@@ -202,133 +205,32 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
     else setError("");
   };
 
-  return (
-    <RecordPage onBack={onClose}>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Orden {order.number}</p>
-          <div className="flex items-center gap-3 mt-1">
-            <h1 className="text-2xl font-bold text-gray-900">Mantenimiento {order.items.length === 1 ? "de 1 máquina" : `de ${order.items.length} máquinas`}</h1>
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(order.status)}`}>{order.status}</span>
+  return <MaintenanceDocument title="Orden de mantenimiento" name={`Intervención de ${order.items.length} ${order.items.length === 1 ? "máquina" : "máquinas"}`} code={order.number} status={order.status} onClose={onClose}
+    actions={<><PrintVoucher title="Orden de mantenimiento" document={{ number: order.number, date: order.issueDate, status: order.status, observations: order.observations, ...(order.status === "Finalizado" ? { total: order.items.reduce((sum, item) => sum + (item.cost ?? 0), 0) } : {}), items: order.items.map(item => ({ productName: `${SAMPLE_MACHINES.find(machine => machine.id === item.machineId)?.name ?? "Máquina"} · ${item.type} · ${item.description}${item.workPerformed ? ` · Trabajo realizado: ${item.workPerformed}` : ""}`, quantity: 1, ...(order.status === "Finalizado" ? { unitPrice: item.cost ?? 0, subtotal: item.cost ?? 0 } : {}) })) }} recipient={responsibleName} recipientLabel="Responsable del mantenimiento" details={[{ label: "Fecha programada", value: order.estimatedDate }, { label: "Inicio", value: order.startDate ?? "Sin iniciar" }, { label: "Finalización", value: order.endDate ?? "Pendiente" }]} signature />{order.status === "Programado" && <button type="button" onClick={onEdit} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar orden</button>}</>}
+    metadata={[
+      { label: "Fecha de emisión", value: maintenanceDate(order.issueDate) },
+      { label: "Finalización estimada", value: maintenanceDate(order.estimatedDate) },
+      { label: `Responsable (${order.responsibleType})`, value: responsibleName },
+      { label: "Fecha de inicio", value: maintenanceDate(order.startDate ?? null) },
+      { label: "Fecha de finalización", value: maintenanceDate(order.endDate ?? null) },
+      { label: "Equipos incluidos", value: String(order.items.length) },
+    ]}
+    controls={<form id="maintenance-completion-form" noValidate onSubmit={event => event.preventDefault()}>
+      <h2>Gestión de la orden</h2>
+      {order.status === "En curso" && <div className="mt-4 space-y-5">{items.map((item, index) => {
+        const machine = SAMPLE_MACHINES.find(candidate => candidate.id === item.machineId);
+        return <fieldset key={item.id} className="border-t border-gray-200 pt-4"><legend className="px-1 text-sm font-semibold text-gray-900">{machine?.code} · {machine?.name ?? "Máquina no disponible"}</legend>
+          <div className="completion-fields">
+            <label className={labelClass}>Trabajo realizado <span className="text-rose-600">*</span>
+              <textarea required value={item.workPerformed || ""} onChange={event => updateItem(index, "workPerformed", event.target.value)} rows={3} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
+            </label>
+            <label className={labelClass}>Costo (ARS)
+              <input type="number" min="0" value={item.cost ?? ""} onChange={event => updateItem(index, "cost", parseFloat(event.target.value) || 0)} placeholder="Ej.: 15000" className={field} />
+            </label>
           </div>
-        </div>
-        <div className="flex gap-2"><PrintVoucher title="Orden de mantenimiento" document={{ number: order.number, date: order.issueDate, status: order.status, observations: order.observations, ...(order.status === "Finalizado" ? { total: order.items.reduce((sum, item) => sum + (item.cost ?? 0), 0) } : {}), items: order.items.map(item => ({ productName: `${SAMPLE_MACHINES.find(machine => machine.id === item.machineId)?.name ?? "Máquina"} · ${item.type} · ${item.description}${item.workPerformed ? ` · Trabajo realizado: ${item.workPerformed}` : ""}`, quantity: 1, ...(order.status === "Finalizado" ? { unitPrice: item.cost ?? 0, subtotal: item.cost ?? 0 } : {}) })) }} recipient={responsibleName} recipientLabel="Responsable del mantenimiento" details={[{ label: "Fecha programada", value: order.estimatedDate }, { label: "Inicio", value: order.startDate ?? "Sin iniciar" }, { label: "Finalización", value: order.endDate ?? "Pendiente" }]} signature />
-          {order.status === "Programado" && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>}
+        </fieldset>;
+      })}</div>}
 
-        </div>
-      </div>
-
-      <form id="maintenance-completion-form" noValidate onSubmit={event => event.preventDefault()} className="flex-1 p-5 sm:p-6">
-        <div className="grid gap-7 md:grid-cols-[1fr_300px]">
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">Máquinas a intervenir</h3>
-              <div className="mt-3 space-y-4">
-                {items.map((it, idx) => {
-                  const machine = SAMPLE_MACHINES.find(m => m.id === it.machineId);
-                  return (
-                    <div key={it.id} className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-                      <div className="bg-gray-50 px-4 py-3 border-b border-gray-200 flex justify-between items-center">
-                        <div>
-                          <span className="text-xs font-semibold text-gray-500">{machine?.code}</span>
-                          <span className="ml-2 font-semibold text-gray-900">{machine?.name}</span>
-                        </div>
-                        <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded border">{it.type}</span>
-                      </div>
-                      <div className="p-4 space-y-3">
-                        <div>
-                          <p className="text-xs text-gray-500">Descripción del problema / tarea</p>
-                          <p className="mt-1 text-sm text-gray-900">{it.description}</p>
-                        </div>
-                        {it.approximateCost !== undefined && (
-                          <div>
-                            <p className="text-xs text-gray-500">Costo aproximado</p>
-                            <p className="mt-1 text-sm font-medium text-gray-900">{formatCurrency(it.approximateCost)}</p>
-                          </div>
-                        )}
-
-                        {order.status === "En curso" ? (
-                          <>
-                            <div>
-                              <label className={labelClass}>Trabajo realizado <span className="text-rose-600">*</span>
-                                <textarea required value={it.workPerformed || ""} onChange={(e) => updateItem(idx, "workPerformed", e.target.value)} rows={2} className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100" />
-                              </label>
-                            </div>
-                            <div>
-                              <label className={labelClass}>Costo (ARS)
-                                <input type="number" min="0" value={it.cost || ""} onChange={(e) => updateItem(idx, "cost", parseFloat(e.target.value) || 0)} placeholder="Ej: 15000" className={field} />
-                              </label>
-                            </div>
-                          </>
-                        ) : (
-                          <>
-                            {(it.workPerformed || order.status === "Finalizado") && (
-                              <div>
-                                <p className="text-xs text-gray-500">Trabajo realizado</p>
-                                <p className="mt-1 text-sm text-gray-900">{it.workPerformed || "—"}</p>
-                              </div>
-                            )}
-                            {it.cost !== undefined && it.cost > 0 && (
-                              <div>
-                                <p className="text-xs text-gray-500">Costo</p>
-                                <p className="mt-1 font-medium text-gray-900">{formatCurrency(it.cost)}</p>
-                              </div>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-900">Información de la orden</h3>
-              <dl className="mt-3 space-y-3 text-sm">
-                <div>
-                  <dt className="text-xs text-gray-500">Fecha de emisión</dt>
-                  <dd className="mt-0.5 font-medium text-gray-800">{order.issueDate}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-gray-500">Fecha estimada de finalización</dt>
-                  <dd className="mt-0.5 font-medium text-gray-800">{order.estimatedDate}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-gray-500">Responsable ({order.responsibleType})</dt>
-                  <dd className="mt-0.5 font-medium text-gray-800">{responsibleName}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-gray-500">Fecha de inicio</dt>
-                  <dd className="mt-0.5 font-medium text-gray-800">{order.startDate ?? "—"}</dd>
-                </div>
-                <div>
-                  <dt className="text-xs text-gray-500">Fecha de finalización</dt>
-                  <dd className="mt-0.5 font-medium text-gray-800">{order.endDate ?? "—"}</dd>
-                </div>
-                {approximateTotal > 0 && <div className="pt-2 border-t border-gray-100">
-                  <dt className="text-xs text-gray-500">Costo Total aproximado</dt>
-                  <dd className="mt-0.5 text-lg font-bold text-gray-900">{formatCurrency(approximateTotal)}</dd>
-                </div>}
-                {totalCost > 0 && (
-                  <div className="pt-2 border-t border-gray-100">
-                    <dt className="text-xs text-gray-500">Costo Total</dt>
-                    <dd className="mt-0.5 text-lg font-bold text-gray-900">{formatCurrency(totalCost)}</dd>
-                  </div>
-                )}
-              </dl>
-              {order.observations && (
-                <div className="mt-4 rounded-lg bg-amber-50 p-3">
-                  <p className="text-xs font-semibold text-amber-900">Observaciones</p>
-                  <p className="mt-1 text-sm text-amber-900">{order.observations}</p>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
-              <h3 className="text-sm font-semibold text-gray-900">Acciones de estado</h3>
               {error && <p role="alert" className="mt-2 rounded-lg bg-red-50 p-2 text-xs text-red-800">{error}</p>}
 
               {order.status === "Programado" && (
@@ -350,14 +252,29 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
               )}
 
               {(order.status === "Finalizado" || order.status === "Cancelado") && (
-                 <p className="mt-2 text-xs text-gray-500">La orden está {order.status.toLowerCase()} y no admite cambios.</p>
+                 <p className="mt-2 text-xs text-gray-500">Estado: {order.status}. Esta orden no admite cambios.</p>
               )}
-            </div>
-          </div>
-        </div>
-      </form>
-    </RecordPage>
-  );
+    </form>}>
+    <MaintenanceSection title="Plan de intervención">
+      <div className="production-document-table"><table><thead><tr><th scope="col">Máquina / Identificación</th><th scope="col">Tipo</th><th scope="col">Problema o tarea prevista</th><th scope="col" className="numeric">Costo aproximado (ARS)</th></tr></thead><tbody>{order.items.map(item => {
+        const machine = SAMPLE_MACHINES.find(candidate => candidate.id === item.machineId);
+        return <tr key={item.id}><td><Link to={`/mantenimiento/maquinas?maquina=${item.machineId}`}>{machine?.name ?? "Máquina no disponible"}</Link><small>{machine?.code} · Serie: {machine?.serialNumber || "Sin informar"}</small><small>{machine?.location || "Ubicación sin informar"}</small></td><td>{item.type}</td><td className="whitespace-pre-wrap">{item.description}</td><td className="numeric">{item.approximateCost !== undefined ? formatCurrency(item.approximateCost) : "Sin informar"}</td></tr>;
+      })}</tbody></table></div>
+    </MaintenanceSection>
+    <MaintenanceSection title="Informe de trabajos realizados">
+      <div className="production-document-table"><table><thead><tr><th scope="col">Máquina</th><th scope="col">Trabajo realizado</th><th scope="col" className="numeric">Costo (ARS)</th></tr></thead><tbody>{items.map(item => {
+        const machine = SAMPLE_MACHINES.find(candidate => candidate.id === item.machineId);
+        return <tr key={item.id}><td>{machine?.name ?? "Máquina no disponible"}<small>{machine?.code}</small></td><td className="whitespace-pre-wrap">{item.workPerformed || "Sin registrar"}</td><td className="numeric">{item.cost !== undefined ? formatCurrency(item.cost) : "Sin registrar"}</td></tr>;
+      })}</tbody></table></div>
+    </MaintenanceSection>
+    <MaintenanceSection title="Resumen de costos">
+      <dl className="ml-auto w-full max-w-sm space-y-3">
+        <div className="flex justify-between gap-4"><dt>Costo total aproximado</dt><dd>{order.items.some(item => item.approximateCost !== undefined) ? formatCurrency(approximateTotal) : "Sin informar"}</dd></div>
+        <div className="flex justify-between gap-4 border-t border-gray-300 pt-3"><dt>{order.status === "En curso" ? "Costo total cargado" : "Costo total registrado"}</dt><dd>{items.some(item => item.cost !== undefined) ? formatCurrency(totalCost) : "Sin registrar"}</dd></div>
+      </dl>
+    </MaintenanceSection>
+    <MaintenanceSection title="Observaciones"><p className="production-document-procedure">{order.observations || "Sin observaciones registradas."}</p></MaintenanceSection>
+  </MaintenanceDocument>;
 }
 
 export default function Mantenimientos() {
@@ -463,14 +380,14 @@ export default function Mantenimientos() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <ModulePageHeader className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-amber-700">Mantenimiento</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Órdenes de Mantenimiento</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Registra y consulta las órdenes de mantenimiento para una o varias máquinas.</p>
         </div>
-        <button type="button" onClick={() => setEditing(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nueva Orden</button>
-      </header>
+      </ModulePageHeader>
+      <div className="mt-5 flex justify-end"><button type="button" onClick={() => setEditing(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nueva Orden</button></div>
 
       <section className="mt-7 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-gray-200 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
@@ -496,48 +413,56 @@ export default function Mantenimientos() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-[1fr_1.5fr_1fr_1.5fr_1fr_auto] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-left">Nº Orden</div>
-              <div className="min-w-0 text-left">Máquinas</div>
-              <div className="min-w-0 text-center">Finalización estimada</div>
-              <div className="min-w-0 text-center">Responsable</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {filtered.map((o) => {
-                const due = o.status === "Programado" && o.estimatedDate < today;
-                const machinesSummary = o.items.map(it => SAMPLE_MACHINES.find(m => m.id === it.machineId)?.name).filter(Boolean).join(", ");
-                const responsibleName = o.responsibleType === "Empleado" ? (SAMPLE_EMPLOYEES.find((e) => e.id === o.responsibleEmployeeId)?.name || "—") : (o.externalResponsibleName || "—");
+            <SortableList
+              rows={filtered}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-[1fr_1.5fr_1fr_1.5fr_1fr_auto] items-center gap-2 lg:gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              latestFirst={row => row.issueDate}
+              tieBreaker={row => row.number}
+              columns={[
+                [["Nº Orden", row => row.number], "min-w-0 text-left"],
+                [["Máquinas", row => row.items.map(item => SAMPLE_MACHINES.find(machine => machine.id === item.machineId)?.name).filter(Boolean).join(', ')], "min-w-0 text-left"],
+                [["Finalización estimada", row => row.estimatedDate], "min-w-0 text-left lg:text-center"],
+                [["Responsable", row => row.responsibleType === 'Empleado' ? SAMPLE_EMPLOYEES.find(employee => employee.id === row.responsibleEmployeeId)?.name : row.externalResponsibleName], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+                {mapRows((o) => {
+                  const due = o.status === "Programado" && o.estimatedDate < today;
+                  const machinesSummary = o.items.map(it => SAMPLE_MACHINES.find(m => m.id === it.machineId)?.name).filter(Boolean).join(", ");
+                  const responsibleName = o.responsibleType === "Empleado" ? (SAMPLE_EMPLOYEES.find((e) => e.id === o.responsibleEmployeeId)?.name || "—") : (o.externalResponsibleName || "—");
 
-                return (
-                  <article key={o.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1fr_1.5fr_1fr_1.5fr_1fr_auto] lg:gap-5 lg:px-5">
-                    <div className="col-span-2 min-w-0 lg:col-span-1 text-left">
-                      <h3 className="font-semibold text-gray-900">{o.number}</h3>
-                    </div>
-                    <div className="min-w-0 text-left">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Máquinas</p>
-                      <p className="mt-1 truncate text-sm text-gray-900 lg:mt-0" title={machinesSummary}>{o.items.length} {o.items.length === 1 ? "máquina" : "máquinas"}: {machinesSummary}</p>
-                    </div>
-                    <div className="min-w-0 text-left lg:text-center">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Finalización estimada</p>
-                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{o.estimatedDate} {due && <span className="text-red-600 font-semibold block sm:inline">· Vencido</span>}</p>
-                    </div>
-                    <div className="min-w-0 text-left lg:text-center">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Responsable</p>
-                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{responsibleName} ({o.responsibleType})</p>
-                    </div>
-                    <div className="flex flex-col items-start gap-1 lg:items-center">
-                      <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(o.status)}`}>{o.status}</span>
-                    </div>
-                    <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                      <button type="button" onClick={() => { setSelected(o); }} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Consultar</button>
-                    </div>
-                  </article>
-                );
-              })}
-            </div>
+                  return (
+                    <article key={o.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1fr_1.5fr_1fr_1.5fr_1fr_auto] lg:gap-5 lg:px-5">
+                      <div className="col-span-2 min-w-0 lg:col-span-1 text-left">
+                        <h3 className="font-semibold text-gray-900">{o.number}</h3>
+                      </div>
+                      <div className="min-w-0 text-left">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Máquinas</p>
+                        <p className="mt-1 truncate text-sm text-gray-900 lg:mt-0" title={machinesSummary}>{o.items.length} {o.items.length === 1 ? "máquina" : "máquinas"}: {machinesSummary}</p>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Finalización estimada</p>
+                        <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{o.estimatedDate} {due && <span className="text-red-600 font-semibold block sm:inline">· Vencido</span>}</p>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Responsable</p>
+                        <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{responsibleName} ({o.responsibleType})</p>
+                      </div>
+                      <div className="flex flex-col items-start gap-1 lg:items-center">
+                        <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(o.status)}`}>{o.status}</span>
+                      </div>
+                      <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                        <button type="button" onClick={() => { setSelected(o); }} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Consultar</button>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>}
+            </SortableList>
           </>
         )}
       </section>

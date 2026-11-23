@@ -1,6 +1,8 @@
 import { useEffect, useState, useId, type ReactNode } from "react";
+import { Link } from "react-router";
 import { createPortal } from "react-dom";
 import { formatClientAddress, type Client } from "~/data/sales";
+import { EMPRESA } from "~/data/facturacion-proveedores";
 import ShareVoucher from "./ShareVoucher";
 import "./print-voucher.css";
 
@@ -13,37 +15,67 @@ type Voucher = {
   discount?: number;
   tax?: number;
   total?: number;
-  items?: { productName: string; quantity?: number; unitPrice?: number; subtotal?: number; expirationDate?: string }[];
+  items?: { productName: string; quantity?: number; unitPrice?: number; subtotal?: number; expirationDate?: string; discount?: number; deliveredQuantity?: number; previouslyReturnedQuantity?: number }[];
 };
 type Props = {
   title: string;
   document: Voucher;
   client?: Client;
   recipient?: string;
-  details?: { label: string; value: string }[];
+  recipientLines?: string[];
+  issuer?: { name: string; lines: string[] };
+  details?: { label: string; value: string; href?: string }[];
+  discountLabel?: string;
+  extraTotals?: { label: string; amount: number }[];
+  allocations?: { invoiceId: string; invoiceNumber: string; amountApplied: number }[];
   payments?: { method: string; reference?: string; amount: number }[];
   totalLabel?: string;
   signature?: boolean;
   recipientLabel?: string;
   children?: ReactNode;
+  preview?: boolean;
 };
 const money = (amount: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
 const dateLabel = (value: string) => /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split("-").reverse().join("/") : value;
 
-export default function PrintVoucher({ title, document: voucher, client, recipient, details = [], payments, totalLabel = "Total", signature = false, recipientLabel = "Datos del destinatario", children }: Props) {
+export default function PrintVoucher({ title, document: voucher, client, recipient, recipientLines = [], issuer, details = [], payments, totalLabel = "Total", signature = false, recipientLabel = "Datos del destinatario", children, preview = false, discountLabel = "Descuento", extraTotals = [], allocations }: Props) {
   const [ready, setReady] = useState(false);
   const [sharing, setSharing] = useState(false);
   const printId = useId();
   useEffect(() => { setReady(true); }, []);
-  useEffect(() => {
-    if (ready && !window.document.querySelector(".voucher-selected")) window.document.getElementById(printId)?.classList.add("voucher-selected");
-  }, [ready, printId]);
+  const showPrices = voucher.items?.some(item => item.unitPrice !== undefined || item.subtotal !== undefined);
+
+  const content = <>
+      <header className="voucher-header">
+        <div>
+          <p className="voucher-issuer">{issuer?.name ?? EMPRESA.razonSocial}</p>
+          <h1>{title}</h1>
+          {preview && <div className="voucher-company-details">{(issuer?.lines ?? [`CUIT: ${EMPRESA.cuit} · ${EMPRESA.condicionIVA}`, EMPRESA.domicilio]).map((line, index) => <p key={index}>{line}</p>)}</div>}
+        </div>
+        <dl className="voucher-number">
+          <div><dt>Número</dt><dd>{voucher.number}</dd></div>
+          <div><dt>Emisión</dt><dd>{dateLabel(voucher.date)}</dd></div>
+          {voucher.status && <div><dt>Estado</dt><dd>{voucher.status}</dd></div>}
+        </dl>
+      </header>
+      <section className="voucher-recipient"><h2>{recipientLabel}</h2><strong>{client?.name ?? recipient ?? "Destinatario no registrado"}</strong>{recipientLines.map((line, index) => <p key={index}>{line}</p>)}{client && <><p>{client.documentType}: {client.cuitCuil || "Sin informar"} · IVA: {client.ivaType || "Sin informar"}</p><p>Domicilio: {formatClientAddress(client) || "Sin informar"}</p>{client.email && <p>Correo: {client.email}</p>}</>}</section>
+      {details.length > 0 && <dl className="voucher-references">{details.map((detail, index) => <div key={index}><dt>{detail.label}</dt><dd>{detail.href ? <Link to={detail.href}>{dateLabel(detail.value) || "—"}</Link> : dateLabel(detail.value) || "—"}</dd></div>)}</dl>}
+      {voucher.items && <table><thead><tr><th scope="col">Descripción</th><th scope="col" className="numeric">Cantidad</th>{showPrices && <><th scope="col" className="numeric">Precio unitario</th><th scope="col" className="numeric">Importe</th></>}</tr></thead><tbody>{voucher.items.map((item, index) => <tr key={index}><td>{item.productName}{item.deliveredQuantity !== undefined && <small>Entregadas: {item.deliveredQuantity} · Devueltas antes: {item.previouslyReturnedQuantity ?? 0}</small>}{item.discount !== undefined && item.discount > 0 && <small>Descuento: {money(item.discount)}</small>}{item.expirationDate && <small>Vencimiento: {dateLabel(item.expirationDate)}</small>}</td><td className="numeric">{item.quantity?.toLocaleString("es-AR") ?? "—"}</td>{showPrices && <><td className="numeric">{item.unitPrice === undefined ? "—" : money(item.unitPrice)}</td><td className="numeric">{item.subtotal === undefined ? "—" : money(item.subtotal)}</td></>}</tr>)}</tbody></table>}
+      {allocations && <section className="voucher-allocations"><h2>Comprobantes imputados</h2>{allocations.length ? <table><thead><tr><th>Comprobante</th><th className="numeric">Importe aplicado</th></tr></thead><tbody>{allocations.map(allocation => <tr key={allocation.invoiceId}><td><Link to={`/ventas/comprobantes?comprobante=${encodeURIComponent(allocation.invoiceId)}`}>{allocation.invoiceNumber}</Link></td><td className="numeric">{money(allocation.amountApplied)}</td></tr>)}</tbody></table> : <p>Sin comprobantes imputados.</p>}</section>}
+      {payments && <table><thead><tr><th>Medio de pago</th><th>Referencia</th><th className="numeric">Importe</th></tr></thead><tbody>{payments.map((payment, index) => <tr key={index}><td>{payment.method}</td><td>{payment.reference || "—"}</td><td className="numeric">{money(payment.amount)}</td></tr>)}</tbody></table>}
+      {voucher.total !== undefined && <dl className="voucher-totals">{voucher.subtotal !== undefined && <div><dt>Subtotal</dt><dd>{money(voucher.subtotal)}</dd></div>}{voucher.discount !== undefined && <div><dt>{discountLabel}</dt><dd>− {money(voucher.discount)}</dd></div>}{voucher.tax !== undefined && <div><dt>Base imponible</dt><dd>{money(Math.max(0, (voucher.subtotal ?? 0) - (voucher.discount ?? 0)))}</dd></div>}{voucher.tax !== undefined && <div><dt>IVA</dt><dd>{money(voucher.tax)}</dd></div>}<div className="voucher-grand-total"><dt>{totalLabel} (ARS)</dt><dd>{money(voucher.total)}</dd></div>{extraTotals.map(row => <div key={row.label}><dt>{row.label}</dt><dd>{money(row.amount)}</dd></div>)}</dl>}
+      {children}
+      {voucher.observations && <section className="voucher-observations"><h2>Observaciones</h2><p>{voucher.observations}</p></section>}
+      {signature && <div className="voucher-signatures"><p>Firma y aclaración del emisor</p><p>Firma y aclaración del receptor</p></div>}
+      <footer>Representación del comprobante registrado en el sistema. No acredita autorización fiscal.</footer>
+  </>;
+
   function print() {
     window.document.querySelectorAll("[data-print-voucher]").forEach(element => element.classList.toggle("voucher-selected", element.id === printId));
     window.print();
   }
   return <>
-    <div className="inline-flex max-w-full flex-wrap items-center gap-2">
+    <div className={preview ? "mb-5 flex max-w-full flex-wrap items-center justify-end gap-2" : "inline-flex max-w-full flex-wrap items-center gap-2"}>
     <button type="button" disabled={!ready} onClick={print} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M6 9V3h12v6M6 18H3v-8h18v8h-3M6 14h12v7H6zM17 11h1" /></svg>
       Imprimir comprobante
@@ -53,18 +85,10 @@ export default function PrintVoucher({ title, document: voucher, client, recipie
       Compartir comprobante
     </button>
     </div>
+    {preview && <article className="print-voucher sales-document">{content}</article>}
     {sharing && <ShareVoucher printId={printId} title={title} number={voucher.number} onClose={() => setSharing(false)} />}
     {ready && createPortal(<article id={printId} data-print-voucher="true" className="print-voucher">
-      <header className="voucher-header"><div><p className="voucher-eyebrow">FÁBRICA DE PASTAS</p><h1>{title}</h1><p>Documento del sistema · copia del comprobante</p></div><div className="voucher-number"><strong>N.º {voucher.number}</strong><p>Fecha: {dateLabel(voucher.date)}</p>{voucher.status && <p>Estado: <strong>{voucher.status}</strong></p>}</div></header>
-      <section className="voucher-recipient"><h2>{recipientLabel}</h2><strong>{client?.name ?? recipient ?? "Destinatario no registrado"}</strong>{client && <><p>{client.documentType}: {client.cuitCuil || "Sin informar"} · IVA: {client.ivaType || "Sin informar"}</p><p>Domicilio: {formatClientAddress(client) || "Sin informar"}</p>{client.email && <p>Correo: {client.email}</p>}</>}</section>
-      {details.length > 0 && <dl className="voucher-references">{details.map((detail, index) => <div key={index}><dt>{detail.label}</dt><dd>{detail.value || "—"}</dd></div>)}</dl>}
-      {voucher.items && <table><thead><tr><th>Descripción</th><th className="numeric">Cantidad</th>{voucher.items.some(item => item.unitPrice !== undefined) && <><th className="numeric">Precio unitario</th><th className="numeric">Importe</th></>}</tr></thead><tbody>{voucher.items.map((item, index) => <tr key={index}><td>{item.productName}{item.expirationDate && <small>Vencimiento: {dateLabel(item.expirationDate)}</small>}</td><td className="numeric">{item.quantity?.toLocaleString("es-AR") ?? "—"}</td>{voucher.items!.some(line => line.unitPrice !== undefined) && <><td className="numeric">{item.unitPrice === undefined ? "—" : money(item.unitPrice)}</td><td className="numeric">{item.subtotal === undefined ? "—" : money(item.subtotal)}</td></>}</tr>)}</tbody></table>}
-      {payments && <table><thead><tr><th>Medio de pago</th><th>Referencia</th><th className="numeric">Importe</th></tr></thead><tbody>{payments.map((payment, index) => <tr key={index}><td>{payment.method}</td><td>{payment.reference || "—"}</td><td className="numeric">{money(payment.amount)}</td></tr>)}</tbody></table>}
-      {voucher.total !== undefined && <dl className="voucher-totals">{voucher.subtotal !== undefined && <div><dt>Subtotal</dt><dd>{money(voucher.subtotal)}</dd></div>}{voucher.discount !== undefined && <div><dt>Descuento</dt><dd>{money(voucher.discount)}</dd></div>}{voucher.tax !== undefined && <div><dt>IVA</dt><dd>{money(voucher.tax)}</dd></div>}<div className="voucher-grand-total"><dt>{totalLabel} (ARS)</dt><dd>{money(voucher.total)}</dd></div></dl>}
-      {children}
-      {voucher.observations && <section className="voucher-observations"><h2>Observaciones</h2><p>{voucher.observations}</p></section>}
-      {signature && <div className="voucher-signatures"><p>Firma y aclaración del emisor</p><p>Firma y aclaración del receptor</p></div>}
-      <footer>Representación del comprobante registrado en el sistema. No acredita autorización fiscal.</footer>
+      {content}
     </article>, window.document.body)}
   </>;
 }

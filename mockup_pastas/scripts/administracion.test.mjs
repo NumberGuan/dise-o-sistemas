@@ -219,6 +219,38 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
         assert.ok(!model.catalogOptions(updated, "marcas").some(item => item.id === brand.data.entry.id));
       }
     });
+    await t.test("Producción crea sus catálogos desde el modal sin acceder a la gestión general", async () => {
+      await db.saveUser({ id: "test-produccion-inline", name: "Producción", email: "produccion-inline@example.test", role: "Producción", passwordHash: "unused" });
+      const login = await session.createUserSession("test-produccion-inline", "/");
+      const cookie = login.headers.get("Set-Cookie").split(";")[0];
+      const inline = await server.ssrLoadModule("/app/routes/catalogos-crear.tsx");
+      const run = (catalogo, extra = {}) => inline.action({ request: new Request(`http://localhost/catalogos/${catalogo}/crear`, { method: "POST", headers: { Cookie: cookie }, body: new URLSearchParams({ intent: "create", name: `Alta de producción ${catalogo}`, ...extra }) }), params: { catalogo } });
+      for (const key of ["unidades", "tipos-producto", "subtipos-producto", "tipos-materia-prima", "marcas"]) {
+        assert.equal(model.canCreateCatalog("Producción", key), true);
+        const result = await run(key, key === "subtipos-producto" ? { parentId: "2" } : {});
+        assert.equal(result.init.status, 201);
+        assert.ok((await catalogs.getCatalogs())[key].some(entry => entry.id === result.data.entry.id));
+        assert.equal((await run(key, { id: result.data.entry.id })).init.status, 400);
+      }
+      for (const key of ["cargos", "medios-pago", "tipos-maquina", "tipos-cliente"]) {
+        assert.equal(model.canCreateCatalog("Producción", key), false);
+        await assert.rejects(run(key), error => error instanceof Response && error.status === 403);
+      }
+      await assert.rejects(route.loader({ request: new Request("http://localhost/administracion/catalogos/unidades", { headers: { Cookie: cookie } }), params: { catalogo: "unidades" } }), error => error instanceof Response && error.status === 302);
+      const { InlineCatalogProvider, CatalogField } = await server.ssrLoadModule("/app/components/InlineCatalog.tsx");
+      const current = await catalogs.getCatalogs();
+      const creatableCatalogs = model.CATALOG_DEFINITIONS.filter(item => model.canCreateCatalog("Producción", item.key)).map(item => item.key);
+      const markup = renderToStaticMarkup(createElement(InlineCatalogProvider, { catalogs: current, canCreate: true, creatableCatalogs },
+        ...["unidades", "tipos-producto", "subtipos-producto", "tipos-materia-prima", "marcas", "cargos"].map(catalog => createElement(CatalogField, { key: catalog, catalog }, createElement("select")))));
+      assert.equal((markup.match(/<button/g) ?? []).length, 5);
+      assert.match(markup, /Agregar marca/);
+      assert.match(markup, /Agregar unidad de medida/);
+      assert.doesNotMatch(markup, /Agregar cargo/);
+      const { CatalogContext } = await server.ssrLoadModule("/app/components/CatalogProvider.tsx");
+      const { CatalogEntryFields } = await server.ssrLoadModule("/app/components/CatalogEntryFields.tsx");
+      const brandMarkup = renderToStaticMarkup(createElement(CatalogContext.Provider, { value: current }, createElement(CatalogEntryFields, { catalog: "marcas", initialMateriaPrima: 2 })));
+      assert.match(brandMarkup, /<input[^>]*name="materiasPrimas"[^>]*checked=""[^>]*value="2"/);
+    });
     await t.test("Las marcas guardan sus materias primas y las recetas solo ofrecen las asociadas", async () => {
       const brandForm = (name, ids, extra = {}) => {
         const data = form(name, extra);

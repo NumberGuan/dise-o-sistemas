@@ -1,8 +1,9 @@
-import PrintVoucher from "./PrintVoucher";
+import PurchaseDocument from "./PurchaseDocument";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
-import { formatFecha, getOrdenes, getProveedorPorId } from "~/data/ordenes";
+import { getOrdenes, getProveedorPorId } from "~/data/ordenes";
 import {
   getCantidadTotalRemito,
   getRemitoPorId,
@@ -24,13 +25,15 @@ export default function RemitoProveedorDetallePage({
   if (!remito) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Remito no encontrado
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          No existe un remito con ese identificador.
-        </p>
-        <BackToListButton onClick={irVolver} />
+        <FormalPageHeader className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Remito no encontrado
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
+            No existe un remito con ese identificador.
+          </p>
+          <BackToListButton onClick={irVolver} />
+        </FormalPageHeader>
       </div>
     );
   }
@@ -41,117 +44,14 @@ export default function RemitoProveedorDetallePage({
     : undefined;
   const cantidadTotal = getCantidadTotalRemito(remito.detalle);
 
-  const printAction = <PrintVoucher title="Remito de proveedor" document={{ number: remito.numero, date: remito.fecha,  items: remito.detalle.map(linea => ({ productName: getMateriaPrimaPorId(linea.idMateriaPrima)?.nombre ?? "Materia prima", quantity: linea.cantidad })) }} recipient={proveedor?.nombre} recipientLabel="Proveedor" details={[{ label: "Orden de compra", value: orden?.numero ?? "Sin vincular" }]} signature />;
-
-  const contenido = (
-    <>
-      <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-        <h2 className="text-base font-semibold text-gray-900">Cabecera</h2>
-        <dl className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Proveedor
-            </dt>
-            <dd className="mt-1 font-medium text-gray-900">
-              {proveedor?.nombre ?? "—"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Orden de compra vinculada
-            </dt>
-            <dd className="mt-1 font-medium text-gray-900">
-              {orden?.numero ?? "Sin vincular"}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Fecha
-            </dt>
-            <dd className="mt-1 font-medium text-gray-900">
-              {formatFecha(remito.fecha)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
-              Cantidad total
-            </dt>
-            <dd className="mt-1 text-base font-bold text-gray-900">
-              {cantidadTotal}
-            </dd>
-          </div>
-        </dl>
-      </section>
-
-      <section className="mt-6 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="border-b border-gray-200 px-5 py-4">
-          <h2 className="font-semibold text-gray-900">Detalle del Remito</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400">
-                <th className="px-5 py-3 font-medium">N°</th>
-                <th className="px-5 py-3 font-medium">Materia Prima</th>
-                <th className="px-5 py-3 font-medium">Marca</th>
-                <th className="px-5 py-3 font-medium">Cantidad</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {remito.detalle.map((linea, index) => {
-                const producto = getMateriaPrimaPorId(linea.idMateriaPrima);
-                const marca = producto?.marcas[0];
-                return (
-                  <tr key={index} className="hover:bg-gray-50">
-                    <td className="px-5 py-3 text-gray-500">{index + 1}</td>
-                    <td className="px-5 py-3 font-medium text-gray-900">
-                      {producto?.nombre ?? "—"}
-                    </td>
-                    <td className="px-5 py-3 text-gray-600">
-                      {marca?.nombre ?? "—"}
-                    </td>
-                    <td className="px-5 py-3 text-gray-600">
-                      {linea.cantidad}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-            <tfoot>
-              <tr className="border-t border-gray-200 bg-gray-50">
-                <td
-                  colSpan={3}
-                  className="px-5 py-3 text-right text-xs font-medium uppercase tracking-wide text-gray-500"
-                >
-                  Cantidad total
-                </td>
-                <td className="px-5 py-3 font-bold text-gray-900">
-                  {cantidadTotal}
-                </td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </section>
-    </>
-  );
-
-  if (onClose) {
-    return <><div className="mb-4 flex justify-end">{printAction}</div>{contenido}</>;
-  }
-
-  return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">{remito.numero}</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Remito recibido del proveedor {proveedor?.nombre ?? "—"}.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={irVolver} />{printAction}</div>
-      </div>
-      {contenido}
-    </div>
-  );
+  return <PurchaseDocument onClose={irVolver} title="Remito Proveedor" supplier={proveedor} signature
+    document={{ number: remito.numero, date: remito.fecha,
+      items: remito.detalle.map(linea => {
+        const producto = getMateriaPrimaPorId(linea.idMateriaPrima);
+        return { productName: `${producto?.nombre ?? "Materia prima"} · ${producto?.marcas[0]?.nombre ?? "Sin marca"}`, quantity: linea.cantidad };
+      }),
+    }} details={[
+      { label: "Orden de compra vinculada", value: orden?.numero ?? "Sin vincular", href: orden ? `/compras/ordenes/${orden.id}` : undefined },
+      { label: "Cantidad total recibida", value: String(cantidadTotal) },
+    ]} />;
 }

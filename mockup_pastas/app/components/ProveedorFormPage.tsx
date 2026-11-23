@@ -1,3 +1,4 @@
+import FormalPageHeader from "~/components/FormalPageHeader";
 import FormFrame from "~/components/FormFrame";
 import { CatalogField } from "~/components/InlineCatalog";
 import PhoneFields from "~/components/PhoneFields";
@@ -82,13 +83,15 @@ export default function ProveedorFormPage({
   if (proveedorId && !proveedor) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Proveedor no encontrado
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          No existe un proveedor con ese identificador.
-        </p>
-        <BackToListButton onClick={() => navigate("/compras/proveedores")} />
+        <FormalPageHeader className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Proveedor no encontrado
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
+            No existe un proveedor con ese identificador.
+          </p>
+          <BackToListButton onClick={() => navigate("/compras/proveedores")} />
+        </FormalPageHeader>
       </div>
     );
   }

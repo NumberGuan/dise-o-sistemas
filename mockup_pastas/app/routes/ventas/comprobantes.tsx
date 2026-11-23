@@ -1,5 +1,5 @@
-import PrintVoucher from "~/components/PrintVoucher";
-import BackToListButton from "~/components/BackToListButton";
+import SalesDocument from "~/components/SalesDocument";
+import { SortableList, SortableTable } from "~/components/SortableRows";
 import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams, useLoaderData, useFetcher } from "react-router";
@@ -256,26 +256,27 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
                 <p className="text-sm text-gray-500">No hay renglones en la factura. Selecciona un pedido para cargarlos automáticamente.</p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-gray-200">
-                  <table className="w-full min-w-[500px] text-left text-sm text-gray-900">
-                    <thead className="bg-gray-50 text-gray-700">
-                      <tr>
-                        <th className="px-4 py-2 font-medium">Producto</th>
-                        <th className="px-4 py-2 text-right font-medium">Cant.</th>
-                        <th className="px-4 py-2 text-right font-medium">Precio Uni.</th>
-                        <th className="px-4 py-2 text-right font-medium">Subtotal</th>
+                  <SortableTable
+                    rows={items}
+                    className="w-full min-w-[500px] text-left text-sm text-gray-900"
+                    headClassName="bg-gray-50 text-gray-700"
+                    bodyClassName="divide-y divide-gray-100"
+                    columns={[
+                      [["Producto", row => row.productName], "px-4 py-2 font-medium"],
+                      [["Cant.", row => row.quantity], "px-4 py-2 text-right font-medium"],
+                      [["Precio Uni.", row => row.unitPrice], "px-4 py-2 text-right font-medium"],
+                      [["Subtotal", row => row.subtotal], "px-4 py-2 text-right font-medium"],
+                    ]}
+                  >
+                    {mapRows => mapRows(item => (
+                      <tr key={item.id} className="bg-white">
+                        <td className="px-4 py-2">{item.productName}</td>
+                        <td className="px-4 py-2 text-right">{item.quantity}</td>
+                        <td className="px-4 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
+                        <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCurrency(item.subtotal)}{amounts.commercialDiscountRate === 15 && <small className="block text-emerald-700">15%: -{formatCurrency(amounts.items.find(line => line.id === item.id)?.discount ?? 0)}</small>}</td>
                       </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {items.map(item => (
-                        <tr key={item.id} className="bg-white">
-                          <td className="px-4 py-2">{item.productName}</td>
-                          <td className="px-4 py-2 text-right">{item.quantity}</td>
-                          <td className="px-4 py-2 text-right">{formatCurrency(item.unitPrice)}</td>
-                          <td className="px-4 py-2 text-right font-medium text-gray-900">{formatCurrency(item.subtotal)}{amounts.commercialDiscountRate === 15 && <small className="block text-emerald-700">15%: -{formatCurrency(amounts.items.find(line => line.id === item.id)?.discount ?? 0)}</small>}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    ))}
+                  </SortableTable>
                 </div>
               )}
 
@@ -358,127 +359,14 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
   const order = orders.find(o => o.id === invoice.orderId);
   const payment = getInvoicePaymentSummary(invoice, undefined, receipts);
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
-        <div className="flex min-w-0 items-center gap-3">
-          <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">{invoice.type} {invoice.number}</h1>
-          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(invoice.status)}`}>
-            {invoice.status}
-          </span>
-        </div>
-        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={invoice.type} document={invoice} client={client} details={[{ label: "Vencimiento", value: invoice.dueDate }, { label: "Pedido asociado", value: order?.number ?? "Sin pedido" }]} /></div>
-      </div>
+  return <SalesDocument onClose={onClose} title={invoice.type} document={invoice} client={client} details={[
+      { label: "Vencimiento", value: invoice.dueDate },
+      { label: "Pedido asociado", value: order?.number ?? "Sin pedido", href: order ? `/ventas/pedidos?pedido=${encodeURIComponent(order.id)}` : undefined },
+      { label: "Dirección de facturación", value: invoice.billingAddress || (client ? formatClientAddress(client) : "Sin informar") },
+      ...(invoice.status === "Emitido" ? [{ label: "Estado de pago", value: getPaymentStatus(invoice, receipts) }] : []),
+    ]} discountLabel={invoice.commercialDiscountRate === 15 ? "Descuento Comercio (15%)" : "Descuento"}
+    extraTotals={invoice.status === "Emitido" ? [{ label: "Pagado", amount: payment.paid }, { label: "Saldo pendiente", amount: payment.balance }] : []} actions={<>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="min-w-0 space-y-6 lg:col-span-2">
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Detalle de conceptos</h2>
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="w-full min-w-[500px] text-left text-sm text-gray-900">
-                <thead className="bg-gray-50 text-gray-700">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Producto</th>
-                    <th className="px-4 py-2 text-right font-medium">Cant.</th>
-                    <th className="px-4 py-2 text-right font-medium">Precio Uni.</th>
-                    <th className="px-4 py-2 text-right font-medium">Subtotal</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {invoice.items.map(item => (
-                    <tr key={item.id}>
-                      <td className="px-4 py-3">{item.productName}</td>
-                      <td className="px-4 py-3 text-right">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right">{formatCurrency(item.unitPrice)}</td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(item.subtotal)}{invoice.commercialDiscountRate === 15 && <small className="block text-emerald-700">15%: -{formatCurrency(item.discount ?? 0)}</small>}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="mt-4 flex justify-end">
-              <div className="w-full max-w-xs space-y-2">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Subtotal</span>
-                  <span>{formatCurrency(invoice.subtotal)}</span>
-                </div>
-                {invoice.discount > 0 && (
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>{invoice.commercialDiscountRate === 15 ? "Descuento Comercio (15%)" : "Descuento"}</span>
-                    <span>- {formatCurrency(invoice.discount)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Base imponible</span>
-                  <span>{formatCurrency(Math.max(0, invoice.subtotal - invoice.discount))}</span>
-                </div>
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>Importe IVA (21 %)</span>
-                  <span>{formatCurrency(invoice.tax)}</span>
-                </div>
-                <div className="flex justify-between border-t border-gray-200 pt-2 text-base font-semibold text-gray-900">
-                  <span>Total</span>
-                  <span>{formatCurrency(invoice.total)}</span>
-                </div>
-                {invoice.status === "Emitido" && (
-                  <>
-                    <div className="flex justify-between text-sm text-gray-700"><span>Pagado</span><span>{formatCurrency(payment.paid)}</span></div>
-                    <div className="flex justify-between text-sm font-semibold text-gray-900"><span>Saldo pendiente</span><span>{formatCurrency(payment.balance)}</span></div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="min-w-0 space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Información</h2>
-            <dl className="space-y-3 text-sm">
-              {invoice.status === "Emitido" && (
-                <div>
-                  <dt className="text-gray-600">Estado de pago</dt>
-                  <dd className="font-medium text-gray-900">{getPaymentStatus(invoice, receipts)}</dd>
-                </div>
-              )}
-              <div className={invoice.status === "Emitido" ? "border-t border-gray-100 pt-3" : undefined}>
-                <dt className="text-gray-500">Cliente</dt>
-                <dd className="font-medium text-gray-900">{client?.name || "Desconocido"}</dd>
-                <dd className="text-gray-600">{client?.documentType}: {client?.cuitCuil}</dd>
-                <dd className="text-gray-600">{client?.ivaType}</dd>
-              </div>
-              <div className="border-t border-gray-100 pt-3">
-                <dt className="text-gray-500">Dirección de facturación</dt>
-                <dd className="font-medium text-gray-900">{(invoice.billingAddress ?? (client ? formatClientAddress(client) : "")) || "Sin dirección registrada"}</dd>
-              </div>
-              <div className="border-t border-gray-100 pt-3">
-                <dt className="text-gray-500">Fecha de emisión</dt>
-                <dd className="font-medium text-gray-900">{invoice.date}</dd>
-              </div>
-              <div className="border-t border-gray-100 pt-3">
-                <dt className="text-gray-500">Vencimiento</dt>
-                <dd className="font-medium text-gray-900">{invoice.dueDate}</dd>
-              </div>
-              
-              {order && (
-                <div className="border-t border-gray-100 pt-3">
-                  <dt className="text-gray-500">Pedido asociado</dt>
-                  <dd className="font-medium text-amber-700">{order.number}</dd>
-                </div>
-              )}
-              {invoice.observations && (
-                <div className="border-t border-gray-100 pt-3">
-                  <dt className="text-gray-500">Observaciones</dt>
-                  <dd className="text-gray-900">{invoice.observations}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Acciones</h2>
-            <div className="space-y-3">
               {invoice.status === "Borrador" && (
                 <>
                   <button type="button" onClick={onEdit} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Editar borrador</button>
@@ -489,13 +377,8 @@ function InvoiceDetail({ invoice, onClose, onEdit, onStatusChange }: InvoiceDeta
                 <button type="button" onClick={() => { if(confirm("¿Estás seguro de anular esta factura?")) onStatusChange("Anulado"); }} className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-semibold text-red-700 shadow-sm hover:bg-red-50">Anular factura</button>
               )}
               {invoice.status === "Emitido" && payment.paid > 0 && <p className="text-xs leading-5 text-gray-700">Para anular esta factura, primero anulá los recibos registrados.</p>}
-              <p className="text-xs leading-5 text-gray-500">La descarga e impresión todavía no están disponibles.</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+
+    </>} />;
 }
 
 export default function Comprobantes() {
@@ -664,55 +547,64 @@ export default function Comprobantes() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
-              <div className="min-w-0 text-center">Número / Fecha</div>
-              <div className="min-w-0 text-center">Cliente</div>
-              <div className="min-w-0 text-center">Pedido</div>
-              <div className="min-w-0 text-center">Total</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-            {filteredInvoices.map(invoice => {
-              const client = clients.find(c => c.id === invoice.clientId);
-              return (
-                <article key={invoice.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="mb-1 text-xs font-medium text-gray-500">{invoice.date}</p>
-                    <h3 className="font-semibold leading-5 text-gray-900">{invoice.number}</h3>
-                    <p className="mt-1 text-xs text-gray-500 lg:hidden">{invoice.type}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
-                    <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
-                    <p className="hidden lg:block mt-1 text-xs text-gray-500">{invoice.type}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Pedido</p>
-                    <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{orders.find(o => o.id === invoice.orderId)?.number || "Sin pedido"}</p>
-                  </div>
-                  <div className="min-w-0 lg:text-center text-left">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(invoice.total)}</p>
-                    {invoice.status === "Emitido" && <p className="mt-1 text-xs font-medium text-gray-700">Saldo: {formatCurrency(getInvoicePaymentSummary(invoice, undefined, receipts).balance)}</p>}
-                  </div>
-                  <div className="flex flex-col items-start gap-1 lg:items-center">
-                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(invoice.status)}`}>
-                      {invoice.status}
-                    </span>
-                    {invoice.status === "Emitido" && <span className="text-xs font-medium text-gray-700">{getPaymentStatus(invoice, receipts)}</span>}
-                  </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                    <button type="button" onClick={() => setSelectedInvoice(invoice)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                    {invoice.status === "Borrador" && (
-                      <button type="button" onClick={() => setEditingInvoice(invoice)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-          </div>
+            <SortableList
+              rows={filteredInvoices}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-6 items-center gap-2 lg:gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700"
+              actionClassName="hidden lg:block text-center"
+              newest="Fecha"
+              tieBreaker={row => row.number}
+              compactHeadings
+              columns={[
+                [["Número", row => row.number], "min-w-0 text-left lg:text-center", [["Fecha", row => row.date], ["Tipo", row => row.type]]],
+                [["Cliente", row => clients.find(client => client.id === row.clientId)?.name], "min-w-0 text-left lg:text-center"],
+                [["Pedido", row => orders.find(order => order.id === row.orderId)?.number], "min-w-0 text-left lg:text-center"],
+                [["Total", row => row.total], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+                {mapRows(invoice => {
+                  const client = clients.find(c => c.id === invoice.clientId);
+                  return (
+                    <article key={invoice.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="mb-1 text-xs font-medium text-gray-500">{invoice.date}</p>
+                        <h3 className="font-semibold leading-5 text-gray-900">{invoice.number}</h3>
+                        <p className="mt-1 text-xs text-gray-500 lg:hidden">{invoice.type}</p>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
+                        <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
+                        <p className="hidden lg:block mt-1 text-xs text-gray-500">{invoice.type}</p>
+                      </div>
+                      <div className="min-w-0 text-left lg:text-center">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Pedido</p>
+                        <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{orders.find(o => o.id === invoice.orderId)?.number || "Sin pedido"}</p>
+                      </div>
+                      <div className="min-w-0 lg:text-center text-left">
+                        <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(invoice.total)}</p>
+                        {invoice.status === "Emitido" && <p className="mt-1 text-xs font-medium text-gray-700">Saldo: {formatCurrency(getInvoicePaymentSummary(invoice, undefined, receipts).balance)}</p>}
+                      </div>
+                      <div className="flex flex-col items-start gap-1 lg:items-center">
+                        <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                        <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(invoice.status)}`}>
+                          {invoice.status}
+                        </span>
+                        {invoice.status === "Emitido" && <span className="text-xs font-medium text-gray-700">{getPaymentStatus(invoice, receipts)}</span>}
+                      </div>
+                      <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                        <button type="button" onClick={() => setSelectedInvoice(invoice)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                        {invoice.status === "Borrador" && (
+                          <button type="button" onClick={() => setEditingInvoice(invoice)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>}
+            </SortableList>
           </>
         )}
       </section>

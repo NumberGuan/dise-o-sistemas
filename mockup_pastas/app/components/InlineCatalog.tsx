@@ -9,11 +9,12 @@ import type { action } from "~/routes/catalogos-crear";
 type CreateOptions = {
   catalog: CatalogKey;
   parentId?: string;
+  initialMateriaPrima?: number;
   onCreated?: (entry: CatalogEntry) => void;
 };
 const CreationContext = createContext<((options: CreateOptions) => void) | null>(null);
 
-export function InlineCatalogProvider({ catalogs, canCreate, children }: { catalogs: Catalogs; canCreate: boolean; children: ReactNode }) {
+export function InlineCatalogProvider({ catalogs, canCreate, creatableCatalogs, children }: { catalogs: Catalogs; canCreate: boolean; creatableCatalogs?: CatalogKey[]; children: ReactNode }) {
   const [request, setRequest] = useState<CreateOptions | null>(null);
   const [additions, setAdditions] = useState<Partial<Catalogs>>({});
   const current = useMemo(() => {
@@ -28,20 +29,25 @@ export function InlineCatalogProvider({ catalogs, canCreate, children }: { catal
   }, []);
 
   return <CatalogContext.Provider value={current}>
-    <CreationContext.Provider value={canCreate ? setRequest : null}>
+    <CreationContext.Provider value={canCreate ? options => { if (!creatableCatalogs || creatableCatalogs.includes(options.catalog)) setRequest(options); } : null}>
+      <CreatableCatalogsContext.Provider value={creatableCatalogs ?? null}>
       {children}
       {canCreate && request && <CatalogCreateModal request={request} onClose={() => setRequest(null)} register={register} />}
+      </CreatableCatalogsContext.Provider>
     </CreationContext.Provider>
   </CatalogContext.Provider>;
 }
 
-export function CatalogAddButton({ catalog, parentId, onCreated, disabled = false }: CreateOptions & { disabled?: boolean }) {
+const CreatableCatalogsContext = createContext<CatalogKey[] | null>(null);
+
+export function CatalogAddButton({ catalog, parentId, initialMateriaPrima, onCreated, disabled = false }: CreateOptions & { disabled?: boolean }) {
   const open = useContext(CreationContext);
+  const allowed = useContext(CreatableCatalogsContext);
   const definition = catalogDefinition(catalog)!;
-  if (!open) return null;
+  if (!open || allowed && !allowed.includes(catalog)) return null;
   return <button type="button" disabled={disabled} aria-label={`Agregar ${definition.singular}`} title={`Agregar ${definition.singular}`}
     className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-gray-300 bg-white text-gray-700 transition hover:border-gray-400 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:cursor-not-allowed disabled:opacity-40"
-    onClick={event => { event.preventDefault(); event.stopPropagation(); open({ catalog, parentId, onCreated }); }}>
+    onClick={event => { event.preventDefault(); event.stopPropagation(); open({ catalog, parentId, initialMateriaPrima, onCreated }); }}>
     <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="h-5 w-5"><path d="M12 5v14M5 12h14" /></svg>
   </button>;
 }
@@ -105,7 +111,7 @@ function CatalogCreateModal({ request, onClose, register }: { request: CreateOpt
       {fetcher.data && "error" in fetcher.data && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-700">{fetcher.data.error}</p>}
       {saved && <p role="status" className="rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800">“{saved.name}” se guardó {saved.active ? "y ya está disponible" : "como inactivo"}. Podés cerrar con la cruz para continuar.</p>}
       <fieldset disabled={pending || Boolean(saved)} className="space-y-5">
-        <CatalogEntryFields catalog={request.catalog} initialParentId={request.parentId} />
+        <CatalogEntryFields catalog={request.catalog} initialParentId={request.parentId} initialMateriaPrima={request.initialMateriaPrima} />
       </fieldset>
       <div className="flex justify-end border-t border-gray-100 pt-4"><button type="submit" disabled={pending || Boolean(saved)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-amber-600 disabled:opacity-50">{pending ? "Guardando…" : saved ? "Guardado" : "Guardar"}</button></div>
     </form>

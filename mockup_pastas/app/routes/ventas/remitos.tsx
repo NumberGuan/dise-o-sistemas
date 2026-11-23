@@ -1,5 +1,5 @@
-import PrintVoucher from "~/components/PrintVoucher";
-import BackToListButton from "~/components/BackToListButton";
+import SalesDocument from "~/components/SalesDocument";
+import { SortableList, SortableTable } from "~/components/SortableRows";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
@@ -228,101 +228,12 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
   const customerReturns = SAMPLE_CUSTOMER_RETURNS.filter(customerReturn => customerReturn.remitId === remit.id);
   const hasAvailableReturns = remit.items.some(item => getRemitAvailableQuantity(remit, item.productId) > 0);
 
-  return (
-    <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
-        <h1 className="min-w-0 break-all text-2xl font-bold text-gray-900">Remito {remit.number}</h1>
-        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Remito"} document={remit} client={client} signature details={[{ label: "Pedido asociado", value: order?.number ?? remit.orderId }]} /></div>
-      </div>
+  return <SalesDocument onClose={onClose} title="Remito cliente" document={remit} client={client} notice={notice} signature details={[
+      { label: "Pedido asociado", value: order?.number ?? remit.orderId, href: `/ventas/pedidos?pedido=${encodeURIComponent(remit.orderId)}` },
+      { label: "Dirección de entrega", value: order?.deliveryAddress || order?.customDeliveryAddress || (client ? formatClientAddress(client) : "Sin informar") },
+      ...customerReturns.map(customerReturn => ({ label: "Devolución asociada", value: `${customerReturn.number} · ${customerReturn.status} · ${customerReturn.items.reduce((total, item) => total + item.quantity, 0)} u.`, href: `/ventas/devoluciones?devolucion=${encodeURIComponent(customerReturn.id)}` })),
+    ]} actions={<>
 
-      {notice && <p role="status" className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800">{notice}</p>}
-
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Mercadería del remito</h2>
-            <div className="overflow-hidden rounded-lg border border-gray-200">
-              <table className="w-full text-left text-sm text-gray-900">
-                <thead className="bg-gray-50 text-gray-500">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Producto</th>
-                    <th className="px-4 py-2 text-right font-medium">Cant. Entregada</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {remit.items.map(item => (
-                    <tr key={item.id}>
-                      <td className="break-words px-4 py-3">{item.productName}</td>
-                      <td className="px-4 py-3 text-right font-medium">{item.quantity}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {remit.observations && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-              <h3 className="text-sm font-semibold text-amber-900">Observaciones</h3>
-              <p className="mt-2 text-sm text-amber-800 whitespace-pre-wrap">{remit.observations}</p>
-            </div>
-          )}
-
-          {customerReturns.length > 0 && (
-            <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-              <h3 className="text-sm font-semibold text-gray-900">Devoluciones asociadas</h3>
-              <div className="mt-3 space-y-2">
-                {customerReturns.map(customerReturn => (
-                  <Link key={customerReturn.id} to={`/ventas/devoluciones?devolucion=${encodeURIComponent(customerReturn.id)}`} className="flex items-center justify-between gap-3 rounded-lg border border-gray-200 p-3 text-sm hover:border-amber-300 hover:bg-amber-50">
-                    <span className="font-medium text-amber-800">{customerReturn.number}</span>
-                    <span className="text-gray-600">{customerReturn.status} · {customerReturn.items.reduce((total, item) => total + item.quantity, 0)} u.</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Información general</h2>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Estado</dt>
-                <dd>
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusClass(remit.status)}`}>
-                    {remit.status}
-                  </span>
-                </dd>
-              </div>
-              <div className="flex justify-between gap-3">
-                <dt className="text-gray-500">Cliente</dt>
-                <dd className="min-w-0 break-words font-medium text-gray-900 text-right">{client?.name || "Desconocido"}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Fecha</dt>
-                <dd className="font-medium text-gray-900">{remit.date}</dd>
-              </div>
-              <div className="flex justify-between border-t border-gray-100 pt-3">
-                <dt className="text-gray-500">Pedido asociado</dt>
-                <dd className="font-medium text-purple-700"><Link to={`/ventas/pedidos?pedido=${encodeURIComponent(remit.orderId)}`} className="underline underline-offset-2">{order?.number || remit.orderId}</Link></dd>
-              </div>
-              {order?.deliveryAddressType === "client" && (
-                <div className="border-t border-gray-100 pt-3">
-                  <dt className="text-gray-500">Dirección de entrega del cliente</dt>
-                  <dd className="break-words font-medium text-gray-900">{client ? formatClientAddress(client) : "No disponible"}</dd>
-                </div>
-              )}
-              {order?.deliveryAddressType === "custom" && (
-                <div className="flex justify-between border-t border-gray-100 pt-3 gap-4">
-                  <dt className="text-gray-500 whitespace-nowrap">Entrega especial</dt>
-                  <dd className="min-w-0 break-words font-medium text-gray-900 text-right">{order.customDeliveryAddress}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-3">
             {remit.status === "Entregado" && hasAvailableReturns && (
               <Link to={`/ventas/devoluciones?remito=${encodeURIComponent(remit.id)}`} className="block w-full rounded-lg bg-amber-700 px-4 py-2 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800">
                 Generar devolución
@@ -358,11 +269,7 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
                 Anular remito
               </button>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    </>} />;
 }
 
 export default function Remitos() {
@@ -511,47 +418,55 @@ export default function Remitos() {
           <SalesEmptyState entity="remitos" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} />
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-5 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-center">Número / Fecha</div>
-              <div className="min-w-0 text-center">Cliente</div>
-              <div className="min-w-0 text-center">Pedido</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-            {filteredRemits.map(remit => {
-              const client = SAMPLE_CLIENTS.find(c => c.id === remit.clientId);
-              const order = SAMPLE_ORDERS.find(o => o.id === remit.orderId);
-              return (
-                <article key={remit.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-4 lg:px-5">
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="mb-1 text-xs font-medium text-gray-500">{remit.date}</p>
-                    <h3 className="break-all font-semibold leading-5 text-gray-900">{remit.number}</h3>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
-                    <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Pedido</p>
-                    <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{order?.number || remit.orderId}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-1 lg:items-center">
-                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(remit.status)}`}>
-                      {remit.status}
-                    </span>
-                  </div>
-                  <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                    <button type="button" onClick={() => setSelectedRemit(remit)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                    {remit.status === "Borrador" && (
-                      <button type="button" onClick={() => setEditingRemit(remit)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-            </div>
+            <SortableList
+              rows={filteredRemits}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-5 items-center gap-2 lg:gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              newest="Fecha"
+              tieBreaker={row => row.number}
+              columns={[
+                [["Número", row => row.number], "min-w-0 text-left lg:text-center", [["Fecha", row => row.date]]],
+                [["Cliente", row => SAMPLE_CLIENTS.find(client => client.id === row.clientId)?.name], "min-w-0 text-left lg:text-center"],
+                [["Pedido", row => SAMPLE_ORDERS.find(order => order.id === row.orderId)?.number ?? row.orderId], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+              {mapRows(remit => {
+                const client = SAMPLE_CLIENTS.find(c => c.id === remit.clientId);
+                const order = SAMPLE_ORDERS.find(o => o.id === remit.orderId);
+                return (
+                  <article key={remit.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-4 lg:px-5">
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="mb-1 text-xs font-medium text-gray-500">{remit.date}</p>
+                      <h3 className="break-all font-semibold leading-5 text-gray-900">{remit.number}</h3>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
+                      <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Pedido</p>
+                      <p className="mt-1 break-words text-sm text-gray-800 lg:mt-0">{order?.number || remit.orderId}</p>
+                    </div>
+                    <div className="flex flex-col items-start gap-1 lg:items-center">
+                      <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(remit.status)}`}>
+                        {remit.status}
+                      </span>
+                    </div>
+                    <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                      <button type="button" onClick={() => setSelectedRemit(remit)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                      {remit.status === "Borrador" && (
+                        <button type="button" onClick={() => setEditingRemit(remit)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+              </div>}
+            </SortableList>
           </>
         )}
       </SalesListPanel>

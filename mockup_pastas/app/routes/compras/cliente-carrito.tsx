@@ -233,7 +233,7 @@ export default function ClienteCarrito() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       <div className="mb-6">
-        <ShopPageHero title="Mi carrito" art="carrito" description="Revisá los productos y ajustá las cantidades.">
+        <ShopPageHero title="Mi carrito" description="Revisá los productos y ajustá las cantidades.">
           <span className="rounded-full border border-[#eadfd3] bg-white/85 px-3 py-1.5 text-sm text-gray-700">{totalItems} {totalItems === 1 ? "unidad" : "unidades"}</span>
         </ShopPageHero>
       </div>

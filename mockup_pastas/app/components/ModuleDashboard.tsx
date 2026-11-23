@@ -1,3 +1,4 @@
+import ModulePageHeader from "~/components/ModulePageHeader";
 import { Link } from "react-router";
 
 import { AnimatedNumber } from "~/components/motion";
@@ -72,11 +73,22 @@ export default function ModuleDashboard({
 }: ModuleDashboardProps) {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header>
-        <p className="text-sm font-medium text-amber-700">{moduleLabel}</p>
+      <ModulePageHeader>
+        {moduleLabel !== title && <p className="text-sm font-medium text-amber-700">{moduleLabel}</p>}
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
         <p className="mt-2 max-w-3xl text-sm leading-6 text-gray-500">{description}</p>
-      </header>
+      </ModulePageHeader>
+
+      {action && (
+        <div className="mt-5 flex justify-end">
+          <Link
+            to={action.to}
+            className="inline-flex min-h-10 items-center justify-center rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+          >
+            {action.label}
+          </Link>
+        </div>
+      )}
 
       <section aria-labelledby={`dashboard-${moduleLabel}-summary`} className="mt-8">
         <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-end">
@@ -86,14 +98,6 @@ export default function ModuleDashboard({
             </h2>
             <p className="mt-1 text-sm text-gray-500">{summaryDescription}</p>
           </div>
-          {action && (
-            <Link
-              to={action.to}
-              className="inline-flex min-h-10 items-center justify-center rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
-            >
-              {action.label}
-            </Link>
-          )}
         </div>
 
         {metrics.length > 0 ? (

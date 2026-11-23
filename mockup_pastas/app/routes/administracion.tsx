@@ -1,4 +1,5 @@
 import { CatalogAddButton } from "~/components/InlineCatalog";
+import ModulePageHeader from "~/components/ModulePageHeader";
 import { useState } from "react";
 import { Link, Outlet, useLocation } from "react-router";
 import { requireUserAndRole } from "~/utils/session.server";
@@ -25,8 +26,10 @@ function AdministrationDashboard() {
   const definitions = CATALOG_DEFINITIONS.filter(item => `${item.title} ${item.description} ${item.group}`.toLocaleLowerCase("es-AR").includes(query));
   const groups = [...new Set(definitions.map(item => item.group))];
   return <div className="mx-auto max-w-7xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-    <p className="text-sm font-medium text-amber-700">Administración</p>
-    <h1 className="mt-1 text-2xl font-bold">Gestión del sistema</h1>
+    <ModulePageHeader>
+      <p className="text-sm font-medium text-amber-700">Administración</p>
+      <h1 className="mt-1 text-2xl font-bold">Gestión del sistema</h1>
+    </ModulePageHeader>
     <label className="mt-6 block text-sm font-medium">Buscar una clase o pantalla<input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Por ejemplo: cliente, IVA, marcas o empleados" className="mt-2 w-full rounded-lg border border-gray-300 bg-white px-4 py-3 text-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100" /></label>
     <h2 className="mt-8 text-xl font-semibold">Catálogos y datos de referencia</h2>
     <p className="mt-1 text-sm text-gray-500">Agregá, consultá, editá y desactivá las opciones que se utilizan en los formularios.</p>

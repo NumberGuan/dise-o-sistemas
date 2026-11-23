@@ -1,3 +1,4 @@
+import ModulePageHeader from "~/components/ModulePageHeader";
 import BackToListButton from "~/components/BackToListButton";
 import FormFrame from "~/components/FormFrame";
 import { Outlet } from "react-router";
@@ -15,14 +16,14 @@ type SalesPageHeaderProps = {
 
 export function SalesPageHeader({ title, description, action }: SalesPageHeaderProps) {
   return (
-    <header className="flex flex-wrap items-start justify-between gap-4">
-      <div>
+    <>
+      <ModulePageHeader>
         <p className="text-sm font-medium text-amber-700">Ventas</p>
         <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">{title}</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">{description}</p>
-      </div>
-      {action && <div className="flex flex-wrap gap-2">{action}</div>}
-    </header>
+      </ModulePageHeader>
+      {action && <div className="mt-5 flex flex-wrap justify-end gap-2">{action}</div>}
+    </>
   );
 }
 

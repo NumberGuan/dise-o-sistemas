@@ -1,5 +1,5 @@
-import PrintVoucher from "~/components/PrintVoucher";
-import BackToListButton from "~/components/BackToListButton";
+import SalesDocument from "~/components/SalesDocument";
+import { SortableList, SortableTable } from "~/components/SortableRows";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
@@ -91,11 +91,15 @@ function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: Return
   const selectedOrder = SAMPLE_ORDERS.find(order => order.id === selectedRemit?.orderId);
   const selectedInvoice = selectedOrder ? getInvoiceForOrder(selectedOrder.id) : undefined;
   const pricingItems = selectedInvoice?.items || selectedOrder?.items || [];
-  const estimatedRefundAmount = selectedRemit?.items.reduce((total, item) => {
-    const quantity = Number(quantities[item.productId] || 0);
+  const returnLines = selectedRemit?.items.map(item => {
+    const returnQuantity = Number(quantities[item.productId] || 0);
+    const previouslyReturned = getRegisteredReturnedQuantity(selectedRemit.id, item.productId, customerReturn?.id);
     const unitPrice = pricingItems.find(priceItem => priceItem.productId === item.productId)?.unitPrice || 0;
-    return total + (Number.isFinite(quantity) && quantity > 0 ? quantity * unitPrice : 0);
-  }, 0) || 0;
+    const available = Math.max(0, item.quantity - previouslyReturned);
+    const lineSubtotal = Number.isFinite(returnQuantity) && returnQuantity > 0 ? returnQuantity * unitPrice : 0;
+    return { ...item, returnQuantity, previouslyReturned, unitPrice, available, lineSubtotal };
+  }) ?? [];
+  const estimatedRefundAmount = returnLines.reduce((total, item) => total + item.lineSubtotal, 0);
 
   useEffect(() => {
     if (isNew && remitId && !availableRemits.some(remit => remit.id === remitId)) setError("El remito solicitado no está entregado o ya no tiene cantidades disponibles para devolver.");
@@ -183,14 +187,26 @@ function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: Return
 
           <section className="rounded-xl border border-gray-200 bg-white shadow-sm">
             <div className="border-b border-gray-200 px-5 py-4"><h2 className="font-semibold">Productos devueltos</h2><p className="mt-1 text-xs text-gray-600">Ingresá 0 para los productos que no se devuelven en esta operación.</p></div>
-            {!selectedRemit ? <p className="p-5 text-sm text-gray-600">Seleccioná un remito para cargar sus productos.</p> : <><div className="overflow-x-auto"><table className="w-full min-w-[940px] text-left text-sm"><thead className="bg-gray-50 text-gray-700"><tr><th className="px-4 py-3 font-medium">Producto</th><th className="px-4 py-3 text-right font-medium">Precio unitario</th><th className="px-4 py-3 text-right font-medium">Entregada</th><th className="px-4 py-3 text-right font-medium">Devuelta antes</th><th className="px-4 py-3 text-right font-medium">Disponible</th><th className="px-4 py-3 text-right font-medium">A devolver</th><th className="px-4 py-3 text-right font-medium">Subtotal</th></tr></thead><tbody className="divide-y divide-gray-100">{selectedRemit.items.map(item => {
-              const previouslyReturned = getRegisteredReturnedQuantity(selectedRemit.id, item.productId, customerReturn?.id);
-              const available = Math.max(0, item.quantity - previouslyReturned);
-              const unitPrice = pricingItems.find(priceItem => priceItem.productId === item.productId)?.unitPrice || 0;
-              const returnQuantity = Number(quantities[item.productId] || 0);
-              const lineSubtotal = Number.isFinite(returnQuantity) && returnQuantity > 0 ? returnQuantity * unitPrice : 0;
-              return <tr key={item.productId}><td className="px-4 py-3 font-medium text-gray-900">{item.productName}</td><td className="px-4 py-3 text-right">{formatCurrency(unitPrice)}</td><td className="px-4 py-3 text-right">{item.quantity}</td><td className="px-4 py-3 text-right">{previouslyReturned}</td><td className="px-4 py-3 text-right font-semibold text-emerald-700">{available}</td><td className="px-4 py-3 text-right"><input aria-label={`Cantidad a devolver de ${item.productName}`} type="number" min="0" max={available} step="1" value={quantities[item.productId] ?? "0"} onChange={event => setQuantities(current => ({ ...current, [item.productId]: event.target.value }))} className="w-24 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-right font-semibold text-gray-950 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" /></td><td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(lineSubtotal)}</td></tr>;
-            })}</tbody></table></div><div className="border-t border-gray-200 bg-emerald-50 px-5 py-4 text-right"><p className="text-sm text-emerald-800">Saldo estimado a devolver</p><p className="mt-1 text-2xl font-bold text-emerald-900">{formatCurrency(estimatedRefundAmount)}</p><p className="mt-1 text-xs text-emerald-800">Suma de cantidad devuelta × precio unitario original. No distribuye descuentos ni IVA.</p></div></>}
+            {!selectedRemit ? <p className="p-5 text-sm text-gray-600">Seleccioná un remito para cargar sus productos.</p> : <><div className="overflow-x-auto"><SortableTable
+                rows={returnLines}
+                className="w-full min-w-[940px] text-left text-sm"
+                headClassName="bg-gray-50 text-gray-700"
+                bodyClassName="divide-y divide-gray-100"
+                columns={[
+                  [["Producto", row => row.productName], "px-4 py-3 font-medium"],
+                  [["Precio unitario", row => row.unitPrice], "px-4 py-3 text-right font-medium"],
+                  [["Entregada", row => row.quantity], "px-4 py-3 text-right font-medium"],
+                  [["Devuelta antes", row => row.previouslyReturned], "px-4 py-3 text-right font-medium"],
+                  [["Disponible", row => row.available], "px-4 py-3 text-right font-medium"],
+                  [["A devolver", row => row.returnQuantity], "px-4 py-3 text-right font-medium"],
+                  [["Subtotal", row => row.lineSubtotal], "px-4 py-3 text-right font-medium"],
+                ]}
+              >
+                {mapRows => mapRows(item => {
+            const { previouslyReturned, available, unitPrice, lineSubtotal } = item;
+            return <tr key={item.productId}><td className="px-4 py-3 font-medium text-gray-900">{item.productName}</td><td className="px-4 py-3 text-right">{formatCurrency(unitPrice)}</td><td className="px-4 py-3 text-right">{item.quantity}</td><td className="px-4 py-3 text-right">{previouslyReturned}</td><td className="px-4 py-3 text-right font-semibold text-emerald-700">{available}</td><td className="px-4 py-3 text-right"><input aria-label={`Cantidad a devolver de ${item.productName}`} type="number" min="0" max={available} step="1" value={quantities[item.productId] ?? "0"} onChange={event => setQuantities(current => ({ ...current, [item.productId]: event.target.value }))} className="w-24 rounded-md border border-gray-300 bg-white px-2 py-1.5 text-right font-semibold text-gray-950 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-200" /></td><td className="px-4 py-3 text-right font-semibold text-gray-900">{formatCurrency(lineSubtotal)}</td></tr>;
+          })}
+              </SortableTable></div><div className="border-t border-gray-200 bg-emerald-50 px-5 py-4 text-right"><p className="text-sm text-emerald-800">Saldo estimado a devolver</p><p className="mt-1 text-2xl font-bold text-emerald-900">{formatCurrency(estimatedRefundAmount)}</p><p className="mt-1 text-xs text-emerald-800">Suma de cantidad devuelta × precio unitario original. No distribuye descuentos ni IVA.</p></div></>}
           </section>
 
           <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"><div className="grid gap-5"><div><label htmlFor="return-reason" className="block text-sm font-medium text-gray-700">Motivo general *</label><input required id="return-reason" value={reason} onChange={event => setReason(event.target.value)} placeholder="Ej.: producto dañado, error en la entrega" className="mt-1 h-10 w-full rounded-lg border border-gray-300 px-3 text-sm placeholder:text-gray-500 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100" /></div><div><label htmlFor="return-observations" className="block text-sm font-medium text-gray-700">Observaciones</label><textarea id="return-observations" rows={3} value={observations} onChange={event => setObservations(event.target.value)} placeholder="Detalles adicionales de la devolución" className="mt-1 w-full rounded-lg border border-gray-300 p-3 text-sm placeholder:text-gray-500 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100" /></div></div></section>
@@ -210,20 +226,17 @@ function ReturnDetail({ customerReturn, notice, onClose, onEdit, onChangeStatus 
   const order = SAMPLE_ORDERS.find(candidate => candidate.id === customerReturn.orderId);
   const invoice = SAMPLE_INVOICES.find(candidate => candidate.id === customerReturn.invoiceId);
   const totalUnits = customerReturn.items.reduce((total, item) => total + item.quantity, 0);
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3"><h1 className="break-all text-2xl font-bold">Devolución {customerReturn.number}</h1><div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Devolución"} document={{ ...customerReturn, total: customerReturn.estimatedRefundTotal }} client={client} totalLabel="Reintegro estimado" signature details={[{ label: "Motivo", value: customerReturn.reason }, { label: "Remito", value: remit?.number ?? customerReturn.remitId }, { label: "Factura", value: invoice?.number ?? "Sin comprobante" }]} /></div></div>
-      {notice && <p role="status" className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{notice}</p>}
-      <div className="grid gap-6 lg:grid-cols-3"><div className="min-w-0 space-y-6 lg:col-span-2">
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Productos devueltos</h2><div className="overflow-x-auto rounded-lg border border-gray-200"><table className="w-full min-w-[760px] text-left text-sm"><thead className="bg-gray-50 text-gray-700"><tr><th className="px-4 py-2 font-medium">Producto</th><th className="px-4 py-2 text-right font-medium">Entregada</th><th className="px-4 py-2 text-right font-medium">Devuelta antes</th><th className="px-4 py-2 text-right font-medium">En esta devolución</th><th className="px-4 py-2 text-right font-medium">Precio unitario</th><th className="px-4 py-2 text-right font-medium">Subtotal</th></tr></thead><tbody className="divide-y divide-gray-100">{customerReturn.items.map(item => <tr key={item.id}><td className="px-4 py-3 font-medium">{item.productName}</td><td className="px-4 py-3 text-right">{item.deliveredQuantity}</td><td className="px-4 py-3 text-right">{item.previouslyReturnedQuantity}</td><td className="px-4 py-3 text-right font-semibold">{item.quantity}</td><td className="px-4 py-3 text-right">{formatCurrency(item.unitPrice)}</td><td className="px-4 py-3 text-right font-semibold">{formatCurrency(item.subtotal)}</td></tr>)}</tbody></table></div><div className="mt-4 flex flex-wrap items-end justify-between gap-3"><p className="text-sm font-semibold">Total: {totalUnits} {totalUnits === 1 ? "unidad" : "unidades"}</p><div className="text-right"><p className="text-sm text-emerald-800">Saldo estimado a devolver</p><p className="text-xl font-bold text-emerald-900">{formatCurrency(customerReturn.estimatedRefundTotal)}</p></div></div></section>
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"><h2 className="font-semibold">Motivo</h2><p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{customerReturn.reason}</p>{customerReturn.observations && <><h3 className="mt-5 border-t border-gray-100 pt-4 text-sm font-semibold">Observaciones</h3><p className="mt-2 whitespace-pre-wrap text-sm text-gray-700">{customerReturn.observations}</p></>}</section>
-        <aside className="rounded-lg border border-sky-200 bg-sky-50 p-4 text-sm text-sky-900">Sin impacto automático sobre stock, comprobantes, pagos o saldos.</aside>
-      </div><div className="min-w-0 space-y-6">
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"><h2 className="mb-4 font-semibold">Información general</h2><dl className="space-y-3 text-sm"><div className="flex justify-between gap-3"><dt className="text-gray-500">Estado</dt><dd><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(customerReturn.status)}`}>{customerReturn.status}</span></dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">Fecha</dt><dd className="font-medium">{customerReturn.date}</dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">Cliente</dt><dd className="text-right font-medium">{client?.name || "No disponible"}</dd></div><div className="flex justify-between gap-3 border-t border-gray-100 pt-3"><dt className="text-gray-500">Remito</dt><dd className="text-right font-medium text-amber-800"><Link className="underline underline-offset-2" to={`/ventas/remitos?remito=${encodeURIComponent(customerReturn.remitId)}`}>{remit?.number || customerReturn.remitId}</Link></dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">Pedido</dt><dd className="text-right font-medium text-amber-800"><Link className="underline underline-offset-2" to={`/ventas/pedidos?pedido=${encodeURIComponent(customerReturn.orderId)}`}>{order?.number || customerReturn.orderId}</Link></dd></div><div className="flex justify-between gap-3"><dt className="text-gray-500">Comprobante</dt><dd className="text-right font-medium">{invoice ? <Link className="text-amber-800 underline underline-offset-2" to={`/ventas/comprobantes?comprobante=${encodeURIComponent(invoice.id)}`}>{invoice.number}</Link> : "Sin comprobante"}</dd></div></dl></section>
-        <section className="space-y-3 rounded-xl border border-gray-200 bg-gray-50 p-5">{customerReturn.status === "Borrador" && <><button type="button" onClick={() => onChangeStatus("Registrada")} className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Registrar devolución</button><button type="button" onClick={onEdit} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Editar devolución</button></>}{customerReturn.status !== "Anulada" && <button type="button" onClick={() => { if (confirm("¿Estás seguro de anular esta devolución? Las cantidades registradas volverán a quedar disponibles.")) onChangeStatus("Anulada"); }} className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Anular devolución</button>}</section>
-      </div></div>
-    </div>
-  );
+  return <SalesDocument onClose={onClose} actions={<>
+{customerReturn.status === "Borrador" && <><button type="button" onClick={() => onChangeStatus("Registrada")} className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-800">Registrar devolución</button><button type="button" onClick={onEdit} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Editar devolución</button></>}{customerReturn.status !== "Anulada" && <button type="button" onClick={() => { if (confirm("¿Estás seguro de anular esta devolución? Las cantidades registradas volverán a quedar disponibles.")) onChangeStatus("Anulada"); }} className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50">Anular devolución</button>}
+    </>} title="Devolución cliente" document={{ ...customerReturn, total: customerReturn.estimatedRefundTotal }} client={client} notice={notice} totalLabel="Reintegro estimado" signature details={[
+      { label: "Motivo", value: customerReturn.reason },
+      { label: "Remito", value: remit?.number ?? customerReturn.remitId, href: `/ventas/remitos?remito=${encodeURIComponent(customerReturn.remitId)}` },
+      { label: "Pedido", value: order?.number ?? customerReturn.orderId, href: `/ventas/pedidos?pedido=${encodeURIComponent(customerReturn.orderId)}` },
+      { label: "Factura", value: invoice?.number ?? "Sin comprobante", href: invoice ? `/ventas/comprobantes?comprobante=${encodeURIComponent(invoice.id)}` : undefined },
+      { label: "Unidades devueltas", value: String(totalUnits) },
+    ]}>
+      <p className="voucher-operational-note">Sin impacto automático sobre stock, comprobantes, pagos o saldos.</p>
+    </SalesDocument>;
 }
 
 export default function Devoluciones() {
@@ -334,14 +347,31 @@ export default function Devoluciones() {
           </select>
         </>}
       >
-        {filteredReturns.length === 0 ? <SalesEmptyState entity="devoluciones" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} /> : <><div className="hidden items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 xl:grid xl:grid-cols-7"><div className="text-center">Número / Fecha</div><div className="text-center">Cliente</div><div className="text-center">Remito</div><div className="text-center">Pedido / Comprobante</div><div className="text-center">Unidades</div><div className="text-center">Estado</div><div className="text-center">Acciones</div></div><div className="divide-y divide-gray-100">{filteredReturns.map(customerReturn => {
-          const client = SAMPLE_CLIENTS.find(candidate => candidate.id === customerReturn.clientId);
-          const remit = SAMPLE_REMITS.find(candidate => candidate.id === customerReturn.remitId);
-          const order = SAMPLE_ORDERS.find(candidate => candidate.id === customerReturn.orderId);
-          const invoice = SAMPLE_INVOICES.find(candidate => candidate.id === customerReturn.invoiceId);
-          const total = customerReturn.items.reduce((sum, item) => sum + item.quantity, 0);
-          return <article key={customerReturn.id} className="grid min-w-0 grid-cols-2 items-center gap-4 p-4 transition hover:bg-amber-50/30 xl:grid-cols-7 xl:px-5"><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500">{customerReturn.date}</p><p className="break-words font-semibold">{customerReturn.number}</p></div><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Cliente</p><p className="break-words text-sm font-medium">{client?.name || "No disponible"}</p></div><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Remito</p><p className="break-words text-sm">{remit?.number || customerReturn.remitId}</p></div><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Pedido / Comprobante</p><p className="text-sm font-medium">{order?.number || customerReturn.orderId}</p><p className="break-words text-xs text-gray-600">{invoice?.number || "Sin comprobante"}</p></div><div className="xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Unidades</p><p className="text-sm font-semibold">{total}</p></div><div className="xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Estado</p><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(customerReturn.status)}`}>{customerReturn.status}</span></div><div className="col-span-2 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3 xl:col-span-1 xl:justify-center xl:border-0 xl:pt-0"><button type="button" onClick={() => { setNotice(""); setSelectedReturn(customerReturn); }} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>{customerReturn.status === "Borrador" && <button type="button" onClick={() => setEditingReturn(customerReturn)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>}</div></article>;
-        })}</div></>}
+        {filteredReturns.length === 0 ? <SalesEmptyState entity="devoluciones" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} /> : <><SortableList
+            rows={filteredReturns}
+            headerClassName="flex flex-wrap items-center gap-2 xl:gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500 xl:grid xl:grid-cols-7"
+            actionClassName="hidden xl:block text-center"
+            newest="Fecha"
+            tieBreaker={row => row.number}
+            columns={[
+              [["Número", row => row.number], "text-left xl:text-center", [["Fecha", row => row.date]]],
+              [["Cliente", row => SAMPLE_CLIENTS.find(client => client.id === row.clientId)?.name], "text-left xl:text-center"],
+              [["Remito", row => SAMPLE_REMITS.find(remit => remit.id === row.remitId)?.number ?? row.remitId], "text-left xl:text-center"],
+              [["Pedido", row => SAMPLE_ORDERS.find(order => order.id === row.orderId)?.number ?? row.orderId], "text-left xl:text-center", [["Comprobante", row => SAMPLE_INVOICES.find(invoice => invoice.id === row.invoiceId)?.number]]],
+              [["Unidades", row => row.items.reduce((total, item) => total + item.quantity, 0)], "text-left xl:text-center"],
+              [["Estado", row => row.status], "text-left xl:text-center"],
+              ["Acciones", "text-left xl:text-center"],
+            ]}
+          >
+            {mapRows => <div className="divide-y divide-gray-100">{mapRows(customerReturn => {
+              const client = SAMPLE_CLIENTS.find(candidate => candidate.id === customerReturn.clientId);
+              const remit = SAMPLE_REMITS.find(candidate => candidate.id === customerReturn.remitId);
+              const order = SAMPLE_ORDERS.find(candidate => candidate.id === customerReturn.orderId);
+              const invoice = SAMPLE_INVOICES.find(candidate => candidate.id === customerReturn.invoiceId);
+              const total = customerReturn.items.reduce((sum, item) => sum + item.quantity, 0);
+              return <article key={customerReturn.id} className="grid min-w-0 grid-cols-2 items-center gap-4 p-4 transition hover:bg-amber-50/30 xl:grid-cols-7 xl:px-5"><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500">{customerReturn.date}</p><p className="break-words font-semibold">{customerReturn.number}</p></div><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Cliente</p><p className="break-words text-sm font-medium">{client?.name || "No disponible"}</p></div><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Remito</p><p className="break-words text-sm">{remit?.number || customerReturn.remitId}</p></div><div className="min-w-0 xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Pedido / Comprobante</p><p className="text-sm font-medium">{order?.number || customerReturn.orderId}</p><p className="break-words text-xs text-gray-600">{invoice?.number || "Sin comprobante"}</p></div><div className="xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Unidades</p><p className="text-sm font-semibold">{total}</p></div><div className="xl:text-center"><p className="text-xs text-gray-500 xl:hidden">Estado</p><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(customerReturn.status)}`}>{customerReturn.status}</span></div><div className="col-span-2 flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-3 xl:col-span-1 xl:justify-center xl:border-0 xl:pt-0"><button type="button" onClick={() => { setNotice(""); setSelectedReturn(customerReturn); }} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>{customerReturn.status === "Borrador" && <button type="button" onClick={() => setEditingReturn(customerReturn)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>}</div></article>;
+            })}</div>}
+          </SortableList></>}
       </SalesListPanel>
     </div>
   );

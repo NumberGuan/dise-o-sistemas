@@ -1,3 +1,4 @@
+import FormalPageHeader from "~/components/FormalPageHeader";
 import { useCatalogs } from "~/components/CatalogProvider";
 import { PhoneDetails } from "~/components/PhoneFields";
 import BackToListButton from "~/components/BackToListButton";
@@ -30,13 +31,15 @@ export default function ProveedorDetallePage({
   if (!proveedor) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Proveedor no encontrado
-        </h1>
-        <p className="mt-2 text-sm text-gray-500">
-          No existe un proveedor con ese identificador.
-        </p>
-        <BackToListButton onClick={() => navigate("/compras/proveedores")} />
+        <FormalPageHeader className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">
+            Proveedor no encontrado
+          </h1>
+          <p className="mt-2 text-sm text-gray-500">
+            No existe un proveedor con ese identificador.
+          </p>
+          <BackToListButton onClick={() => navigate("/compras/proveedores")} />
+        </FormalPageHeader>
       </div>
     );
   }
@@ -106,7 +109,7 @@ export default function ProveedorDetallePage({
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
+      <FormalPageHeader className="sticky top-16 z-30 mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-3">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -133,7 +136,7 @@ export default function ProveedorDetallePage({
             Editar
           </button>
         </div>
-      </div>
+      </FormalPageHeader>
       {contenido}
     </div>
   );

@@ -34,6 +34,10 @@ export const CATALOG_DEFINITIONS = [
 export type CatalogKey = (typeof CATALOG_DEFINITIONS)[number]["key"];
 export type Catalogs = Record<CatalogKey, CatalogEntry[]>;
 export const catalogDefinition = (key: string) => CATALOG_DEFINITIONS.find(item => item.key === key);
+export function canCreateCatalog(role: string, key: string) {
+  const definition = catalogDefinition(key);
+  return Boolean(definition && (role === "Administrador" || role === "Producción" && definition.group === "Producción e inventario"));
+}
 const entry = (id: string, name: string, extra: Partial<CatalogEntry> = {}): CatalogEntry => ({ id, value: name, name, description: "", active: true, ...extra });
 const names = (values: readonly string[]) => values.map((name, index) => entry(String(index + 1), name));
 

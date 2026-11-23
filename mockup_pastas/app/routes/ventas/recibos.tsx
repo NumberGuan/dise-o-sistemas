@@ -1,7 +1,7 @@
-import PrintVoucher from "~/components/PrintVoucher";
+import SalesDocument from "~/components/SalesDocument";
+import { SortableList, SortableTable } from "~/components/SortableRows";
 import { CatalogField } from "~/components/InlineCatalog";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
-import BackToListButton from "~/components/BackToListButton";
 import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
 import { Link, useLoaderData, useFetcher, useSearchParams } from "react-router";
 import { useEffect, useMemo, useState } from "react";
@@ -316,28 +316,29 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
 
               {payments.length > 0 && (
                 <div className="overflow-x-auto rounded-lg border border-gray-200">
-                <table className="w-full min-w-[540px] text-left text-sm text-gray-900">
-                  <thead className="bg-gray-50 text-gray-700">
-                    <tr>
-                      <th className="px-4 py-2 font-medium">Medio</th>
-                      <th className="px-4 py-2 font-medium">Referencia</th>
-                      <th className="px-4 py-2 text-right font-medium">Importe</th>
-                      <th className="px-4 py-2 text-center font-medium">Quitar</th>
+                <SortableTable
+                  rows={payments}
+                  className="w-full min-w-[540px] text-left text-sm text-gray-900"
+                  headClassName="bg-gray-50 text-gray-700"
+                  bodyClassName="divide-y divide-gray-100"
+                  columns={[
+                    [["Medio", row => row.method], "px-4 py-2 font-medium"],
+                    [["Referencia", row => row.reference], "px-4 py-2 font-medium"],
+                    [["Importe", row => row.amount], "px-4 py-2 text-right font-medium"],
+                    ["Quitar", "px-4 py-2 text-center font-medium"],
+                  ]}
+                >
+                  {mapRows => mapRows(p => (
+                    <tr key={p.id} className="bg-white">
+                      <td className="px-4 py-2">{p.method}</td>
+                      <td className="px-4 py-2 text-gray-500">{p.reference || "-"}</td>
+                      <td className="px-4 py-2 text-right font-medium">{formatCurrency(p.amount)}</td>
+                      <td className="px-4 py-2 text-center">
+                        <button type="button" onClick={() => handleRemovePayment(p.id)} className="font-medium text-red-700 hover:text-red-900" aria-label={`Quitar pago de ${formatCurrency(p.amount)}`}>Quitar</button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {payments.map(p => (
-                      <tr key={p.id} className="bg-white">
-                        <td className="px-4 py-2">{p.method}</td>
-                        <td className="px-4 py-2 text-gray-500">{p.reference || "-"}</td>
-                        <td className="px-4 py-2 text-right font-medium">{formatCurrency(p.amount)}</td>
-                        <td className="px-4 py-2 text-center">
-                          <button type="button" onClick={() => handleRemovePayment(p.id)} className="font-medium text-red-700 hover:text-red-900" aria-label={`Quitar pago de ${formatCurrency(p.amount)}`}>Quitar</button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                  ))}
+                </SortableTable>
                 </div>
               )}
             </div>
@@ -357,48 +358,51 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
                 <p className="text-sm text-gray-500">El cliente no tiene comprobantes pendientes.</p>
               ) : (
                 <div className="overflow-x-auto rounded-lg border border-gray-200">
-                  <table className="w-full min-w-[680px] text-left text-sm text-gray-900">
-                    <thead className="bg-gray-50 text-gray-700">
-                      <tr>
-                        <th className="px-4 py-2 font-medium">Comprobante</th>
-                        <th className="px-4 py-2 font-medium">Emisión</th>
-                        <th className="px-4 py-2 text-right font-medium">Total</th>
-                        <th className="px-4 py-2 text-right font-medium">Saldo Actual</th>
-                        <th className="px-4 py-2 text-right font-medium w-32">Monto a Aplicar</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-100">
-                      {clientInvoices.map(inv => {
-                        const { paid, balance } = getInvoicePaymentSummary(inv, receipt?.id, receipts);
-                        const applied = invoicesState.find(i => i.invoiceId === inv.id)?.amountApplied || "";
-                        return (
-                          <tr key={inv.id} className="bg-white hover:bg-gray-50 transition">
-                            <td className="px-4 py-3 font-medium">{inv.number}</td>
-                            <td className="px-4 py-3 text-gray-500">{inv.date}</td>
-                            <td className="px-4 py-3 text-right">{formatCurrency(inv.total)}</td>
-                            <td className="px-4 py-3 text-right text-red-700 font-medium">
-                              {formatCurrency(balance)}
-                              <span className="block text-xs font-normal text-gray-600">Pagado: {formatCurrency(paid)}</span>
-                              {Number(applied) > 0 && <span className="block text-xs font-normal text-gray-700">Restará: {formatCurrency(Math.max(0, balance - Number(applied)))}</span>}
-                            </td>
-                            <td className="px-4 py-3 text-right">
-                              <input
-                                type="number"
-                                min="0"
-                                max={balance}
-                                step="0.01"
-                                value={applied}
-                                onChange={e => handleInvoiceChange(inv.id, inv.number, Number(e.target.value))}
-                                placeholder="0.00"
-                                aria-label={`Monto a aplicar a ${inv.number}`}
-                                className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-right text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                              />
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                  <SortableTable
+                    rows={clientInvoices}
+                    className="w-full min-w-[680px] text-left text-sm text-gray-900"
+                    headClassName="bg-gray-50 text-gray-700"
+                    bodyClassName="divide-y divide-gray-100"
+                    newest="Emisión"
+                    tieBreaker={row => row.number}
+                    columns={[
+                      [["Comprobante", row => row.number], "px-4 py-2 font-medium"],
+                      [["Emisión", row => row.date], "px-4 py-2 font-medium"],
+                      [["Total", row => row.total], "px-4 py-2 text-right font-medium"],
+                      [["Saldo Actual", row => getInvoicePaymentSummary(row, receipt?.id, receipts).balance], "px-4 py-2 text-right font-medium"],
+                      [["Monto a Aplicar", row => Number(invoicesState.find(item => item.invoiceId === row.id)?.amountApplied ?? 0)], "px-4 py-2 text-right font-medium w-32"],
+                    ]}
+                  >
+                    {mapRows => mapRows(inv => {
+                      const { paid, balance } = getInvoicePaymentSummary(inv, receipt?.id, receipts);
+                      const applied = invoicesState.find(i => i.invoiceId === inv.id)?.amountApplied || "";
+                      return (
+                        <tr key={inv.id} className="bg-white hover:bg-gray-50 transition">
+                          <td className="px-4 py-3 font-medium">{inv.number}</td>
+                          <td className="px-4 py-3 text-gray-500">{inv.date}</td>
+                          <td className="px-4 py-3 text-right">{formatCurrency(inv.total)}</td>
+                          <td className="px-4 py-3 text-right text-red-700 font-medium">
+                            {formatCurrency(balance)}
+                            <span className="block text-xs font-normal text-gray-600">Pagado: {formatCurrency(paid)}</span>
+                            {Number(applied) > 0 && <span className="block text-xs font-normal text-gray-700">Restará: {formatCurrency(Math.max(0, balance - Number(applied)))}</span>}
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              max={balance}
+                              step="0.01"
+                              value={applied}
+                              onChange={e => handleInvoiceChange(inv.id, inv.number, Number(e.target.value))}
+                              placeholder="0.00"
+                              aria-label={`Monto a aplicar a ${inv.number}`}
+                              className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-right text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </SortableTable>
                 </div>
               )}
               <div className="mt-4 grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
@@ -454,100 +458,11 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
   const { clients, orders } = useLoaderData<typeof loader>();
   const client = clients.find(c => c.id === receipt.clientId);
 
-  return (
-    <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
-        <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
-        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Recibo"} document={receipt} client={client} payments={receipt.payments} totalLabel="Total recibido" details={[...receipt.invoices.map(invoice => ({ label: `Aplicado a ${invoice.invoiceNumber}`, value: formatCurrency(invoice.amountApplied) })), ...(receipt.accountMonth ? [{ label: "Período", value: monthLabel(receipt.accountMonth) }] : []), ...(receipt.advanceOrderId ? [{ label: "Seña de pedido", value: orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId }] : [])]} /></div>
-      </div>
-      {receipt.accountMonth && <p className="mb-4 text-sm font-semibold text-amber-800">Pago del mes de {monthLabel(receipt.accountMonth)}</p>}
-      {receipt.advanceOrderId && <p className="mb-4 text-sm font-semibold text-amber-800">Seña del evento {orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId}. {receipt.invoices.length === 0 ? "Se aplicará al emitir la factura del pedido." : "Aplicada a la factura del pedido."}</p>}
-      {notice && <div role="alert" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{notice}</div>}
+  return <SalesDocument onClose={onClose} title="Recibo de pagos cliente" document={receipt} client={client} notice={notice} payments={receipt.payments} totalLabel="Total recibido" allocations={receipt.invoices} details={[
+      ...(receipt.accountMonth ? [{ label: "Período", value: monthLabel(receipt.accountMonth) }] : []),
+      ...(receipt.advanceOrderId ? [{ label: "Seña de pedido", value: orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId, href: `/ventas/pedidos?pedido=${encodeURIComponent(receipt.advanceOrderId)}` }, { label: "Aplicación de la seña", value: receipt.invoices.length === 0 ? "Se aplicará al emitir la factura del pedido." : "Aplicada a la factura del pedido." }] : []),
+    ]} actions={<>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="min-w-0 space-y-6 lg:col-span-2">
-
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Medios de Pago</h2>
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="w-full text-left text-sm text-gray-900">
-                <thead className="bg-gray-50 text-gray-700">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Método</th>
-                    <th className="px-4 py-2 font-medium">Referencia</th>
-                    <th className="px-4 py-2 text-right font-medium">Importe</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {receipt.payments.map(p => (
-                    <tr key={p.id}>
-                      <td className="px-4 py-3">{p.method}</td>
-                      <td className="px-4 py-3 text-gray-500">{p.reference || "-"}</td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(p.amount)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="mt-3 text-right font-semibold text-gray-900">
-              Total Pago: {formatCurrency(receipt.total)}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Comprobantes Imputados</h2>
-            <div className="overflow-x-auto rounded-lg border border-gray-200">
-              <table className="w-full text-left text-sm text-gray-900">
-                <thead className="bg-gray-50 text-gray-700">
-                  <tr>
-                    <th className="px-4 py-2 font-medium">Comprobante</th>
-                    <th className="px-4 py-2 text-right font-medium">Importe Aplicado</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {receipt.invoices.map(inv => (
-                    <tr key={inv.invoiceId}>
-                      <td className="px-4 py-3 font-medium text-emerald-700">{inv.invoiceNumber}</td>
-                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(inv.amountApplied)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {receipt.observations && (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
-              <h3 className="text-sm font-semibold text-amber-900">Observaciones</h3>
-              <p className="mt-2 text-sm text-amber-800 whitespace-pre-wrap">{receipt.observations}</p>
-            </div>
-          )}
-        </div>
-
-        <div className="min-w-0 space-y-6">
-          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
-            <h2 className="font-semibold text-gray-900 mb-4">Información general</h2>
-            <dl className="space-y-3 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Estado</dt>
-                <dd>
-                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusClass(receipt.status)}`}>
-                    {receipt.status}
-                  </span>
-                </dd>
-              </div>
-              <div className="flex justify-between border-t border-gray-100 pt-3">
-                <dt className="text-gray-500">Cliente</dt>
-                <dd className="font-medium text-gray-900 text-right">{client?.name || "Desconocido"}</dd>
-              </div>
-              <div className="flex justify-between border-b border-gray-100 pb-3">
-                <dt className="text-gray-500">Fecha</dt>
-                <dd className="font-medium text-gray-900">{receipt.date}</dd>
-              </div>
-            </dl>
-          </div>
-
-          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-3">
             {receipt.status === "Borrador" && (
               <button type="button" onClick={() => onChangeStatus("Registrado")} className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-800 transition">
                 Registrar Pago
@@ -565,11 +480,7 @@ function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: Rec
                 Anular Recibo
               </button>
             )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+    </>} />;
 }
 
 export default function Recibos() {
@@ -703,53 +614,61 @@ export default function Recibos() {
           <SalesEmptyState entity="recibos" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} />
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
-              <div className="min-w-0 text-center">Número / Fecha</div>
-              <div className="min-w-0 text-center">Cliente</div>
-              <div className="min-w-0 text-center">Comprobantes</div>
-              <div className="min-w-0 text-center">Total</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-            {filteredReceipts.map(receipt => {
-              const client = clients.find(c => c.id === receipt.clientId);
-              return (
-                <article key={receipt.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="mb-1 text-xs font-medium text-gray-500">{receipt.date}</p>
-                    <h3 className="break-words font-semibold leading-5 text-gray-900">{receipt.number}</h3>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
-                    <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Comprobantes</p>
-                    <p className="mt-1 break-words text-sm text-emerald-700 font-medium lg:mt-0">
-                      {receipt.invoices.map(i => i.invoiceNumber).join(", ") || (receipt.advanceOrderId ? `Seña de evento ${orders.find(order => order.id === receipt.advanceOrderId)?.number ?? ""}` : "Ninguno")}
-                    </p>
-                  </div>
-                  <div className="min-w-0 lg:text-center text-left">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
-                    <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(receipt.total)}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-1 lg:items-center">
-                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(receipt.status)}`}>
-                      {receipt.status}
-                    </span>
-                  </div>
-                  <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                    <button type="button" onClick={() => setSelectedReceipt(receipt)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                    {receipt.status === "Borrador" && (
-                      <button type="button" onClick={() => setEditingReceipt(receipt)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
-            </div>
+            <SortableList
+              rows={filteredReceipts}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-6 items-center gap-2 lg:gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700"
+              actionClassName="hidden lg:block text-center"
+              newest="Fecha"
+              tieBreaker={row => row.number}
+              columns={[
+                [["Número", row => row.number], "min-w-0 text-left lg:text-center", [["Fecha", row => row.date]]],
+                [["Cliente", row => clients.find(client => client.id === row.clientId)?.name], "min-w-0 text-left lg:text-center"],
+                [["Comprobantes", row => row.invoices.map(invoice => invoice.invoiceNumber).join(', ') || orders.find(order => order.id === row.advanceOrderId)?.number], "min-w-0 text-left lg:text-center"],
+                [["Total", row => row.total], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+              {mapRows(receipt => {
+                const client = clients.find(c => c.id === receipt.clientId);
+                return (
+                  <article key={receipt.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="mb-1 text-xs font-medium text-gray-500">{receipt.date}</p>
+                      <h3 className="break-words font-semibold leading-5 text-gray-900">{receipt.number}</h3>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
+                      <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Comprobantes</p>
+                      <p className="mt-1 break-words text-sm text-emerald-700 font-medium lg:mt-0">
+                        {receipt.invoices.map(i => i.invoiceNumber).join(", ") || (receipt.advanceOrderId ? `Seña de evento ${orders.find(order => order.id === receipt.advanceOrderId)?.number ?? ""}` : "Ninguno")}
+                      </p>
+                    </div>
+                    <div className="min-w-0 lg:text-center text-left">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
+                      <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(receipt.total)}</p>
+                    </div>
+                    <div className="flex flex-col items-start gap-1 lg:items-center">
+                      <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(receipt.status)}`}>
+                        {receipt.status}
+                      </span>
+                    </div>
+                    <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                      <button type="button" onClick={() => setSelectedReceipt(receipt)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                      {receipt.status === "Borrador" && (
+                        <button type="button" onClick={() => setEditingReceipt(receipt)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+              </div>}
+            </SortableList>
           </>
         )}
       </SalesListPanel>

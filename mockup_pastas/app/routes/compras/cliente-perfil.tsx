@@ -1,6 +1,6 @@
 import { CatalogField } from "~/components/InlineCatalog";
 import PhoneFields from "~/components/PhoneFields";
-import ShopPageHero from "~/components/ShopPageHero";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import { validatePhones } from "~/data/phones";
 import { getCatalogs } from "~/data/catalogs.server";
 import { validCatalogValue, catalogAddressData } from "~/data/catalogs";
@@ -78,9 +78,10 @@ export const action = async ({ request }: Route.ActionArgs) => {
 export default function ClientePerfil() {
   const { profile, account } = useLoaderData<typeof loader>();
   return <div className="mx-auto max-w-3xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
-    <div className="mb-6">
-      <ShopPageHero title="Mi perfil" art="perfil" description="Estos datos se comparten con Ventas y se usan para asociar tus pedidos." />
-    </div>
+    <FormalPageHeader className="mb-6">
+      <h1>Mi perfil</h1>
+      <p className="mt-2 text-sm text-gray-600">Estos datos se comparten con Ventas y se usan para asociar tus pedidos.</p>
+    </FormalPageHeader>
     {profile.type === "Comercio" && <ClientMonthlyAccount months={account} />}
     <CustomerProfileForm key={JSON.stringify(profile)} profile={profile} />
   </div>;

@@ -1,3 +1,5 @@
+import { SortableTable } from "~/components/SortableRows";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import FormFrame from "~/components/FormFrame";
 import BackToListButton from "~/components/BackToListButton";
 import { useMemo, useState, type FormEvent } from "react";
@@ -222,11 +224,13 @@ export default function OrdenCompraPage({
   if (ordenId && ordenId !== "nueva" && !orden) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-16 text-center sm:px-6 lg:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">Orden no encontrada</h1>
-        <p className="mt-2 text-sm text-gray-500">
-          No existe una orden de compra con ese identificador.
-        </p>
-        <BackToListButton onClick={irVolver} />
+        <FormalPageHeader className="space-y-2">
+          <h1 className="text-2xl font-bold text-gray-900">Orden no encontrada</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            No existe una orden de compra con ese identificador.
+          </p>
+          <BackToListButton onClick={irVolver} />
+        </FormalPageHeader>
       </div>
     );
   }
@@ -324,19 +328,22 @@ export default function OrdenCompraPage({
           </div>
 
           <div className="mt-4 overflow-x-auto">
-            <table className="w-full min-w-[820px] text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400">
-                  <th className="px-3 py-3 font-medium">N°</th>
-                  <th className="px-3 py-3 font-medium">Materia Prima</th>
-                  <th className="px-3 py-3 font-medium">Marca</th>
-                  <th className="px-3 py-3 font-medium">Cantidad</th>
-                  <th className="px-3 py-3 font-medium">Subtotal</th>
-                  <th className="px-3 py-3 font-medium" />
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {items.map((item, index) => {
+            <SortableTable
+              rows={items}
+              className="w-full min-w-[820px] text-left text-sm"
+              headerRowClassName="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400"
+              bodyClassName="divide-y divide-gray-100"
+              columns={[
+                [["N°", (_row, index) => index + 1], "px-3 py-3 font-medium"],
+                [["Materia Prima", row => MATERIAS_PRIMAS.find(item => item.id === Number(row.idMateriaPrima))?.nombre], "px-3 py-3 font-medium"],
+                [["Marca", row => getMarcaPorId(Number(row.idMarca))?.marca.nombre], "px-3 py-3 font-medium"],
+                [["Cantidad", row => row.cantidad], "px-3 py-3 font-medium"],
+                [["Subtotal", row => row.subtotal], "px-3 py-3 font-medium"],
+                ["", "px-3 py-3 font-medium"],
+              ]}
+            >
+              {mapRows => <>
+                {mapRows((item, index) => {
                   const productoSeleccionado = item.idMateriaPrima
                     ? MATERIAS_PRIMAS.find(
                         (mp) => mp.id === Number(item.idMateriaPrima),
@@ -437,8 +444,8 @@ export default function OrdenCompraPage({
                     </td>
                   </tr>
                 )}
-              </tbody>
-            </table>
+              </>}
+            </SortableTable>
           </div>
         </section>
 

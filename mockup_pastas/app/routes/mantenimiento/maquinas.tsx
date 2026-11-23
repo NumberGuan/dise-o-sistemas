@@ -1,3 +1,7 @@
+import MaintenanceDocument, { MaintenanceSection, maintenanceDate } from "~/components/MaintenanceDocument";
+import { SortableList } from "~/components/SortableRows";
+import ModulePageHeader from "~/components/ModulePageHeader";
+import FormalPageHeader from "~/components/FormalPageHeader";
 import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
 import { CatalogField } from "~/components/InlineCatalog";
@@ -37,13 +41,13 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
 
   return (
     <RecordPage onBack={onCancel}>
-      <div className="flex items-start justify-between gap-4 border-b border-gray-200 bg-white px-5 py-4 sm:px-6">
+      <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Mantenimiento</p>
           <h1 className="text-2xl font-bold text-gray-900">{machine ? "Editar máquina" : "Formulario Nueva Máquina"}</h1>
           <p className="mt-1 text-sm text-gray-500">Los cambios quedan disponibles durante esta sesión.</p>
         </div>
-      </div>
+      </FormalPageHeader>
       <form noValidate onSubmit={submit} className="space-y-5 p-5 sm:p-6">
         {error && <p role="alert" className="rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
         <div className="grid gap-4 sm:grid-cols-2">
@@ -100,85 +104,32 @@ function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine:
   const last = history.find((x) => x.status === "Finalizado");
   const next = [...history].reverse().find((x) => x.status === "Programado");
 
-  return (
-    <RecordPage onBack={onClose}>
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{machine.code} · {machine.type}</p>
-          <div className="flex items-center gap-3 mt-1">
-            <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Mantenimiento</p>
-          <h1 className="text-2xl font-bold text-gray-900">{machine.name}</h1>
-            <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(machine.status)}`}>{machine.status}</span>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar</button>
-
-        </div>
-      </div>
-      <div className="grid gap-7 p-5 sm:grid-cols-[minmax(0,1fr)_1.2fr] sm:p-6">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Información de la máquina</h3>
-          <dl className="mt-3 space-y-3 text-sm">
-            {[
-              ["Tipo de Maquina", machine.type],
-              ["Marca / modelo", `${machine.brand} ${machine.model}`],
-              ["N.º de serie", machine.serialNumber],
-              ["Ubicación", machine.location || "—"],
-              ["Fecha de adquisición", machine.acquisitionDate],
-              ["Mantenimientos", String(history.length)],
-              ["Último mantenimiento", last?.endDate ?? "Sin registros"],
-              ["Próximo mantenimiento", next?.estimatedDate ?? "Sin programar"]
-            ].map(([label, value]) => (
-              <div key={label}>
-                <dt className="text-xs text-gray-500">{label}</dt>
-                <dd className="mt-0.5 break-words font-medium text-gray-800">{value}</dd>
-              </div>
-            ))}
-          </dl>
-          {machine.observations && (
-            <div className="mt-4 rounded-lg bg-amber-50 p-3">
-              <p className="text-xs font-semibold text-amber-900">Observaciones</p>
-              <p className="mt-1 text-sm text-amber-900">{machine.observations}</p>
-            </div>
-          )}
-
-          <div className="mt-6 pt-4 border-t border-gray-100 flex flex-col gap-2">
-             <button onClick={onToggleStatus} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-               {machine.status === "Inactiva" ? "Activar máquina" : "Desactivar máquina"}
-             </button>
-             <Link to={`/mantenimiento/mantenimientos?maquina=${machine.id}`} className="text-center rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">
-               Programar mantenimiento
-             </Link>
-          </div>
-        </div>
-        <div>
-          <h3 className="text-sm font-semibold text-gray-900">Historial de mantenimientos</h3>
-          <ol className="mt-4 divide-y divide-gray-100">
-            {history.length === 0 ? (
-               <p className="text-sm text-gray-500">No hay mantenimientos registrados.</p>
-            ) : history.map((x) => {
-              const itemData = x.items.find(i => i.machineId === machine.id);
-              return (
-                <li key={x.id} className="py-3 first:pt-0">
-                  <Link to={`/mantenimiento/mantenimientos?mantenimiento=${x.id}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
-                    <span>
-                      <span className="text-xs font-medium text-gray-500">{x.number}</span>
-                      <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{itemData?.type}</span>
-                      <span className="mt-1 block text-xs text-gray-500">
-                        {x.status === "Programado" ? `Para el ${x.estimatedDate}` : x.status === "Finalizado" ? `Completado el ${x.endDate}` : `Iniciado el ${x.startDate}`}
-                      </span>
-                    </span>
-                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${x.status === "Programado" ? "bg-amber-100 text-amber-800" : x.status === "En curso" ? "bg-sky-100 text-sky-800" : x.status === "Finalizado" ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"}`}>{x.status}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ol>
-        </div>
-      </div>
-    </RecordPage>
-  );
+  return <MaintenanceDocument title="Ficha técnica de máquina" name={machine.name} code={machine.code} status={machine.status} onClose={onClose}
+    actions={<button type="button" onClick={onEdit} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar máquina</button>}
+    metadata={[
+      { label: "Tipo de máquina", value: machine.type },
+      { label: "Marca", value: machine.brand || "Sin informar" },
+      { label: "Modelo", value: machine.model || "Sin informar" },
+      { label: "Número de serie", value: machine.serialNumber },
+      { label: "Ubicación", value: machine.location || "Sin informar" },
+      { label: "Fecha de adquisición", value: maintenanceDate(machine.acquisitionDate) },
+      { label: "Mantenimientos registrados", value: String(history.length) },
+      { label: "Último mantenimiento finalizado", value: last?.endDate ? maintenanceDate(last.endDate) : "Sin registros" },
+      { label: "Próximo mantenimiento programado", value: next ? maintenanceDate(next.estimatedDate) : "Sin programar" },
+    ]}
+    controlsLabel="Gestión de la máquina"
+    controls={<div className="flex flex-wrap items-center gap-3">
+      <button type="button" onClick={onToggleStatus} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">{machine.status === "Inactiva" ? "Activar máquina" : "Desactivar máquina"}</button>
+      <Link to={`/mantenimiento/mantenimientos?maquina=${machine.id}`} className="rounded-lg bg-sky-600 px-4 py-2 text-sm font-medium text-white hover:bg-sky-700">Programar mantenimiento</Link>
+    </div>}>
+    <MaintenanceSection title="Observaciones del equipo"><p className="production-document-procedure">{machine.observations || "Sin observaciones registradas."}</p></MaintenanceSection>
+    <MaintenanceSection title="Historial de intervenciones">
+      {history.length ? <div className="production-document-table"><table><thead><tr><th scope="col">Orden</th><th scope="col">Tipo de intervención</th><th scope="col">Finalización estimada</th><th scope="col">Inicio / Fin</th><th scope="col">Estado</th></tr></thead><tbody>{history.map(order => {
+        const item = order.items.find(line => line.machineId === machine.id);
+        return <tr key={order.id}><td><Link to={`/mantenimiento/mantenimientos?mantenimiento=${order.id}`}>{order.number}</Link></td><td>{item?.type || "Sin informar"}</td><td>{maintenanceDate(order.estimatedDate)}</td><td>{maintenanceDate(order.startDate ?? null)}<small>Fin: {maintenanceDate(order.endDate ?? null)}</small></td><td>{order.status}</td></tr>;
+      })}</tbody></table></div> : <p>No hay mantenimientos registrados.</p>}
+    </MaintenanceSection>
+  </MaintenanceDocument>;
 }
 
 export default function Maquinas() {
@@ -219,14 +170,14 @@ export default function Maquinas() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <header className="flex flex-wrap items-start justify-between gap-4">
+      <ModulePageHeader className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-medium text-amber-700">Mantenimiento</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight text-gray-900">Máquinas</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-gray-500">Gestiona el inventario y estado de las máquinas de producción.</p>
         </div>
-        <button type="button" onClick={() => setEditing(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nueva Máquina</button>
-      </header>
+      </ModulePageHeader>
+      <div className="mt-5 flex justify-end"><button type="button" onClick={() => setEditing(null)} className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">＋ Nueva Máquina</button></div>
 
       <section className="mt-7 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="flex flex-col gap-4 border-b border-gray-200 p-4 sm:p-5 lg:flex-row lg:items-end lg:justify-between">
@@ -259,44 +210,52 @@ export default function Maquinas() {
           </div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-left">Código / Nombre</div>
-              <div className="min-w-0 text-center">Tipo de Maquina</div>
-              <div className="min-w-0 text-center">Marca / Modelo</div>
-              <div className="min-w-0 text-center">Ubicación</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-              {filtered.map((m) => (
-                <article key={m.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
-                  <div className="col-span-2 min-w-0 lg:col-span-1 text-left">
-                    <p className="mb-1 text-xs font-medium text-gray-500">{m.code}</p>
-                    <h3 className="break-words font-semibold leading-5 text-gray-900">{m.name}</h3>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo de Maquina</p>
-                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{m.type}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Marca / Modelo</p>
-                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{m.brand} {m.model}</p>
-                  </div>
-                  <div className="min-w-0 text-left lg:text-center">
-                    <p className="text-xs font-medium text-gray-500 lg:hidden">Ubicación</p>
-                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{m.location || "—"}</p>
-                  </div>
-                  <div className="flex flex-col items-start gap-1 lg:items-center">
-                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(m.status)}`}>{m.status}</span>
-                  </div>
-                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                    <button type="button" onClick={() => setSelected(m)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                    <button type="button" onClick={() => setEditing(m)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-                  </div>
-                </article>
-              ))}
-            </div>
+            <SortableList
+              rows={filtered}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] items-center gap-2 lg:gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              latestFirst={row => row.acquisitionDate}
+              tieBreaker={row => row.code}
+              columns={[
+                [["Código", row => row.code], "min-w-0 text-left", [["Nombre", row => row.name]]],
+                [["Tipo de Maquina", row => row.type], "min-w-0 text-left lg:text-center"],
+                [["Marca", row => row.brand], "min-w-0 text-left lg:text-center", [["Modelo", row => row.model]]],
+                [["Ubicación", row => row.location], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+                {mapRows((m) => (
+                  <article key={m.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-[1.5fr_1fr_1fr_1fr_1fr_1fr] lg:gap-5 lg:px-5">
+                    <div className="col-span-2 min-w-0 lg:col-span-1 text-left">
+                      <p className="mb-1 text-xs font-medium text-gray-500">{m.code}</p>
+                      <h3 className="break-words font-semibold leading-5 text-gray-900">{m.name}</h3>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo de Maquina</p>
+                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{m.type}</p>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Marca / Modelo</p>
+                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{m.brand} {m.model}</p>
+                    </div>
+                    <div className="min-w-0 text-left lg:text-center">
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Ubicación</p>
+                      <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{m.location || "—"}</p>
+                    </div>
+                    <div className="flex flex-col items-start gap-1 lg:items-center">
+                      <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                      <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${badge(m.status)}`}>{m.status}</span>
+                    </div>
+                    <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                      <button type="button" onClick={() => setSelected(m)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                      <button type="button" onClick={() => setEditing(m)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                    </div>
+                  </article>
+                ))}
+              </div>}
+            </SortableList>
           </>
         )}
       </section>

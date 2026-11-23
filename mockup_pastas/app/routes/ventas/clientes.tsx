@@ -1,3 +1,4 @@
+import { SortableList, SortableTable } from "~/components/SortableRows";
 import { CatalogField } from "~/components/InlineCatalog";
 import PhoneFields, { PhoneDetails } from "~/components/PhoneFields";
 import { validatePhones } from "~/data/phones";
@@ -172,13 +173,31 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
       </section>
 
       <section aria-labelledby="client-orders-title" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 sm:px-6"><div><h2 id="client-orders-title" className="text-lg font-semibold">Pedidos del cliente</h2><p className="mt-1 text-sm text-gray-500">{activity.length} {activity.length === 1 ? "pedido registrado" : "pedidos registrados"} · Más recientes primero</p></div><p className="text-xs text-gray-500">Abrí un pedido para consultar su detalle.</p></div>
-        <div className="overflow-x-auto"><table className="w-full text-left text-sm"><thead className="border-b border-gray-200 bg-gray-50 text-xs text-gray-500"><tr>{["Pedido", "Fecha", "Tipo", "Entrega", "Estado", "Total", "Acciones"].map(label => <th key={label} className="whitespace-nowrap px-5 py-3 font-medium">{label}</th>)}</tr></thead>
-          <tbody className="divide-y divide-gray-100">{activity.map(order => <tr key={order.id} className="hover:bg-gray-50">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 sm:px-6"><div><h2 id="client-orders-title" className="text-lg font-semibold">Pedidos del cliente</h2><p className="mt-1 text-sm text-gray-500">{activity.length} {activity.length === 1 ? "pedido registrado" : "pedidos registrados"}</p></div><p className="text-xs text-gray-500">Abrí un pedido para consultar su detalle.</p></div>
+        <div className="overflow-x-auto"><SortableTable
+            rows={activity}
+            className="w-full text-left text-sm"
+            headClassName="border-b border-gray-200 bg-gray-50 text-xs text-gray-500"
+            bodyClassName="divide-y divide-gray-100"
+            newest="Fecha"
+            tieBreaker={row => row.number}
+            columns={[
+              [["Pedido", row => row.number], "whitespace-nowrap px-5 py-3 font-medium"],
+              [["Fecha", row => row.date], "whitespace-nowrap px-5 py-3 font-medium"],
+              [["Tipo", row => row.kind ?? 'Regular'], "whitespace-nowrap px-5 py-3 font-medium"],
+              [["Entrega", row => row.deliveryDate], "whitespace-nowrap px-5 py-3 font-medium"],
+              [["Estado", row => row.status], "whitespace-nowrap px-5 py-3 font-medium"],
+              [["Total", row => row.total], "whitespace-nowrap px-5 py-3 font-medium"],
+              ["Acciones", "whitespace-nowrap px-5 py-3 font-medium"],
+            ]}
+          >
+            {mapRows => <>
+              {mapRows(order => <tr key={order.id} className="hover:bg-gray-50">
               <td className="whitespace-nowrap px-5 py-4 font-semibold">{order.number}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.date)}</td><td className="px-5 py-4">{order.kind ?? "Regular"}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.deliveryDate)}</td><td className="whitespace-nowrap px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass[order.status] ?? "bg-gray-100 text-gray-700"}`}>{order.status}</span></td><td className="whitespace-nowrap px-5 py-4 font-semibold">{currency(order.total)}</td><td className="px-5 py-4"><Link to={`/ventas/pedidos?pedido=${encodeURIComponent(order.id)}&volverCliente=${encodeURIComponent(client.id)}`} aria-label={`Ver detalle del pedido ${order.number}`} className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</Link></td>
             </tr>
-)}{!activity.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-500">Este cliente todavía no tiene pedidos registrados.</td></tr>}</tbody>
-        </table></div>
+)}{!activity.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-500">Este cliente todavía no tiene pedidos registrados.</td></tr>}
+            </>}
+          </SortableTable></div>
       </section>
       {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
     </div>
@@ -270,37 +289,45 @@ export default function Clientes() {
           <div className="px-5 py-14 text-center"><div aria-hidden="true" className="mx-auto flex h-11 w-11 items-center justify-center rounded-full bg-gray-100 text-xl text-gray-500">⌕</div><h3 className="mt-4 font-semibold text-gray-900">No encontramos clientes</h3><p className="mt-1 text-sm text-gray-500">Prueba con otro término o cambia los filtros.</p><button type="button" onClick={() => { setSearch(""); setStatusFilter("Todos los estados"); setLocalityFilter("Todas las localidades"); }} className="mt-4 text-sm font-semibold text-amber-700 hover:text-amber-800">Limpiar filtros</button></div>
         ) : (
           <>
-            <div className="hidden lg:grid lg:grid-cols-5 items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
-              <div className="min-w-0 text-center">Nombre/Razón Social</div>
-              <div className="min-w-0 text-center">CUIT/CUIL</div>
-              <div className="min-w-0 text-center">Localidad</div>
-              <div className="min-w-0 text-center">Estado</div>
-              <div className="min-w-0 text-center">Acciones</div>
-            </div>
-            <div className="divide-y divide-gray-100">
-            {filteredClients.map((client) => <article key={client.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-5 lg:px-5">
-              <div className="col-span-2 min-w-0 lg:col-span-1 text-left lg:text-center">
-                <p className="mb-1 text-xs font-medium text-gray-500">{client.code} · {client.type}</p>
-                <h3 className="break-words font-semibold leading-5 text-gray-900">{client.name}</h3>
-              </div>
-              <div className="min-w-0 text-left lg:text-center">
-                <p className="text-xs font-medium text-gray-500 lg:hidden">CUIT/CUIL</p>
-                <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{client.cuitCuil || "Sin dato"}</p>
-              </div>
-              <div className="min-w-0 text-left lg:text-center">
-                <p className="text-xs font-medium text-gray-500 lg:hidden">Localidad</p>
-                <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{client.locality}</p>
-              </div>
-              <div className="flex flex-col items-start gap-1 lg:items-center">
-                <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
-                <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${client.status === "Activo" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>{client.status}</span>
-              </div>
-              <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
-                <button type="button" onClick={() => setSelectedClient(client)} aria-label={`Ver detalle de ${client.name}`} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
-                <button type="button" onClick={() => setEditingClient(client)} aria-label={`Editar ${client.name}`} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
-              </div>
-            </article>)}
-          </div>
+            <SortableList
+              rows={filteredClients}
+              headerClassName="flex flex-wrap lg:grid lg:grid-cols-5 items-center gap-2 lg:gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500"
+              actionClassName="hidden lg:block text-center"
+              latestFirst={row => row.code}
+              compactHeadings
+              columns={[
+                [["Nombre/Razón Social", row => row.name], "min-w-0 text-left lg:text-center", [["Tipo", row => row.type]]],
+                [["CUIT/CUIL", row => row.cuitCuil], "min-w-0 text-left lg:text-center"],
+                [["Localidad", row => row.locality], "min-w-0 text-left lg:text-center"],
+                [["Estado", row => row.status], "min-w-0 text-left lg:text-center"],
+                ["Acciones"],
+              ]}
+            >
+              {mapRows => <div className="divide-y divide-gray-100">
+                {mapRows((client) => <article key={client.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-5 lg:gap-5 lg:px-5">
+                  <div className="col-span-2 min-w-0 lg:col-span-1 text-left lg:text-center">
+                    <p className="mb-1 text-xs font-medium text-gray-500">{client.type}</p>
+                    <h3 className="break-words font-semibold leading-5 text-gray-900">{client.name}</h3>
+                  </div>
+                  <div className="min-w-0 text-left lg:text-center">
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">CUIT/CUIL</p>
+                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{client.cuitCuil || "Sin dato"}</p>
+                  </div>
+                  <div className="min-w-0 text-left lg:text-center">
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">Localidad</p>
+                    <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{client.locality}</p>
+                  </div>
+                  <div className="flex flex-col items-start gap-1 lg:items-center">
+                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${client.status === "Activo" ? "bg-emerald-50 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>{client.status}</span>
+                  </div>
+                  <div className="col-span-2 flex items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                    <button type="button" onClick={() => setSelectedClient(client)} aria-label={`Ver detalle de ${client.name}`} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                    <button type="button" onClick={() => setEditingClient(client)} aria-label={`Editar ${client.name}`} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                  </div>
+                </article>)}
+              </div>}
+            </SortableList>
           </>
         )}
         <div className="border-t border-gray-100 px-5 py-3 text-xs text-gray-500">Incluye cuentas registradas en Compras y clientes de muestra de Ventas.</div>

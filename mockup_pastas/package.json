@@ -7,6 +7,7 @@
     "dev": "react-router dev",
     "start": "react-router-serve ./build/server/index.js",
     "typecheck": "react-router typegen && tsc",
+    "test:recetas": "node --test scripts/recetas.test.mjs",
     "test:caja": "node --test scripts/caja.test.mjs",
     "test:administracion": "node --test scripts/administracion.test.mjs",
     "test:donaciones": "node --test scripts/donaciones.test.mjs",

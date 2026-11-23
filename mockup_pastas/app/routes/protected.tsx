@@ -3,6 +3,7 @@ import { requireUserId, getUser } from "~/utils/session.server";
 import type { Route } from "./+types/protected";
 import { getCatalogs } from "~/data/catalogs.server";
 import { InlineCatalogProvider } from "~/components/InlineCatalog";
+import { CATALOG_DEFINITIONS, canCreateCatalog } from "~/data/catalogs";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const userId = await requireUserId(request);
@@ -19,5 +20,6 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
 export default function ProtectedLayout() {
   const { user, catalogs } = useLoaderData<typeof loader>();
 
-  return <InlineCatalogProvider catalogs={catalogs} canCreate={user.role === "Administrador"}><Outlet context={{ user }} /></InlineCatalogProvider>;
+  const creatableCatalogs = CATALOG_DEFINITIONS.filter(item => canCreateCatalog(user.role, item.key)).map(item => item.key);
+  return <InlineCatalogProvider catalogs={catalogs} canCreate={creatableCatalogs.length > 0} creatableCatalogs={creatableCatalogs}><Outlet context={{ user }} /></InlineCatalogProvider>;
 }

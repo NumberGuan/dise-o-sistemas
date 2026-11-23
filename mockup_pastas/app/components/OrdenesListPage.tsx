@@ -1,3 +1,5 @@
+import { SortableTable } from "~/components/SortableRows";
+import ModulePageHeader from "~/components/ModulePageHeader";
 import { useNavigate } from "react-router";
 
 import {
@@ -26,85 +28,88 @@ export default function OrdenesListPage() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <ModulePageHeader>
         <div>
           <h1 className="text-2xl font-bold text-gray-900">
-            Órdenes a Proveedores
+            Orden Compra Proveedor
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             Consulta las órdenes de compra registradas y accede a su detalle.
           </p>
         </div>
-        <button
+      </ModulePageHeader>
+      <div className="mb-6 mt-5 flex justify-end"><button
           type="button"
           onClick={() => navigate("/compras/ordenes/nueva")}
           className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-amber-700"
         >
           + Nueva Orden
-        </button>
-      </div>
+        </button></div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400">
-                <th className="px-5 py-3 font-medium">Orden</th>
-                <th className="px-5 py-3 font-medium">Proveedor</th>
-                <th className="px-5 py-3 font-medium">Fecha de emisión</th>
-                <th className="px-5 py-3 font-medium">Ítems</th>
-                <th className="px-5 py-3 font-medium">Monto total</th>
-                <th className="px-5 py-3 text-right font-medium">Acciones</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {ordenes.map((orden) => {
-                const proveedor = getProveedorPorId(orden.idProveedor);
-                return (
-                  <tr key={orden.id} className="hover:bg-gray-50">
-                    <td className="px-5 py-4">
-                      <span className="font-semibold text-gray-900">
-                        {orden.numero}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-gray-600">
-                      {proveedor?.nombre ?? "—"}
-                    </td>
-                    <td className="px-5 py-4 text-gray-600">
-                      {formatFecha(orden.fechaEmision)}
-                    </td>
-                    <td className="px-5 py-4 text-gray-600">
-                      {orden.detalle.length}
-                    </td>
-                    <td className="px-5 py-4 font-medium text-gray-900">
-                      {formatMoney(getMontoTotal(orden.detalle))}
-                    </td>
-                    <td className="px-5 py-4 text-right">
-                      <button
-                        type="button"
-                        onClick={() => navigate(`/compras/ordenes/${orden.id}`)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
+          <SortableTable
+            rows={ordenes}
+            className="w-full min-w-[720px] text-left text-sm"
+            headerRowClassName="border-b border-gray-200 text-xs uppercase tracking-wide text-gray-400"
+            bodyClassName="divide-y divide-gray-100"
+            newest="Fecha de emisión"
+            tieBreaker={row => row.numero}
+            columns={[
+              [["Orden", row => row.numero], "px-5 py-3 font-medium"],
+              [["Proveedor", row => getProveedorPorId(row.idProveedor)?.nombre], "px-5 py-3 font-medium"],
+              [["Fecha de emisión", row => row.fechaEmision], "px-5 py-3 font-medium"],
+              [["Ítems", row => row.detalle.length], "px-5 py-3 font-medium"],
+              [["Monto total", row => getMontoTotal(row.detalle)], "px-5 py-3 font-medium"],
+              ["Acciones", "px-5 py-3 text-right font-medium"],
+            ]}
+          >
+            {mapRows => mapRows((orden) => {
+              const proveedor = getProveedorPorId(orden.idProveedor);
+              return (
+                <tr key={orden.id} className="hover:bg-gray-50">
+                  <td className="px-5 py-4">
+                    <span className="font-semibold text-gray-900">
+                      {orden.numero}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4 text-gray-600">
+                    {proveedor?.nombre ?? "—"}
+                  </td>
+                  <td className="px-5 py-4 text-gray-600">
+                    {formatFecha(orden.fechaEmision)}
+                  </td>
+                  <td className="px-5 py-4 text-gray-600">
+                    {orden.detalle.length}
+                  </td>
+                  <td className="px-5 py-4 font-medium text-gray-900">
+                    {formatMoney(getMontoTotal(orden.detalle))}
+                  </td>
+                  <td className="px-5 py-4 text-right">
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/compras/ordenes/${orden.id}`)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-sm font-medium text-amber-800 transition hover:bg-amber-100"
+                    >
+                      Ver detalle
+                      <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        className="h-4 w-4"
+                        aria-hidden="true"
                       >
-                        Ver detalle
-                        <svg
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          stroke="currentColor"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          className="h-4 w-4"
-                          aria-hidden="true"
-                        >
-                          <path d="m9 18 6-6-6-6" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                        <path d="m9 18 6-6-6-6" />
+                      </svg>
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
+          </SortableTable>
         </div>
       </div>
 

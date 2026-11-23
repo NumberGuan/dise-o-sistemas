@@ -1,4 +1,5 @@
 import { Link } from "react-router";
+import ModulePageHeader from "~/components/ModulePageHeader";
 
 import type { NavItem } from "~/data/navigation";
 
@@ -15,24 +16,8 @@ export function PlaceholderPage({
 }: PlaceholderPageProps) {
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-10 shadow-sm">
-        <span className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-amber-100">
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="h-6 w-6 text-amber-700"
-            aria-hidden="true"
-          >
-            <path d="M4 7h16" />
-            <path d="M4 12h16" />
-            <path d="M4 17h10" />
-          </svg>
-        </span>
-        <h1 className="mt-5 text-2xl font-semibold text-gray-900">{title}</h1>
+      <ModulePageHeader>
+        <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
         <p className="mt-2 max-w-xl text-sm text-gray-500">{description}</p>
         {links && links.length > 0 && (
           <div className="mt-6 flex flex-wrap gap-2">
@@ -47,7 +32,7 @@ export function PlaceholderPage({
             ))}
           </div>
         )}
-      </div>
+      </ModulePageHeader>
     </div>
   );
 }

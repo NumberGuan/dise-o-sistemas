@@ -119,7 +119,9 @@ export default function Donacion() {
   const [selected, setSelected] = useState<Donation | null>(null);
   const [search, setSearch] = useState("");
   const [notice, setNotice] = useState("");
-  const rows = donations.filter(donation => [donation.number, donation.clientName, ...donation.items.map(item => item.productName)].some(value => value.toLocaleLowerCase("es").includes(search.trim().toLocaleLowerCase("es"))));
+  const rows = donations
+    .filter(donation => [donation.number, donation.clientName, ...donation.items.map(item => item.productName)].some(value => value.toLocaleLowerCase("es").includes(search.trim().toLocaleLowerCase("es"))))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number, "es-AR", { numeric: true }));
   if (creating) return <DonationForm onClose={() => setCreating(false)} onSaved={number => { setCreating(false); setNotice(`Donación ${number} registrada correctamente por $0.`); }} />;
   if (selected) return <DonationDetails donation={selected} onClose={() => setSelected(null)} />;
   return <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
