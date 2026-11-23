@@ -33,9 +33,9 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
     const save = (key, name, extra) => catalogs.saveCatalogEntry(key, form(name, extra));
     let client, delivery, payment;
 
-    await t.test("Los 15 catálogos conservan los identificadores de los registros existentes", async () => {
+    await t.test("Los 16 catálogos conservan los identificadores de los registros existentes", async () => {
       const data = await catalogs.getCatalogs();
-      assert.equal(Object.keys(data).length, 15);
+      assert.equal(Object.keys(data).length, 16);
       assert.equal(data["tipos-documento"].find(item => item.id === "1").value, "CUIT");
       assert.equal(data.unidades.find(item => item.id === "5").value, "docena");
       await assert.rejects(fs.access("data/catalogs.json"), { code: "ENOENT" });
@@ -230,6 +230,27 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
       const legacy = { ...data.marcas.find(item => item.id === "3") };
       delete legacy.materiasPrimas;
       assert.deepEqual(model.brandRawMaterials(legacy), [5, 6, 20, 21, 22, 23, 24]);
+    });
+    await t.test("Los subtipos de producto dependen de un tipo y cubren todos los productos", async () => {
+      const production = await server.ssrLoadModule("/app/data/produccion.ts");
+      let data = await catalogs.getCatalogs();
+      const subtypes = data["subtipos-producto"];
+      for (const product of production.PRODUCTOS_PRODUCCION) {
+        const subtype = subtypes.find(item => item.id === String(product.idSubtipoProducto));
+        assert.ok(subtype, product.nombre);
+        assert.equal(subtype.parentId, String(product.idTipoProducto), product.nombre);
+      }
+      await assert.rejects(save("subtipos-producto", "Moñitos"), /registro superior/);
+      const created = await save("subtipos-producto", "Moñitos", { parentId: "1" });
+      assert.equal(created.parentId, "1");
+      await assert.rejects(save("subtipos-producto", "moñitos", { parentId: "1" }), /Ya existe/);
+      await save("subtipos-producto", "Moñitos", { parentId: "2" });
+      await assert.rejects(save("tipos-producto", "Pasta seca", { id: "1", active: "false" }), /dependen/);
+      const previous = model.initialCatalogs();
+      delete previous["subtipos-producto"];
+      await fs.writeFile("data/catalogs.json", JSON.stringify(previous));
+      data = await catalogs.getCatalogs();
+      assert.equal(data["subtipos-producto"].length, production.SUBTIPOS_PRODUCTO.length);
     });
     await t.test("Un archivo inválido no se sobrescribe ni restablece silenciosamente", async () => {
       await fs.writeFile("data/catalogs.json", "contenido inválido");

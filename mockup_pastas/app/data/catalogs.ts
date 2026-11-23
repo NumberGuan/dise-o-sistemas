@@ -1,5 +1,5 @@
 import { PROVINCIAS, LOCALIDADES, CALLES } from "./domicilios";
-import { UNIDADES, TIPOS_PRODUCTO, TIPOS_MATERIA_PRIMA, MARCAS, MATERIAS_PRIMAS_PRODUCCION } from "./produccion";
+import { UNIDADES, TIPOS_PRODUCTO, SUBTIPOS_PRODUCTO, TIPOS_MATERIA_PRIMA, MARCAS, MATERIAS_PRIMAS_PRODUCCION } from "./produccion";
 
 export type CatalogEntry = {
   id: string;
@@ -24,6 +24,7 @@ export const CATALOG_DEFINITIONS = [
   { key: "calles", title: "Calles", singular: "calle", group: "Personas y domicilios", description: "Calles vinculadas a una localidad.", parent: "localidades" },
   { key: "unidades", title: "Unidades de medida", singular: "unidad de medida", group: "Producción e inventario", description: "Unidades de productos y materias primas." },
   { key: "tipos-producto", title: "Tipos de producto", singular: "tipo de producto", group: "Producción e inventario", description: "Clasificaciones del catálogo de producción." },
+  { key: "subtipos-producto", title: "Subtipos de producto", singular: "subtipo de producto", group: "Producción e inventario", description: "Variedades de producto dentro de cada tipo.", parent: "tipos-producto" },
   { key: "tipos-materia-prima", title: "Tipos de materia prima", singular: "tipo de materia prima", group: "Producción e inventario", description: "Clasificaciones de los insumos de producción." },
   { key: "marcas", title: "Marcas", singular: "marca", group: "Producción e inventario", description: "Marcas de las materias primas de producción." },
   { key: "tipos-maquina", title: "Tipos de máquina", singular: "tipo de máquina", group: "Mantenimiento", description: "Clasificaciones de las máquinas de producción." },
@@ -50,6 +51,7 @@ export function initialCatalogs(): Catalogs {
     calles: CALLES.map(item => entry(item.id, item.nombre, { parentId: item.localidadId })),
     unidades: UNIDADES.map(item => entry(String(item.idUnidad), item.unidad)),
     "tipos-producto": TIPOS_PRODUCTO.map(item => entry(String(item.idTipoProducto), item.tipo)),
+    "subtipos-producto": SUBTIPOS_PRODUCTO.map(item => entry(String(item.idSubtipoProducto), item.subtipo, { parentId: String(item.idTipoProducto) })),
     "tipos-materia-prima": TIPOS_MATERIA_PRIMA.map(item => entry(String(item.idTipoMateriaPrima), item.nombre)),
     marcas: MARCAS.map(item => entry(String(item.idMarca), item.nombre, { materiasPrimas: materiasPrimasDeMarca(item.idMarca) })),
     "tipos-maquina": names(["Amasadora", "Sobadora", "Formadora", "Secadero"]),

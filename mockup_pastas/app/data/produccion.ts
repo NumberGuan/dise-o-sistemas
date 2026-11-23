@@ -4,6 +4,7 @@
 
 export type Unidad = { idUnidad: number; unidad: string };
 export type TipoProducto = { idTipoProducto: number; tipo: string };
+export type SubtipoProducto = { idSubtipoProducto: number; idTipoProducto: number; subtipo: string };
 export type TipoMateriaPrima = { idTipoMateriaPrima: number; nombre: string };
 export type Marca = { idMarca: number; nombre: string };
 
@@ -22,6 +23,7 @@ export type Producto = {
   idReceta: number;
   idUnidad: number;
   idTipoProducto: number;
+  idSubtipoProducto: number;
   nombre: string;
   precio: number;
   stockProducto: number;
@@ -74,6 +76,22 @@ export const TIPOS_PRODUCTO: TipoProducto[] = [
   { idTipoProducto: 2, tipo: "Pasta fresca" },
   { idTipoProducto: 3, tipo: "Pasta rellena" },
   { idTipoProducto: 4, tipo: "Salsa" },
+];
+
+export const SUBTIPOS_PRODUCTO: SubtipoProducto[] = [
+  { idSubtipoProducto: 1, idTipoProducto: 1, subtipo: "Spaghetti" },
+  { idSubtipoProducto: 2, idTipoProducto: 2, subtipo: "Tallarines" },
+  { idSubtipoProducto: 3, idTipoProducto: 2, subtipo: "Fettuccine" },
+  { idSubtipoProducto: 4, idTipoProducto: 2, subtipo: "Ñoquis" },
+  { idSubtipoProducto: 5, idTipoProducto: 3, subtipo: "Ravioles" },
+  { idSubtipoProducto: 6, idTipoProducto: 3, subtipo: "Sorrentinos" },
+  { idSubtipoProducto: 7, idTipoProducto: 3, subtipo: "Canelones" },
+  { idSubtipoProducto: 8, idTipoProducto: 3, subtipo: "Lasagna" },
+  { idSubtipoProducto: 9, idTipoProducto: 3, subtipo: "Agnolottis" },
+  { idSubtipoProducto: 10, idTipoProducto: 3, subtipo: "Capelettis" },
+  { idSubtipoProducto: 11, idTipoProducto: 4, subtipo: "Salsas de tomate" },
+  { idSubtipoProducto: 12, idTipoProducto: 4, subtipo: "Salsas blancas y de queso" },
+  { idSubtipoProducto: 13, idTipoProducto: 4, subtipo: "Pesto" },
 ];
 
 export const TIPOS_MATERIA_PRIMA: TipoMateriaPrima[] = [
@@ -256,26 +274,26 @@ export const RECETAS: Receta[] = RECETAS_SEMILLA.map((receta) => ({
 
 // Mismo listado que el catálogo de ventas (SAMPLE_PRODUCTS). Las salsas se cuentan por frasco de 250 g.
 export const PRODUCTOS_PRODUCCION: Producto[] = [
-  { idProducto: 1, idReceta: 1, idUnidad: 1, idTipoProducto: 2, nombre: "Tallarines al huevo", precio: 2000, stockProducto: 45 },
-  { idProducto: 2, idReceta: 2, idUnidad: 5, idTipoProducto: 3, nombre: "Ravioles de verdura", precio: 3500, stockProducto: 12 },
-  { idProducto: 3, idReceta: 3, idUnidad: 1, idTipoProducto: 2, nombre: "Ñoquis de papa", precio: 2800, stockProducto: 30 },
-  { idProducto: 4, idReceta: 4, idUnidad: 5, idTipoProducto: 3, nombre: "Sorrentinos de jamón y queso", precio: 4200, stockProducto: 0 },
-  { idProducto: 5, idReceta: 5, idUnidad: 4, idTipoProducto: 1, nombre: "Spaghetti 500 g", precio: 2200, stockProducto: 220 },
-  { idProducto: 6, idReceta: 1, idUnidad: 1, idTipoProducto: 2, nombre: "Fettuccine al huevo", precio: 2100, stockProducto: 20 },
-  { idProducto: 7, idReceta: 6, idUnidad: 5, idTipoProducto: 3, nombre: "Ravioles de jamón y queso", precio: 3800, stockProducto: 18 },
-  { idProducto: 8, idReceta: 7, idUnidad: 5, idTipoProducto: 3, nombre: "Ravioles de ricota y nuez", precio: 4000, stockProducto: 10 },
-  { idProducto: 9, idReceta: 8, idUnidad: 5, idTipoProducto: 3, nombre: "Sorrentinos de calabaza y queso", precio: 4100, stockProducto: 14 },
-  { idProducto: 10, idReceta: 9, idUnidad: 4, idTipoProducto: 3, nombre: "Canelones de verdura y ricota", precio: 4500, stockProducto: 16 },
-  { idProducto: 11, idReceta: 10, idUnidad: 4, idTipoProducto: 3, nombre: "Lasagna de carne", precio: 4800, stockProducto: 12 },
-  { idProducto: 12, idReceta: 11, idUnidad: 5, idTipoProducto: 3, nombre: "Agnolottis de pollo", precio: 4300, stockProducto: 9 },
-  { idProducto: 13, idReceta: 12, idUnidad: 5, idTipoProducto: 3, nombre: "Capelettis de carne", precio: 4400, stockProducto: 11 },
-  { idProducto: 14, idReceta: 13, idUnidad: 4, idTipoProducto: 4, nombre: "Salsa fileto 250 g", precio: 1800, stockProducto: 40 },
-  { idProducto: 15, idReceta: 14, idUnidad: 4, idTipoProducto: 4, nombre: "Salsa bolognesa 250 g", precio: 2500, stockProducto: 30 },
-  { idProducto: 16, idReceta: 15, idUnidad: 4, idTipoProducto: 4, nombre: "Salsa blanca 250 g", precio: 2000, stockProducto: 25 },
-  { idProducto: 17, idReceta: 16, idUnidad: 4, idTipoProducto: 4, nombre: "Salsa cuatro quesos 250 g", precio: 2800, stockProducto: 20 },
-  { idProducto: 18, idReceta: 17, idUnidad: 4, idTipoProducto: 4, nombre: "Salsa rosa 250 g", precio: 2200, stockProducto: 22 },
-  { idProducto: 19, idReceta: 18, idUnidad: 4, idTipoProducto: 4, nombre: "Salsa pesto 250 g", precio: 2600, stockProducto: 15 },
-  { idProducto: 20, idReceta: 19, idUnidad: 4, idTipoProducto: 4, nombre: "Salsa de champiñones 250 g", precio: 2900, stockProducto: 12 },
+  { idProducto: 1, idReceta: 1, idUnidad: 1, idTipoProducto: 2, idSubtipoProducto: 2, nombre: "Tallarines al huevo", precio: 2000, stockProducto: 45 },
+  { idProducto: 2, idReceta: 2, idUnidad: 5, idTipoProducto: 3, idSubtipoProducto: 5, nombre: "Ravioles de verdura", precio: 3500, stockProducto: 12 },
+  { idProducto: 3, idReceta: 3, idUnidad: 1, idTipoProducto: 2, idSubtipoProducto: 4, nombre: "Ñoquis de papa", precio: 2800, stockProducto: 30 },
+  { idProducto: 4, idReceta: 4, idUnidad: 5, idTipoProducto: 3, idSubtipoProducto: 6, nombre: "Sorrentinos de jamón y queso", precio: 4200, stockProducto: 0 },
+  { idProducto: 5, idReceta: 5, idUnidad: 4, idTipoProducto: 1, idSubtipoProducto: 1, nombre: "Spaghetti 500 g", precio: 2200, stockProducto: 220 },
+  { idProducto: 6, idReceta: 1, idUnidad: 1, idTipoProducto: 2, idSubtipoProducto: 3, nombre: "Fettuccine al huevo", precio: 2100, stockProducto: 20 },
+  { idProducto: 7, idReceta: 6, idUnidad: 5, idTipoProducto: 3, idSubtipoProducto: 5, nombre: "Ravioles de jamón y queso", precio: 3800, stockProducto: 18 },
+  { idProducto: 8, idReceta: 7, idUnidad: 5, idTipoProducto: 3, idSubtipoProducto: 5, nombre: "Ravioles de ricota y nuez", precio: 4000, stockProducto: 10 },
+  { idProducto: 9, idReceta: 8, idUnidad: 5, idTipoProducto: 3, idSubtipoProducto: 6, nombre: "Sorrentinos de calabaza y queso", precio: 4100, stockProducto: 14 },
+  { idProducto: 10, idReceta: 9, idUnidad: 4, idTipoProducto: 3, idSubtipoProducto: 7, nombre: "Canelones de verdura y ricota", precio: 4500, stockProducto: 16 },
+  { idProducto: 11, idReceta: 10, idUnidad: 4, idTipoProducto: 3, idSubtipoProducto: 8, nombre: "Lasagna de carne", precio: 4800, stockProducto: 12 },
+  { idProducto: 12, idReceta: 11, idUnidad: 5, idTipoProducto: 3, idSubtipoProducto: 9, nombre: "Agnolottis de pollo", precio: 4300, stockProducto: 9 },
+  { idProducto: 13, idReceta: 12, idUnidad: 5, idTipoProducto: 3, idSubtipoProducto: 10, nombre: "Capelettis de carne", precio: 4400, stockProducto: 11 },
+  { idProducto: 14, idReceta: 13, idUnidad: 4, idTipoProducto: 4, idSubtipoProducto: 11, nombre: "Salsa fileto 250 g", precio: 1800, stockProducto: 40 },
+  { idProducto: 15, idReceta: 14, idUnidad: 4, idTipoProducto: 4, idSubtipoProducto: 11, nombre: "Salsa bolognesa 250 g", precio: 2500, stockProducto: 30 },
+  { idProducto: 16, idReceta: 15, idUnidad: 4, idTipoProducto: 4, idSubtipoProducto: 12, nombre: "Salsa blanca 250 g", precio: 2000, stockProducto: 25 },
+  { idProducto: 17, idReceta: 16, idUnidad: 4, idTipoProducto: 4, idSubtipoProducto: 12, nombre: "Salsa cuatro quesos 250 g", precio: 2800, stockProducto: 20 },
+  { idProducto: 18, idReceta: 17, idUnidad: 4, idTipoProducto: 4, idSubtipoProducto: 11, nombre: "Salsa rosa 250 g", precio: 2200, stockProducto: 22 },
+  { idProducto: 19, idReceta: 18, idUnidad: 4, idTipoProducto: 4, idSubtipoProducto: 13, nombre: "Salsa pesto 250 g", precio: 2600, stockProducto: 15 },
+  { idProducto: 20, idReceta: 19, idUnidad: 4, idTipoProducto: 4, idSubtipoProducto: 12, nombre: "Salsa de champiñones 250 g", precio: 2900, stockProducto: 12 },
 ];
 
 const redondear = (n: number) => Math.round(n * 1000) / 1000;

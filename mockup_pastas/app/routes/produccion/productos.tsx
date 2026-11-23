@@ -15,10 +15,13 @@ const labelClass = "block text-sm font-medium text-gray-700";
 const filterClass = "h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 
 function ProductForm({ product, onCancel, onSave }: { product: Producto | null; onCancel: () => void; onSave: (p: Producto) => void }) {
-  const { UNIDADES, TIPOS_PRODUCTO } = useProductionCatalogs();
+  const { UNIDADES, TIPOS_PRODUCTO, SUBTIPOS_PRODUCTO } = useProductionCatalogs();
   const [id] = useState(product?.idProducto ?? siguienteId(PRODUCTOS_PRODUCCION.map((p) => p.idProducto)));
   const [nombre, setNombre] = useState(product?.nombre ?? "");
   const [tipo, setTipo] = useState(String(product?.idTipoProducto ?? ""));
+  const [subtipo, setSubtipo] = useState(String(product?.idSubtipoProducto ?? ""));
+  const subtipos = SUBTIPOS_PRODUCTO.filter(s => String(s.idTipoProducto) === tipo && (s.active || s.idSubtipoProducto === product?.idSubtipoProducto));
+  const changeTipo = (value: string) => { setTipo(value); setSubtipo(""); };
   const [receta, setReceta] = useState(String(product?.idReceta ?? ""));
   const [unidad, setUnidad] = useState(String(product?.idUnidad ?? ""));
   const [precio, setPrecio] = useState(product ? String(product.precio) : "");
@@ -28,10 +31,11 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
   function submit(e: FormEvent) {
     e.preventDefault();
     if (!nombre.trim() || !tipo || !receta || !unidad) return setError("Nombre, tipo, receta y unidad son obligatorios.");
+    if (!subtipos.some(s => String(s.idSubtipoProducto) === subtipo)) return setError("Seleccioná un subtipo del tipo de producto elegido.");
     if (!(Number(precio) > 0)) return setError("Ingresá un precio mayor a cero.");
     if (stock === "" || Number(stock) < 0) return setError("El stock no puede ser negativo.");
     if (PRODUCTOS_PRODUCCION.some((p) => p.nombre.toLowerCase() === nombre.trim().toLowerCase() && p.idProducto !== id)) return setError("Ya existe un producto con ese nombre.");
-    onSave({ idProducto: id, nombre: nombre.trim(), idTipoProducto: Number(tipo), idReceta: Number(receta), idUnidad: Number(unidad), precio: Number(precio), stockProducto: Number(stock) });
+    onSave({ idProducto: id, nombre: nombre.trim(), idTipoProducto: Number(tipo), idSubtipoProducto: Number(subtipo), idReceta: Number(receta), idUnidad: Number(unidad), precio: Number(precio), stockProducto: Number(stock) });
   }
 
   return (
@@ -52,9 +56,15 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
             <input autoFocus required value={nombre} onChange={(e) => setNombre(e.target.value)} className={field} />
           </label>
           <label className={labelClass}>Tipo de producto <span className="text-rose-600">*</span>
-            <CatalogField catalog="tipos-producto" onCreated={entry => setTipo(entry.id)}><select required value={tipo} onChange={(e) => setTipo(e.target.value)} className={field}>
+            <CatalogField catalog="tipos-producto" onCreated={entry => changeTipo(entry.id)}><select required value={tipo} onChange={(e) => changeTipo(e.target.value)} className={field}>
               <option value="">Seleccionar...</option>
               {TIPOS_PRODUCTO.filter(item => item.active || item.idTipoProducto === product?.idTipoProducto).map((t) => <option key={t.idTipoProducto} value={t.idTipoProducto}>{t.tipo}</option>)}
+            </select></CatalogField>
+          </label>
+          <label className={labelClass}>Subtipo <span className="text-rose-600">*</span>
+            <CatalogField catalog="subtipos-producto" parentId={tipo || undefined} disabled={!tipo} onCreated={entry => { if (entry.parentId === tipo) setSubtipo(entry.id); }}><select required disabled={!tipo} value={subtipo} onChange={(e) => setSubtipo(e.target.value)} className={`${field} disabled:bg-gray-100`}>
+              <option value="">{tipo ? "Seleccionar..." : "Elegí el tipo de producto"}</option>
+              {subtipos.map((s) => <option key={s.idSubtipoProducto} value={s.idSubtipoProducto}>{s.subtipo}</option>)}
             </select></CatalogField>
           </label>
           <label className={labelClass}>Receta <span className="text-rose-600">*</span>
@@ -86,7 +96,7 @@ function ProductForm({ product, onCancel, onSave }: { product: Producto | null; 
 }
 
 function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClose: () => void; onEdit: () => void }) {
-  const { getTipoProducto, formatCantidad } = useProductionCatalogs();
+  const { getTipoProducto, getSubtipoProducto, formatCantidad } = useProductionCatalogs();
   const receta = getReceta(product.idReceta);
   const ordenes = ORDENES_PRODUCCION
     .filter((o) => o.detalle.some((d) => d.idProducto === product.idProducto))
@@ -110,6 +120,7 @@ function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClo
           <dl className="mt-3 space-y-3 text-sm">
             {[
               ["Tipo", getTipoProducto(product.idTipoProducto)],
+              ["Subtipo", getSubtipoProducto(product.idSubtipoProducto)],
               ["Precio", formatCurrency(product.precio)],
               ["Stock", formatCantidad(product.stockProducto, product.idUnidad)],
               ["Receta", receta?.nombre ?? "—"],
@@ -154,7 +165,7 @@ function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClo
 }
 
 export default function Productos() {
-  const { TIPOS_PRODUCTO, getTipoProducto, formatCantidad } = useProductionCatalogs();
+  const { TIPOS_PRODUCTO, getTipoProducto, getSubtipoProducto, formatCantidad } = useProductionCatalogs();
   const [products, setProducts] = useState(() => [...PRODUCTOS_PRODUCCION]);
   const [search, setSearch] = useState("");
   const [type, setType] = useState("Todos");
@@ -162,7 +173,7 @@ export default function Productos() {
 
   const filtered = useMemo(() => products.filter((p) => {
     const q = search.toLowerCase();
-    return (!q || [codigo("PRO", p.idProducto), p.nombre, getReceta(p.idReceta)?.nombre ?? ""].some((v) => v.toLowerCase().includes(q))) &&
+    return (!q || [codigo("PRO", p.idProducto), p.nombre, getSubtipoProducto(p.idSubtipoProducto), getReceta(p.idReceta)?.nombre ?? ""].some((v) => v.toLowerCase().includes(q))) &&
       (type === "Todos" || String(p.idTipoProducto) === type);
   }), [products, search, type]);
 
@@ -206,7 +217,7 @@ export default function Productos() {
             <p className="mt-1 text-sm text-gray-500">{filtered.length} {filtered.length === 1 ? "producto" : "productos"} encontrados</p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:flex">
-            <input aria-label="Buscar productos" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, nombre o receta..." className={`${filterClass} w-full placeholder:text-gray-400 sm:w-64`} />
+            <input aria-label="Buscar productos" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por código, nombre, subtipo o receta..." className={`${filterClass} w-full placeholder:text-gray-400 sm:w-64`} />
             <select aria-label="Filtrar por tipo" value={type} onChange={(e) => setType(e.target.value)} className={filterClass}>
               <option value="Todos">Todos los tipos</option>
               {TIPOS_PRODUCTO.map((t) => <option key={t.idTipoProducto} value={t.idTipoProducto}>{t.tipo}</option>)}
@@ -225,7 +236,7 @@ export default function Productos() {
           <>
             <div className="hidden lg:grid lg:grid-cols-[1.5fr_1fr_1.2fr_1fr_1fr_1fr] items-center gap-5 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-500">
               <div className="min-w-0 text-left">Código / Nombre</div>
-              <div className="min-w-0 text-center">Tipo</div>
+              <div className="min-w-0 text-center">Tipo / Subtipo</div>
               <div className="min-w-0 text-center">Receta</div>
               <div className="min-w-0 text-center">Precio</div>
               <div className="min-w-0 text-center">Stock</div>
@@ -241,8 +252,9 @@ export default function Productos() {
                       <h3 className="break-words font-semibold leading-5 text-gray-900">{p.nombre}</h3>
                     </div>
                     <div className="min-w-0 text-left lg:text-center">
-                      <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo</p>
+                      <p className="text-xs font-medium text-gray-500 lg:hidden">Tipo / Subtipo</p>
                       <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{getTipoProducto(p.idTipoProducto)}</p>
+                      <p className="break-words text-xs text-gray-500">{getSubtipoProducto(p.idSubtipoProducto)}</p>
                     </div>
                     <div className="min-w-0 text-left lg:text-center">
                       <p className="text-xs font-medium text-gray-500 lg:hidden">Receta</p>
