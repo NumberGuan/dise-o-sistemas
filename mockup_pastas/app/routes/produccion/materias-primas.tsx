@@ -89,7 +89,7 @@ function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPr
   const { getTipoMateriaPrima, getMarca, formatCantidad } = useProductionCatalogs();
   const recetas = RECETAS.flatMap((r) => {
     const uso = r.materiasPrimas.find((d) => d.idMateriaPrima === material.idMateriaPrima);
-    return uso ? [{ receta: r, cantidad: uso.cantidadNecesaria }] : [];
+    return uso ? [{ receta: r, cantidad: uso.cantidadNecesaria, idUnidad: uso.idUnidad }] : [];
   });
 
   return (
@@ -126,14 +126,14 @@ function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPr
           <ol className="mt-4 divide-y divide-gray-100">
             {recetas.length === 0 ? (
               <p className="text-sm text-gray-500">Ninguna receta usa esta materia prima.</p>
-            ) : recetas.map(({ receta, cantidad }) => (
+            ) : recetas.map(({ receta, cantidad, idUnidad }) => (
               <li key={receta.idReceta} className="py-3 first:pt-0">
                 <Link to={`/produccion/recetas?receta=${receta.idReceta}`} className="group flex items-start justify-between gap-3 rounded focus-visible:outline-2 focus-visible:outline-amber-600">
                   <span>
                     <span className="text-xs font-medium text-gray-500">{codigo("REC", receta.idReceta)}</span>
                     <span className="mt-1 block text-sm font-medium text-gray-900 group-hover:text-amber-800">{receta.nombre}</span>
                   </span>
-                  <span className="text-sm text-gray-700">{formatCantidad(cantidad, material.idUnidad)}</span>
+                  <span className="text-sm text-gray-700">{formatCantidad(cantidad, idUnidad)}</span>
                 </Link>
               </li>
             ))}

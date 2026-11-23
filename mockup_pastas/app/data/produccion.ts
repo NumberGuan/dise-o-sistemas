@@ -27,7 +27,7 @@ export type Producto = {
   stockProducto: number;
 };
 
-export type DetalleMateriaPrima = { idMateriaPrima: number; cantidadNecesaria: number };
+export type DetalleMateriaPrima = { idMateriaPrima: number; idUnidad: number; cantidadNecesaria: number };
 export type DetalleRecetaMaquina = { idMaquina: string; horaInicio: string; horaFin: string };
 
 export type Receta = {
@@ -127,7 +127,9 @@ export const MATERIAS_PRIMAS_PRODUCCION: MateriaPrima[] = [
   { idMateriaPrima: 24, idUnidad: 1, idTipoMateriaPrima: 2, idMarca: 3, nombre: "Queso azul", stockMateriaPrima: 6, precioUltimaCompra: 13500 },
 ];
 
-export const RECETAS: Receta[] = [
+type RecetaSemilla = Omit<Receta, "materiasPrimas"> & { materiasPrimas: Pick<DetalleMateriaPrima, "idMateriaPrima" | "cantidadNecesaria">[] };
+
+const RECETAS_SEMILLA: RecetaSemilla[] = [
   {
     idReceta: 1, nombre: "Masa al huevo", tiempoCoccion: "00:04", temperatura: 100,
     procedimiento: "Mezclar la harina con los huevos y la sal. Amasar hasta obtener una masa lisa, dejar reposar 20 minutos y laminar hasta 1,5 mm. Cortar según el producto.",
@@ -243,6 +245,14 @@ export const RECETAS: Receta[] = [
     maquinas: [],
   },
 ];
+
+export const RECETAS: Receta[] = RECETAS_SEMILLA.map((receta) => ({
+  ...receta,
+  materiasPrimas: receta.materiasPrimas.map((d) => {
+    const mp = MATERIAS_PRIMAS_PRODUCCION.find((m) => m.idMateriaPrima === d.idMateriaPrima)!;
+    return { ...d, idUnidad: mp.idUnidad };
+  }),
+}));
 
 // Mismo listado que el catálogo de ventas (SAMPLE_PRODUCTS). Las salsas se cuentan por frasco de 250 g.
 export const PRODUCTOS_PRODUCCION: Producto[] = [
