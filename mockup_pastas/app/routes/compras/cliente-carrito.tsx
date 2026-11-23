@@ -1,0 +1,331 @@
+import { CatalogField } from "~/components/InlineCatalog";
+import { useEffect, useRef, useState } from "react";
+import AddressFields from "~/components/AddressFields";
+import { EMPTY_ADDRESS } from "~/data/domicilios";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
+import { getCatalogs } from "~/data/catalogs.server";
+import { catalogDefaultValue, deliveryNeedsAddress, validCatalogValue } from "~/data/catalogs";
+import CustomerCartLine from "~/components/CustomerCartLine";
+import ShopPageHero from "~/components/ShopPageHero";
+import { Link, useFetcher, useFetchers, useLoaderData } from "react-router";
+import { randomUUID } from "node:crypto";
+
+import { CLIENT_ADDRESS_LABEL_MAX_LENGTH, MAX_CLIENT_ADDRESSES, SAMPLE_ORDERS, SAMPLE_PRODUCTS, getClientAddresses, formatClientAddress } from "~/data/sales";
+import { customerAsClient, saveCustomerDeliveryAddress, type CustomerAddressResult, type CustomerMutationResult } from "~/data/customer.server";
+import { requireUserAndRole } from "~/utils/session.server";
+import { mutateUser } from "~/utils/db.server";
+import type { Route } from "./+types/cliente-carrito";
+export { default as ErrorBoundary } from "~/components/CustomerErrorBoundary";
+
+const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  const user = await requireUserAndRole(request, ["Cliente"]);
+  const cart = (user.cart ?? []).map((item) => {
+    const product = SAMPLE_PRODUCTS.find((candidate) => candidate.id === item.productId) ?? null;
+    const subtotal = product && Number.isSafeInteger(product.price * item.quantity) ? product.price * item.quantity : null;
+    return { ...item, product, subtotal };
+  });
+  let total: number | null = 0;
+  for (const item of cart) {
+    if (item.subtotal === null || !Number.isSafeInteger((total ?? 0) + item.subtotal)) {
+      total = null;
+      break;
+    }
+    total = (total ?? 0) + item.subtotal;
+  }
+
+  const addresses = getClientAddresses(customerAsClient(user)!);
+  return {
+    cart,
+    total,
+    totalItems: cart.reduce((sum, item) => Number.isSafeInteger(sum + item.quantity) ? sum + item.quantity : sum, 0),
+    isActive: (user.customerStatus ?? "Activo") === "Activo",
+    addresses: addresses.filter(address => address.street.trim() && address.locality.trim()),
+    fixedAddressId: addresses[0]?.id,
+    addressCount: addresses.length,
+  };
+};
+
+export const action = async ({ request }: Route.ActionArgs) => {
+  const user = await requireUserAndRole(request, ["Cliente"]);
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+  if (intent === "add-delivery-address" || intent === "rename-delivery-address") {
+    return saveCustomerDeliveryAddress(user.id, intent, formData);
+  }
+  if (intent === "checkout") {
+    let checkoutError: string | null = null;
+    let created = false;
+    try {
+      const catalogs = await getCatalogs();
+      const fulfillment = formData.get("fulfillment") ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío");
+      if (!validCatalogValue(catalogs, "modalidades-entrega", fulfillment)) return { error: "Seleccioná una modalidad de entrega activa." };
+      const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
+      await mutateUser(user.id, (current, users) => {
+        if ((current.customerStatus ?? "Activo") !== "Activo") {
+          checkoutError = "Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.";
+          return;
+        }
+        const selectedAddress = getClientAddresses(customerAsClient(current)!).find(address => address.id === formData.get("deliveryAddressId") && address.street.trim() && address.locality.trim());
+        if (needsAddress && !selectedAddress) {
+          checkoutError = "Seleccioná una dirección guardada o agregá una nueva para confirmar el pedido.";
+          return;
+        }
+        const cartItems = current.cart ?? [];
+        if (cartItems.length === 0) {
+          checkoutError = "Agregá productos al carrito antes de confirmar.";
+          return;
+        }
+        const safeItems = [];
+        let subtotal = 0;
+        for (const item of cartItems) {
+          const product = SAMPLE_PRODUCTS.find((candidate) => candidate.id === item.productId);
+          if (!product || !Number.isSafeInteger(item.quantity) || item.quantity < 1 || !Number.isSafeInteger(product.price * item.quantity)) {
+            checkoutError = "Hay un producto o cantidad inválidos. Actualizá el carrito e intentá nuevamente.";
+            return;
+          }
+          const itemSubtotal = product.price * item.quantity;
+          if (!Number.isSafeInteger(subtotal + itemSubtotal)) {
+            checkoutError = "El total del pedido es demasiado grande. Ajustá las cantidades e intentá nuevamente.";
+            return;
+          }
+          subtotal += itemSubtotal;
+          safeItems.push({ id: `web-item-${randomUUID()}`, productId: product.id, productName: product.name, quantity: item.quantity, unitPrice: product.price, subtotal: itemSubtotal });
+        }
+        const today = new Date().toISOString().slice(0, 10);
+        const nextDate = new Date(`${today}T12:00:00`);
+        nextDate.setDate(nextDate.getDate() + 2);
+        const existingOrders = [...SAMPLE_ORDERS, ...users.flatMap((candidate) => candidate.customerOrders ?? [])];
+        const existingIds = new Set(existingOrders.map((existingOrder) => existingOrder.id));
+        const existingNumbers = new Set(existingOrders.map((existingOrder) => existingOrder.number));
+        let sequence = 1;
+        let number = `PC-WEB-${String(sequence).padStart(6, "0")}`;
+        let id = `web-order-${String(sequence).padStart(6, "0")}`;
+        while (existingNumbers.has(number) || existingIds.has(id)) {
+          sequence += 1;
+          if (!Number.isSafeInteger(sequence)) throw new Error("Order number sequence exhausted");
+          number = `PC-WEB-${String(sequence).padStart(6, "0")}`;
+          id = `web-order-${String(sequence).padStart(6, "0")}`;
+        }
+        const order = { id, number, kind: "Regular" as const, fulfillment, clientId: `customer-${current.id}`, date: today, deliveryDate: nextDate.toISOString().slice(0, 10), deliveryAddressType: "client" as const, deliveryAddressId: needsAddress ? selectedAddress!.id : undefined, deliveryAddress: needsAddress ? formatClientAddress(selectedAddress!) : fulfillment, items: safeItems, subtotal, discount: 0, total: subtotal, status: "Pendiente" as const, observations: String(formData.get("observations") ?? "").trim().slice(0, 500) };
+        current.customerOrders = [...(current.customerOrders ?? []), order];
+        current.cart = [];
+        created = true;
+      });
+      return created ? { success: true, intent } : { error: checkoutError ?? "No pudimos confirmar el pedido." };
+    } catch {
+      return { error: "No pudimos confirmar el pedido. El carrito sigue guardado; intentá nuevamente." };
+    }
+  }
+  const productId = formData.get("productId");
+
+  if (typeof intent !== "string" || typeof productId !== "string" || productId.length > 80) {
+    return { error: "La solicitud no contiene un producto válido." };
+  }
+
+  if (intent === "remove-item") {
+    let removed = false;
+    try {
+      const catalogs = await getCatalogs();
+      const fulfillment = formData.get("fulfillment") ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío");
+      if (!validCatalogValue(catalogs, "modalidades-entrega", fulfillment)) return { error: "Seleccioná una modalidad de entrega activa." };
+      const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
+      await mutateUser(user.id, (current) => {
+        const cart = current.cart ?? [];
+        if (!cart.some((item) => item.productId === productId)) return;
+        current.cart = cart.filter((item) => item.productId !== productId);
+        removed = true;
+      });
+      if (!removed) return { error: "Ese producto ya no está en el carrito." };
+      return { success: true, intent };
+    } catch {
+      return { error: "No pudimos quitar el producto. Intentá nuevamente." };
+    }
+  }
+
+  if (intent !== "update-quantity" || !SAMPLE_PRODUCTS.some((product) => product.id === productId)) {
+    return { error: "La acción solicitada no está disponible para ese producto." };
+  }
+
+  const rawQuantity = formData.get("quantity");
+  const quantity = typeof rawQuantity === "string" ? Number(rawQuantity) : Number.NaN;
+  if (!Number.isSafeInteger(quantity) || quantity < 0) {
+    return { error: "La cantidad indicada no es válida." };
+  }
+
+  try {
+    const product = SAMPLE_PRODUCTS.find((candidate) => candidate.id === productId)!;
+    if (!Number.isSafeInteger(product.price * quantity)) {
+      return { error: "La cantidad indicada es demasiado grande." };
+    }
+    let found = false;
+    await mutateUser(user.id, (current) => {
+      const cart = (current.cart ?? []).map((item) => ({ ...item }));
+      const existing = cart.find((item) => item.productId === productId);
+      if (!existing) return;
+      found = true;
+      if (quantity === 0) current.cart = cart.filter((item) => item.productId !== productId);
+      else {
+        existing.quantity = quantity;
+        current.cart = cart;
+      }
+    });
+    if (!found) return { error: "Ese producto ya no está en el carrito." };
+    if (quantity === 0) return { success: true, intent: "remove-item" };
+    return { success: true, intent };
+  } catch {
+    return { error: "No pudimos guardar la cantidad. Intentá nuevamente." };
+  }
+};
+
+export default function ClienteCarrito() {
+  const { cart, total, totalItems, isActive, addresses, addressCount, fixedAddressId } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<CustomerMutationResult>();
+  const addressFetcher = useFetcher<CustomerAddressResult>();
+  const catalogs = useCatalogs();
+  const [fulfillment, setFulfillment] = useState(catalogDefaultValue(catalogs, "modalidades-entrega", "Envío"));
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [renamingAddressId, setRenamingAddressId] = useState("");
+  const [addressLabel, setAddressLabel] = useState("");
+  const [addressDraft, setAddressDraft] = useState(EMPTY_ADDRESS);
+  const addressDialogRef = useRef<HTMLDialogElement>(null);
+  const selectedAddress = addresses.find(address => address.id === selectedAddressId) ?? addresses[0];
+  const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
+  const fetchers = useFetchers();
+  const checkoutFormRef = useRef<HTMLFormElement>(null);
+  const confirmationRef = useRef<HTMLDialogElement>(null);
+  const isBusy = fetchers.some((current) => current.state !== "idle");
+  const canCheckout = !isBusy && cart.length > 0 && total !== null && isActive && (!needsAddress || Boolean(selectedAddress));
+  const savingAddress = addressFetcher.state !== "idle";
+  const addressResult = addressFetcher.data;
+  const savedAddressId = addressResult && "addressId" in addressResult ? addressResult.addressId : undefined;
+
+  useEffect(() => {
+    if (savingAddress || !savedAddressId) return;
+    setSelectedAddressId(savedAddressId);
+    addressDialogRef.current?.close();
+  }, [savedAddressId, savingAddress]);
+
+  function openAddressDialog(rename = false) {
+    addressFetcher.reset();
+    setRenamingAddressId(rename ? selectedAddress?.id ?? "" : "");
+    setAddressLabel(rename ? selectedAddress?.label ?? "" : "");
+    setAddressDraft({ ...EMPTY_ADDRESS, province: selectedAddress?.province ?? "Buenos Aires" });
+    addressDialogRef.current?.showModal();
+  }
+
+  const addressControls = <div className="mb-4 space-y-2">
+    <label className="block text-sm font-semibold text-gray-800">Dirección de entrega
+      <select name="deliveryAddressId" required value={selectedAddress?.id ?? ""} onChange={event => setSelectedAddressId(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm">
+        {!addresses.length && <option value="">Todavía no hay direcciones guardadas para el envío</option>}
+        {addresses.map(address => <option key={address.id} value={address.id}>{address.label}{address.id === fixedAddressId ? " (fija)" : ""} · {formatClientAddress(address)}</option>)}
+      </select>
+    </label>
+    <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <button type="button" onClick={() => openAddressDialog()} disabled={savingAddress || addressCount >= MAX_CLIENT_ADDRESSES} className="min-h-11 text-sm font-semibold text-amber-800 underline underline-offset-4 hover:text-amber-950 disabled:no-underline disabled:opacity-50">Agregar dirección</button>
+      {selectedAddress && <button type="button" onClick={() => openAddressDialog(true)} disabled={savingAddress} className="min-h-11 text-sm font-semibold text-amber-800 underline underline-offset-4 hover:text-amber-950 disabled:opacity-50">Cambiar nombre</button>}
+    </div>
+    {addressCount >= MAX_CLIENT_ADDRESSES && <p className="text-sm text-gray-600">Llegaste al máximo de {MAX_CLIENT_ADDRESSES} direcciones. Podés quitar una desde Mi perfil.</p>}
+    {!savingAddress && savedAddressId && <p role="status" className="text-sm text-emerald-800">Dirección guardada en Mi perfil.</p>}
+  </div>;
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+      <div className="mb-6">
+        <ShopPageHero title="Mi carrito" art="carrito" description="Revisá los productos y ajustá las cantidades.">
+          <span className="rounded-full border border-[#eadfd3] bg-white/85 px-3 py-1.5 text-sm text-gray-700">{totalItems} {totalItems === 1 ? "unidad" : "unidades"}</span>
+        </ShopPageHero>
+      </div>
+
+      {cart.length === 0 ? (
+        <section className="rounded-2xl border border-dashed border-[#dfd0c0] bg-white px-6 py-14 text-center" aria-labelledby="cart-empty-title">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-900" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4L20 8H6" /><circle cx="9.5" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /></svg></span>
+          <h2 id="cart-empty-title" className="mt-4 text-lg font-semibold text-gray-900">Tu carrito está vacío</h2>
+          <p className="mt-2 text-sm text-gray-600">Explorá el catálogo y agregá los productos que quieras consultar.</p>
+          <Link to="/compras/catalogo" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-amber-800 px-4 text-sm font-semibold text-white transition hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Ver catálogo</Link>
+        </section>
+      ) : (
+        <section className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm" aria-label="Productos en el carrito">
+          <ul className="divide-y divide-[#f0e7dd]">{cart.map((item) => <CustomerCartLine key={item.productId} item={item} />)}</ul>
+          <div className="flex flex-col gap-2 border-t border-[#eadfd3] bg-[#fffdfa] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <span className="text-sm text-gray-600">Total de referencia</span>
+            <strong className="text-xl tabular-nums text-gray-900">{total === null ? "No disponible" : currency.format(total)}</strong>
+          </div>
+          <p className="px-5 pb-5 text-xs leading-5 text-gray-500 sm:px-6">Importes calculados con los precios de muestra actuales del catálogo.</p>
+        </section>
+      )}
+
+      {cart.length === 0 && <section className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6" aria-label="Direcciones guardadas">{addressControls}</section>}
+
+      {cart.length > 0 && <fetcher.Form ref={checkoutFormRef} noValidate method="post" onSubmit={(event) => {
+        event.preventDefault();
+        if (canCheckout) confirmationRef.current?.showModal();
+      }} className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
+        <input type="hidden" name="intent" value="checkout" />
+        <label className="mb-4 block text-sm font-semibold text-gray-800">Modalidad de entrega<CatalogField catalog="modalidades-entrega" onCreated={entry => setFulfillment(entry.value)} disabled={fetcher.state !== "idle"}><select name="fulfillment" value={fulfillment} onChange={event => setFulfillment(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm"><CatalogOptions catalog="modalidades-entrega" /></select></CatalogField></label>
+        {needsAddress && addressControls}
+        <h2 className="text-lg font-semibold text-gray-900">Datos para el pedido</h2>
+        <p className="mt-1 text-sm text-gray-600">Se usarán los datos guardados en <Link to="/compras/perfil" className="font-medium text-amber-800 underline">Mi perfil</Link>, iguales a los que consulta Ventas.</p>
+        {!isActive && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.</p>}
+        {isActive && needsAddress && !selectedAddress && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Agregá una dirección de entrega para continuar.</p>}
+        <label htmlFor="order-observations" className="mt-4 block text-sm font-medium text-gray-700">Observaciones de entrega</label>
+        <textarea id="order-observations" name="observations" rows={2} maxLength={500} className="mt-1 w-full rounded-xl border border-[#e5d9cb] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-amber-700" placeholder="Indicaciones para recibir el pedido" />
+        {fetcher.state === "idle" && fetcher.data?.error && <p role="alert" className="mt-3 text-sm text-red-700">{fetcher.data.error}</p>}
+        <div className="mt-4 flex flex-col gap-3 border-t border-[#f0e7dd] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button type="submit" disabled={!canCheckout} className="min-h-11 shrink-0 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
+      </fetcher.Form>}
+      <dialog ref={addressDialogRef} aria-labelledby="delivery-address-title" onCancel={event => { if (savingAddress) event.preventDefault(); }} className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-[#eadfd3] bg-white p-5 text-gray-900 shadow-xl backdrop:bg-black/50 sm:p-6">
+        <h2 id="delivery-address-title" className="text-xl font-semibold">{renamingAddressId ? "Cambiar nombre de la dirección" : "Agregar dirección de entrega"}</h2>
+        {!renamingAddressId && <p className="mt-2 text-sm text-gray-600">{addressCount ? "La dirección se guardará en Mi perfil para futuros pedidos." : "Tu primera dirección también quedará guardada como dirección fija de facturación."}</p>}
+        <addressFetcher.Form method="post" preventScrollReset className="mt-4 space-y-4">
+          <input type="hidden" name="intent" value={renamingAddressId ? "rename-delivery-address" : "add-delivery-address"} />
+          <input type="hidden" name="addressId" value={renamingAddressId} />
+          <label className="block text-sm font-medium text-gray-700">Nombre de la dirección *
+            <input name="addressLabel" required autoFocus maxLength={CLIENT_ADDRESS_LABEL_MAX_LENGTH} value={addressLabel} onChange={event => setAddressLabel(event.target.value)} readOnly={savingAddress} placeholder="Ej.: Casa o Trabajo" className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm" />
+          </label>
+          {!renamingAddressId && <>
+            {Object.entries(addressDraft).map(([field, value]) => <input key={field} type="hidden" name={field} value={value} />)}
+            <AddressFields value={addressDraft} onChange={setAddressDraft} disabled={savingAddress} />
+          </>}
+          {!savingAddress && addressResult && "error" in addressResult && <p role="alert" className="text-sm text-red-700">{addressResult.error}</p>}
+          <div className="flex flex-col-reverse gap-3 sm:justify-end sm:flex-row">
+            <button type="button" disabled={savingAddress} onClick={() => addressDialogRef.current?.close()} className="min-h-11 rounded-xl border border-[#e5d9cb] px-4 text-sm font-semibold hover:bg-amber-50 disabled:opacity-50">Cancelar</button>
+            <button type="submit" disabled={savingAddress} className="min-h-11 rounded-xl bg-amber-800 px-4 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{savingAddress ? "Guardando…" : renamingAddressId ? "Guardar nombre" : "Guardar dirección"}</button>
+          </div>
+        </addressFetcher.Form>
+      </dialog>
+      <dialog ref={confirmationRef} aria-labelledby="checkout-confirmation-title" aria-describedby="checkout-confirmation-description" className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-[#eadfd3] bg-white p-5 text-gray-900 shadow-xl backdrop:bg-black/50 sm:p-6">
+        <h2 id="checkout-confirmation-title" className="text-xl font-semibold">¿Deseás confirmar el pedido?</h2>
+        <p id="checkout-confirmation-description" className="mt-2 text-sm text-gray-600">Revisá los productos que vas a comprar antes de confirmar.</p>
+        <ul aria-label="Productos a comprar" className="mt-5 divide-y divide-[#f0e7dd] border-y border-[#eadfd3]">
+          {cart.map((item) => <li key={item.productId} className="flex items-start justify-between gap-4 py-4">
+            <div className="min-w-0">
+              <p className="break-words font-semibold">{item.product?.name ?? "Producto fuera del catálogo"}</p>
+              <p className="mt-1 text-sm text-gray-600">Cantidad: {item.quantity}{item.product && ` · ${currency.format(item.product.price)} por unidad`}</p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold tabular-nums">{item.subtotal === null ? "Sin precio" : currency.format(item.subtotal)}</span>
+          </li>)}
+        </ul>
+        <div className="mt-4 flex items-center justify-between gap-4">
+          <span className="font-medium">Total del pedido</span>
+          <strong className="text-xl tabular-nums">{total === null ? "No disponible" : currency.format(total)}</strong>
+        </div>
+        <p className="mt-3 text-xs leading-5 text-gray-500">El pedido quedará pendiente para que Ventas lo gestione.</p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button type="button" autoFocus onClick={() => confirmationRef.current?.close()} className="min-h-11 rounded-xl border border-[#e5d9cb] px-4 text-sm font-semibold hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Volver al carrito</button>
+          <button type="button" disabled={!canCheckout} onClick={() => {
+            if (!canCheckout || !checkoutFormRef.current) return;
+            void fetcher.submit(checkoutFormRef.current);
+            confirmationRef.current?.close();
+          }} className="min-h-11 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 disabled:opacity-50">Sí, confirmar pedido</button>
+        </div>
+      </dialog>
+      {fetcher.state === "idle" && fetcher.data?.success && fetcher.data.intent === "checkout" && <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Pedido confirmado. Ya podés consultarlo en Mis pedidos.</p>}
+
+      <aside className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5" aria-labelledby="order-flow-title">
+        <h2 id="order-flow-title" className="text-sm font-semibold text-amber-950">Precios y disponibilidad</h2>
+        <p className="mt-1 text-sm leading-6 text-amber-900">Los importes y estados corresponden al catálogo de muestra. Ventas revisará el pedido y coordinará la entrega.</p>
+      </aside>
+    </div>
+  );
+}

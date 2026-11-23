@@ -1,0 +1,758 @@
+import PrintVoucher from "~/components/PrintVoucher";
+import { CatalogField } from "~/components/InlineCatalog";
+import { CatalogOptions, useCatalogs } from "~/components/CatalogProvider";
+import BackToListButton from "~/components/BackToListButton";
+import { allocateReceiptPayment, getClientMonthlyAccount, monthLabel, currentSalesMonth, money } from "~/data/billing";
+import { Link, useLoaderData, useFetcher, useSearchParams } from "react-router";
+import { useEffect, useMemo, useState } from "react";
+import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
+import {
+  RECEIPT_STATUSES,
+  getInvoicePaymentSummary,
+  type Invoice,
+  type Receipt,
+  type ReceiptStatus,
+  type ReceiptPaymentDetail,
+  type ReceiptInvoiceDetail,
+  type PaymentMethod
+} from "~/data/sales";
+
+import { getSalesData } from "~/data/sales.server";
+import { saveSalesReceipt } from "~/data/billing.server";
+import { requireUserAndRole } from "~/utils/session.server";
+import type { Route } from "./+types/recibos";
+
+export const loader = async ({ request }: Route.LoaderArgs) => {
+  await requireUserAndRole(request, ["Ventas"]);
+  return getSalesData();
+};
+
+export const action = async ({ request }: Route.ActionArgs) => {
+  const actor = await requireUserAndRole(request, ["Ventas"]);
+  try {
+    const data = await request.formData();
+    const raw = data.get("document");
+    const id = data.get("id");
+    if (typeof raw !== "string" || raw.length > 200000 || (id !== null && (typeof id !== "string" || id.length > 120))) throw new Error("Los datos enviados no son validos.");
+    await saveSalesReceipt(JSON.parse(raw), typeof id === "string" ? id : undefined, actor);
+    return { success: true };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "No se pudo guardar el documento." };
+  }
+};
+
+function getStatusClass(status: ReceiptStatus) {
+  switch (status) {
+    case "Borrador": return "bg-gray-100 text-gray-800";
+    case "Registrado": return "bg-emerald-100 text-emerald-800";
+    case "Anulado": return "bg-red-100 text-red-800";
+    default: return "bg-gray-100 text-gray-800";
+  }
+}
+
+function formatCurrency(amount: number) {
+  return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
+}
+
+function receiptValidationError(receipt: Receipt, invoices: Invoice[], receipts: Receipt[], requireComplete = receipt.status === "Registrado"): string | null {
+  if (!receipt.clientId) return "Selecciona un cliente.";
+  if (!receipt.date) return "Selecciona una fecha.";
+  if (receipt.payments.some(payment => !Number.isFinite(payment.amount) || payment.amount <= 0 || Math.abs(payment.amount * 100 - Math.round(payment.amount * 100)) > 0.000001)) return "Cada pago debe ser positivo y tener como máximo dos decimales.";
+  if (new Set(receipt.invoices.map(detail => detail.invoiceId)).size !== receipt.invoices.length) return "Un comprobante no puede imputarse dos veces en el mismo recibo.";
+  for (const detail of receipt.invoices) {
+    const invoice = invoices.find(item => item.id === detail.invoiceId);
+    if (!invoice || invoice.clientId !== receipt.clientId || invoice.status !== "Emitido") return "Selecciona comprobantes emitidos del cliente.";
+    if (!Number.isFinite(detail.amountApplied) || detail.amountApplied <= 0 || Math.abs(detail.amountApplied * 100 - Math.round(detail.amountApplied * 100)) > 0.000001) return "Cada importe aplicado debe ser positivo y tener como máximo dos decimales.";
+    if (Math.round(detail.amountApplied * 100) > Math.round(getInvoicePaymentSummary(invoice, receipt.id, receipts).balance * 100)) return `El importe aplicado a ${invoice.number} supera el saldo pendiente.`;
+  }
+  const paymentsInCents = Math.round(receipt.payments.reduce((sum, payment) => sum + payment.amount, 0) * 100);
+  const appliedInCents = Math.round(receipt.invoices.reduce((sum, detail) => sum + detail.amountApplied, 0) * 100);
+  if (requireComplete && (receipt.payments.length === 0 || receipt.invoices.length === 0)) return "Agrega al menos un medio de pago y aplica el importe a un comprobante antes de registrar.";
+  if (requireComplete && paymentsInCents !== appliedInCents) return `El total cobrado (${formatCurrency(paymentsInCents / 100)}) debe coincidir con el total aplicado (${formatCurrency(appliedInCents / 100)}).`;
+  return null;
+}
+
+type ReceiptFormProps = {
+  receipt: Receipt | null;
+  receipts: Receipt[];
+  onCancel: () => void;
+  onSave: (rec: Receipt) => void;
+};
+
+function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) {
+  const { clients, invoices, orders, cashSessions } = useLoaderData<typeof loader>();
+  const [params] = useSearchParams();
+  const [accountMonth, setAccountMonth] = useState(receipt?.accountMonth ?? params.get("mes") ?? "");
+  const isNew = !receipt;
+  const [clientId, setClientId] = useState(receipt?.clientId || params.get("cliente") || "");
+  const [date, setDate] = useState(receipt?.date || new Date().toISOString().split("T")[0]);
+  const [invoicesState, setInvoicesState] = useState<ReceiptInvoiceDetail[]>(() => receipt?.invoices.map(detail => ({ ...detail })) || []);
+  const [payments, setPayments] = useState<ReceiptPaymentDetail[]>(() => receipt?.payments.map(payment => ({ ...payment })) || []);
+  const [observations, setObservations] = useState(receipt?.observations || "");
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const catalogs = useCatalogs();
+  const [payMethod, setPayMethod] = useState<PaymentMethod>(catalogs["medios-pago"].find(item => item.active)?.value ?? "");
+  const [payAmount, setPayAmount] = useState<number | "">(0);
+  const [payRef, setPayRef] = useState("");
+
+  const selectedClient = clients.find(client => client.id === clientId);
+  const months = useMemo(() => selectedClient ? getClientMonthlyAccount(selectedClient, orders, invoices, receipts.filter(candidate => candidate.id !== receipt?.id)) : [], [selectedClient, orders, invoices, receipts, receipt?.id]);
+
+  const clientInvoices = useMemo(() => {
+    if (!clientId) return [];
+    const month = accountMonth ? months.find(month => month.month === accountMonth) : undefined;
+    return invoices.filter(inv => {
+      if (inv.clientId !== clientId || inv.status !== "Emitido" || inv.type === "Nota de Crédito") return false;
+      if (accountMonth && !month?.invoiceIds.includes(inv.id)) return false;
+      return getInvoicePaymentSummary(inv, receipt?.id, receipts).balance > 0;
+    }).sort((a, b) => a.date.localeCompare(b.date) || a.number.localeCompare(b.number));
+  }, [clientId, accountMonth, months, receipt?.id, invoices, receipts]);
+
+  const totalPayments = money(payments.reduce((sum, p) => sum + p.amount, 0));
+  const totalApplied = money(invoicesState.reduce((sum, i) => sum + i.amountApplied, 0));
+  const invoiceBalances = clientInvoices.map(invoice => ({ id: invoice.id, number: invoice.number, balance: getInvoicePaymentSummary(invoice, receipt?.id, receipts).balance }));
+  const totalBalance = money(invoiceBalances.reduce((sum, invoice) => sum + invoice.balance, 0));
+  const pendingDifference = money(totalBalance - totalPayments);
+
+  useEffect(() => {
+    if (!accountMonth) return;
+    const month = months.find(month => month.month === accountMonth);
+    if (!month || month.unbilled > 0) return;
+    setInvoicesState(allocateReceiptPayment(clientInvoices.map(invoice => ({ id: invoice.id, number: invoice.number, balance: getInvoicePaymentSummary(invoice, receipt?.id, receipts).balance })), totalPayments));
+    setPayAmount(money(Math.max(0, totalBalance - totalPayments)));
+  }, [accountMonth, months, clientInvoices, receipts, receipt?.id, totalPayments, totalBalance]);
+
+  function suggestPaymentAmount(appliedTotal: number, paymentTotal: number) {
+    const pending = Math.round(Math.max(0, appliedTotal - paymentTotal) * 100) / 100;
+    setPayAmount(pending);
+  }
+
+  function handleAddPayment() {
+    if (payAmount === "" || !Number.isFinite(payAmount) || payAmount <= 0) return setErrorMsg("El importe del pago debe ser positivo.");
+    if (Math.abs(payAmount * 100 - Math.round(payAmount * 100)) > 0.000001) return setErrorMsg("El importe del pago debe tener como máximo dos decimales.");
+    const newPay: ReceiptPaymentDetail = {
+      id: `pay-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
+      method: payMethod,
+      amount: Number(payAmount),
+      reference: payRef
+    };
+    const nextPayments = [...payments, newPay];
+    setPayments(nextPayments);
+    const nextTotal = money(nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
+    setInvoicesState(allocateReceiptPayment(invoiceBalances, nextTotal));
+    suggestPaymentAmount(totalBalance, nextTotal);
+    setPayRef("");
+    setErrorMsg("");
+  }
+
+  function handleRemovePayment(id: string) {
+    const nextPayments = payments.filter(p => p.id !== id);
+    setPayments(nextPayments);
+    const nextTotal = money(nextPayments.reduce((sum, payment) => sum + payment.amount, 0));
+    setInvoicesState(allocateReceiptPayment(invoiceBalances, nextTotal));
+    suggestPaymentAmount(totalBalance, nextTotal);
+    setErrorMsg("");
+  }
+
+  function handleInvoiceChange(invoiceId: string, invoiceNumber: string, applied: number) {
+    const updated = invoicesState.map(detail => ({ ...detail }));
+    const idx = updated.findIndex(i => i.invoiceId === invoiceId);
+    if (applied > 0) {
+      if (idx >= 0) updated[idx].amountApplied = applied;
+      else updated.push({ invoiceId, invoiceNumber, amountApplied: applied });
+    } else {
+      if (idx >= 0) updated.splice(idx, 1);
+    }
+    setInvoicesState(updated);
+    const nextAppliedTotal = updated.reduce((sum, detail) => sum + detail.amountApplied, 0);
+    suggestPaymentAmount(nextAppliedTotal, totalPayments);
+    setErrorMsg("");
+  }
+
+  function handleSubmit(status: ReceiptStatus) {
+    const nextNumber = Math.max(0, ...receipts.map(existing => Number(existing.number.slice(-8)) || 0)) + 1;
+    const number = isNew ? `RC-0001-${nextNumber.toString().padStart(8, "0")}` : receipt.number;
+    const nextReceipt: Receipt = {
+      id: isNew ? `rec-${Date.now()}` : receipt.id,
+      number,
+      date,
+      clientId,
+      invoices: invoicesState,
+      payments,
+      total: totalPayments,
+      status,
+      observations,
+      accountMonth: accountMonth || undefined,
+    };
+    const error = receiptValidationError(nextReceipt, invoices, receipts, status === "Registrado");
+    if (error) return setErrorMsg(error);
+    onSave(nextReceipt);
+  }
+
+  return (
+    <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <SalesFormHeader title={isNew ? "Formulario Nuevo Recibo" : `Editar recibo ${receipt.number}`} onCancel={onCancel}>
+        <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{cashSessions.some(session => !session.closedAt) ? "El cobro se incorporará a la caja abierta al registrar el recibo." : "No hay caja abierta. Podés guardar un borrador, pero necesitás abrir caja para registrar el cobro."} <Link to="/ventas/caja" className="font-semibold underline">Ir a Caja</Link></p>
+
+        {errorMsg && (
+          <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">
+            {errorMsg}
+          </div>
+        )}
+
+        <form noValidate onSubmit={event => event.preventDefault()} className="space-y-6">
+          {/* Cliente y Fecha */}
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-200 px-5 py-4">
+              <h2 className="font-semibold text-gray-900">Datos principales</h2>
+            </div>
+            <div className="p-5 grid gap-6 sm:grid-cols-2">
+              <div>
+                <label htmlFor="receipt-client" className="block text-sm font-medium text-gray-700">Cliente *</label>
+                <select
+                  id="receipt-client"
+                  required
+                  value={clientId}
+                  onChange={e => {
+                    setClientId(e.target.value);
+                    setAccountMonth("");
+                    setInvoicesState([]);
+                    setPayments([]);
+                    setPayAmount(0);
+                    setErrorMsg("");
+                  }}
+                  disabled={!isNew}
+                  className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-50"
+                >
+                  <option value="">Seleccionar...</option>
+                  {clients.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label htmlFor="receipt-date" className="block text-sm font-medium text-gray-700">Fecha de emisión *</label>
+                <input
+                  id="receipt-date"
+                  type="date"
+                  required
+                  value={date}
+                  onChange={e => {
+                    setDate(e.target.value);
+                    setErrorMsg("");
+                  }}
+                  className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+                />
+              </div>
+            </div>
+          </div>
+
+          {selectedClient?.type === "Comercio" && <section className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+            <h2 className="font-semibold text-gray-900">Pago mensual del comercio</h2>
+            <label className="mt-3 block text-sm font-medium text-gray-700">Mes a saldar
+              <select value={accountMonth} onChange={event => { setAccountMonth(event.target.value); setInvoicesState([]); setPayments([]); setPayAmount(0); }} className="mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3">
+                <option value="">Seleccionar facturas individualmente</option>
+                {months.filter(month => month.balance > 0).map(month => <option key={month.month} value={month.month} disabled={month.unbilled > 0 || month.month >= currentSalesMonth()}>{monthLabel(month.month)} · {formatCurrency(month.balance)}{month.unbilled ? " · Faltan facturar pedidos" : month.month >= currentSalesMonth() ? " · En curso" : ""}</option>)}
+              </select>
+            </label>
+            <p className="mt-2 text-sm text-gray-600">Al elegir un mes cerrado se incluyen todas sus facturas pendientes en este recibo. Agregá el medio de pago y registrá el cobro.</p>
+            {accountMonth && <p className="mt-2 font-semibold text-amber-900">Saldo a cancelar: {formatCurrency(totalBalance)}</p>}
+          </section>}
+
+          {/* Medios de Pago */}
+          <div data-validation-complete data-validation-message={payments.length ? "" : "Agregá al menos un medio de pago con su importe."} className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-200 px-5 py-4 flex justify-between items-center">
+              <h2 className="font-semibold text-gray-900">Medios de Pago</h2>
+              <span className="text-sm font-medium text-gray-500">Total cobrado: <span className="font-bold text-gray-900">{formatCurrency(totalPayments)}</span></span>
+            </div>
+            <div className="p-5">
+              <div className="mb-4 flex flex-wrap items-end gap-3 rounded-lg border border-gray-100 bg-gray-50 p-4">
+                <div className="w-40">
+                  <label htmlFor="receipt-method" className="block text-xs font-medium text-gray-700 mb-1">Método</label>
+                  <CatalogField catalog="medios-pago" onCreated={entry => setPayMethod(entry.value)}><select
+                    id="receipt-method"
+                    value={payMethod}
+                    onChange={e => setPayMethod(e.target.value as PaymentMethod)}
+                    className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-amber-500"
+                  >
+                    <CatalogOptions catalog="medios-pago" />
+                  </select></CatalogField>
+                </div>
+                <div className="flex-1 min-w-[150px]">
+                  <label htmlFor="receipt-reference" className="block text-xs font-medium text-gray-700 mb-1">Referencia (opcional)</label>
+                  <input
+                    id="receipt-reference"
+                    type="text"
+                    value={payRef}
+                    onChange={e => setPayRef(e.target.value)}
+                    placeholder="N° de Cheque, Transf..."
+                    className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:border-amber-500"
+                  />
+                </div>
+                <div className="w-32">
+                  <label htmlFor="receipt-amount" className="block text-xs font-medium text-gray-700 mb-1">Importe sugerido</label>
+                  <input
+                    data-validation-skip id="receipt-amount"
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={payAmount}
+                    onChange={e => setPayAmount(e.target.value === "" ? "" : Number(e.target.value))}
+                    placeholder="$ 0.00"
+                    className="h-9 w-full rounded-md border border-gray-300 bg-white px-3 text-sm text-right text-gray-900 outline-none placeholder:text-gray-500 focus:border-amber-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">Podés dividir el pago entre varios medios.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAddPayment}
+                  disabled={!payAmount || payAmount <= 0}
+                  className="h-9 rounded-md bg-amber-100 px-4 text-sm font-medium text-amber-800 hover:bg-amber-200 disabled:opacity-50"
+                >
+                  Agregar
+                </button>
+              </div>
+
+              {payments.length > 0 && (
+                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                <table className="w-full min-w-[540px] text-left text-sm text-gray-900">
+                  <thead className="bg-gray-50 text-gray-700">
+                    <tr>
+                      <th className="px-4 py-2 font-medium">Medio</th>
+                      <th className="px-4 py-2 font-medium">Referencia</th>
+                      <th className="px-4 py-2 text-right font-medium">Importe</th>
+                      <th className="px-4 py-2 text-center font-medium">Quitar</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {payments.map(p => (
+                      <tr key={p.id} className="bg-white">
+                        <td className="px-4 py-2">{p.method}</td>
+                        <td className="px-4 py-2 text-gray-500">{p.reference || "-"}</td>
+                        <td className="px-4 py-2 text-right font-medium">{formatCurrency(p.amount)}</td>
+                        <td className="px-4 py-2 text-center">
+                          <button type="button" onClick={() => handleRemovePayment(p.id)} className="font-medium text-red-700 hover:text-red-900" aria-label={`Quitar pago de ${formatCurrency(p.amount)}`}>Quitar</button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Aplicación a Comprobantes */}
+          <div data-validation-complete data-validation-message={totalApplied > 0 ? "" : "Aplicá el pago a un comprobante pendiente."} className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-200 px-5 py-4 flex justify-between items-center">
+              <h2 className="font-semibold text-gray-900">Aplicación a Comprobantes pendientes</h2>
+              <span className="text-sm font-medium text-gray-500">Total aplicado: <span className="font-bold text-emerald-700">{formatCurrency(totalApplied)}</span></span>
+            </div>
+            <div className="p-5">
+              {clientInvoices.length > 0 && <p className="mb-4 text-sm text-gray-600">Los medios de pago se suman y se aplican automáticamente a las facturas más antiguas. Podés ajustar la distribución.</p>}
+              {!clientId ? (
+                <p className="text-sm text-gray-500">Selecciona un cliente para ver sus comprobantes.</p>
+              ) : clientInvoices.length === 0 ? (
+                <p className="text-sm text-gray-500">El cliente no tiene comprobantes pendientes.</p>
+              ) : (
+                <div className="overflow-x-auto rounded-lg border border-gray-200">
+                  <table className="w-full min-w-[680px] text-left text-sm text-gray-900">
+                    <thead className="bg-gray-50 text-gray-700">
+                      <tr>
+                        <th className="px-4 py-2 font-medium">Comprobante</th>
+                        <th className="px-4 py-2 font-medium">Emisión</th>
+                        <th className="px-4 py-2 text-right font-medium">Total</th>
+                        <th className="px-4 py-2 text-right font-medium">Saldo Actual</th>
+                        <th className="px-4 py-2 text-right font-medium w-32">Monto a Aplicar</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {clientInvoices.map(inv => {
+                        const { paid, balance } = getInvoicePaymentSummary(inv, receipt?.id, receipts);
+                        const applied = invoicesState.find(i => i.invoiceId === inv.id)?.amountApplied || "";
+                        return (
+                          <tr key={inv.id} className="bg-white hover:bg-gray-50 transition">
+                            <td className="px-4 py-3 font-medium">{inv.number}</td>
+                            <td className="px-4 py-3 text-gray-500">{inv.date}</td>
+                            <td className="px-4 py-3 text-right">{formatCurrency(inv.total)}</td>
+                            <td className="px-4 py-3 text-right text-red-700 font-medium">
+                              {formatCurrency(balance)}
+                              <span className="block text-xs font-normal text-gray-600">Pagado: {formatCurrency(paid)}</span>
+                              {Number(applied) > 0 && <span className="block text-xs font-normal text-gray-700">Restará: {formatCurrency(Math.max(0, balance - Number(applied)))}</span>}
+                            </td>
+                            <td className="px-4 py-3 text-right">
+                              <input
+                                type="number"
+                                min="0"
+                                max={balance}
+                                step="0.01"
+                                value={applied}
+                                onChange={e => handleInvoiceChange(inv.id, inv.number, Number(e.target.value))}
+                                placeholder="0.00"
+                                aria-label={`Monto a aplicar a ${inv.number}`}
+                                className="w-full rounded-md border border-gray-300 bg-white px-2 py-1 text-right text-sm text-gray-900 outline-none placeholder:text-gray-500 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                              />
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="mt-4 grid gap-3 rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm sm:grid-cols-2 lg:grid-cols-4">
+                <div><p className="text-gray-500">Saldo antes de este pago</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalBalance)}</p></div>
+                <div><p className="text-gray-500">Total imputado</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalApplied)}</p></div>
+                <div><p className="text-gray-500">Total en medios de pago</p><p className="mt-1 font-bold text-gray-900">{formatCurrency(totalPayments)}</p></div>
+                <div><p className="text-gray-500">Diferencia pendiente</p><p className={`mt-1 font-bold ${pendingDifference === 0 ? "text-emerald-700" : "text-red-700"}`}>{formatCurrency(pendingDifference)}</p></div>
+              </div>
+              <p className="mt-2 text-xs text-gray-500">La diferencia pendiente es el saldo de las facturas mostradas menos el total de este pago. El saldo ya descuenta los pagos anteriores.</p>
+              {money(totalPayments - totalApplied) !== 0 && totalPayments > 0 && (
+                <div className="mt-3 text-right text-xs text-red-600 font-medium">
+                  La aplicación difiere de los pagos por {formatCurrency(Math.abs(totalPayments - totalApplied))}.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+            <div className="border-b border-gray-200 px-5 py-4">
+              <h2 className="font-semibold text-gray-900">Observaciones</h2>
+            </div>
+            <div className="p-5">
+              <textarea
+                aria-label="Observaciones del recibo"
+                rows={2}
+                value={observations}
+                onChange={e => setObservations(e.target.value)}
+                className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-500 focus:border-amber-500 focus:ring-2 focus:ring-amber-100"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-3">
+            <button type="button" onClick={onCancel} className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100">Cancelar</button>
+            <button type="button" data-validate-form onClick={() => handleSubmit("Borrador")} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50">Guardar Borrador</button>
+            <button type="button" data-validate-form data-validate-complete onClick={() => handleSubmit("Registrado")} className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700">Registrar Pago</button>
+          </div>
+        </form>
+      </SalesFormHeader>
+    </div>
+  );
+}
+
+type ReceiptDetailProps = {
+  receipt: Receipt;
+  notice: string;
+  onClose: () => void;
+  onEdit: () => void;
+  onChangeStatus: (s: ReceiptStatus) => void;
+};
+
+function ReceiptDetail({ receipt, notice, onClose, onEdit, onChangeStatus }: ReceiptDetailProps) {
+  const { clients, orders } = useLoaderData<typeof loader>();
+  const client = clients.find(c => c.id === receipt.clientId);
+
+  return (
+    <div className="mx-auto max-w-5xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50 py-3">
+        <h1 className="min-w-0 break-words text-2xl font-bold text-gray-900">Recibo {receipt.number}</h1>
+        <div className="flex flex-wrap items-center gap-2"><BackToListButton onClick={onClose} /><PrintVoucher title={"Recibo"} document={receipt} client={client} payments={receipt.payments} totalLabel="Total recibido" details={[...receipt.invoices.map(invoice => ({ label: `Aplicado a ${invoice.invoiceNumber}`, value: formatCurrency(invoice.amountApplied) })), ...(receipt.accountMonth ? [{ label: "Período", value: monthLabel(receipt.accountMonth) }] : []), ...(receipt.advanceOrderId ? [{ label: "Seña de pedido", value: orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId }] : [])]} /></div>
+      </div>
+      {receipt.accountMonth && <p className="mb-4 text-sm font-semibold text-amber-800">Pago del mes de {monthLabel(receipt.accountMonth)}</p>}
+      {receipt.advanceOrderId && <p className="mb-4 text-sm font-semibold text-amber-800">Seña del evento {orders.find(order => order.id === receipt.advanceOrderId)?.number ?? receipt.advanceOrderId}. {receipt.invoices.length === 0 ? "Se aplicará al emitir la factura del pedido." : "Aplicada a la factura del pedido."}</p>}
+      {notice && <div role="alert" className="mb-6 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{notice}</div>}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="min-w-0 space-y-6 lg:col-span-2">
+
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+            <h2 className="font-semibold text-gray-900 mb-4">Medios de Pago</h2>
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="w-full text-left text-sm text-gray-900">
+                <thead className="bg-gray-50 text-gray-700">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">Método</th>
+                    <th className="px-4 py-2 font-medium">Referencia</th>
+                    <th className="px-4 py-2 text-right font-medium">Importe</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {receipt.payments.map(p => (
+                    <tr key={p.id}>
+                      <td className="px-4 py-3">{p.method}</td>
+                      <td className="px-4 py-3 text-gray-500">{p.reference || "-"}</td>
+                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(p.amount)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="mt-3 text-right font-semibold text-gray-900">
+              Total Pago: {formatCurrency(receipt.total)}
+            </div>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+            <h2 className="font-semibold text-gray-900 mb-4">Comprobantes Imputados</h2>
+            <div className="overflow-x-auto rounded-lg border border-gray-200">
+              <table className="w-full text-left text-sm text-gray-900">
+                <thead className="bg-gray-50 text-gray-700">
+                  <tr>
+                    <th className="px-4 py-2 font-medium">Comprobante</th>
+                    <th className="px-4 py-2 text-right font-medium">Importe Aplicado</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {receipt.invoices.map(inv => (
+                    <tr key={inv.invoiceId}>
+                      <td className="px-4 py-3 font-medium text-emerald-700">{inv.invoiceNumber}</td>
+                      <td className="px-4 py-3 text-right font-medium">{formatCurrency(inv.amountApplied)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {receipt.observations && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-5">
+              <h3 className="text-sm font-semibold text-amber-900">Observaciones</h3>
+              <p className="mt-2 text-sm text-amber-800 whitespace-pre-wrap">{receipt.observations}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="min-w-0 space-y-6">
+          <div className="rounded-xl border border-gray-200 bg-white shadow-sm p-5">
+            <h2 className="font-semibold text-gray-900 mb-4">Información general</h2>
+            <dl className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Estado</dt>
+                <dd>
+                  <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium ${getStatusClass(receipt.status)}`}>
+                    {receipt.status}
+                  </span>
+                </dd>
+              </div>
+              <div className="flex justify-between border-t border-gray-100 pt-3">
+                <dt className="text-gray-500">Cliente</dt>
+                <dd className="font-medium text-gray-900 text-right">{client?.name || "Desconocido"}</dd>
+              </div>
+              <div className="flex justify-between border-b border-gray-100 pb-3">
+                <dt className="text-gray-500">Fecha</dt>
+                <dd className="font-medium text-gray-900">{receipt.date}</dd>
+              </div>
+            </dl>
+          </div>
+
+          <div className="rounded-xl border border-gray-200 bg-gray-50 p-5 space-y-3">
+            {receipt.status === "Borrador" && (
+              <button type="button" onClick={() => onChangeStatus("Registrado")} className="w-full rounded-lg bg-emerald-700 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-800 transition">
+                Registrar Pago
+              </button>
+            )}
+
+            {receipt.status === "Borrador" && (
+              <button type="button" onClick={onEdit} className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 transition">
+                Editar Recibo
+              </button>
+            )}
+
+            {receipt.status === "Registrado" && (
+              <button type="button" onClick={() => { if(confirm("¿Estás seguro de anular este recibo? Los saldos volverán a su estado anterior.")) onChangeStatus("Anulado"); }} className="w-full rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-700 shadow-sm hover:bg-red-50 transition">
+                Anular Recibo
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function Recibos() {
+  const [params, setParams] = useSearchParams();
+  const requestedClient = params.get("cliente");
+  const requestedMonth = params.get("mes");
+  const { receipts, invoices, clients, orders } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
+  const serverError = fetcher.data && "error" in fetcher.data ? fetcher.data.error : "";
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("Todos los estados");
+  const [notice, setNotice] = useState("");
+
+  const [editingReceipt, setEditingReceipt] = useState<Receipt | null | undefined>(undefined);
+  const [selectedReceipt, setSelectedReceipt] = useState<Receipt | null>(null);
+
+  useEffect(() => {
+    if (requestedClient && requestedMonth) setEditingReceipt(null);
+  }, [requestedClient, requestedMonth]);
+
+  const filteredReceipts = useMemo(() => {
+    return receipts.filter(rec => {
+      const matchesStatus = statusFilter === "Todos los estados" || rec.status === statusFilter;
+      const client = clients.find(c => c.id === rec.clientId);
+      const searchLower = search.trim().toLowerCase();
+      const matchesSearch = !searchLower ||
+        rec.number.toLowerCase().includes(searchLower) ||
+        (client?.name.toLowerCase().includes(searchLower)) ||
+        rec.invoices.some(i => i.invoiceNumber.toLowerCase().includes(searchLower));
+
+      return matchesStatus && matchesSearch;
+    });
+  }, [receipts, clients, search, statusFilter]);
+
+  useEffect(() => {
+    if (editingReceipt === undefined && selectedReceipt === null) return;
+    function handleEscape(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        setEditingReceipt(undefined);
+        setSelectedReceipt(null);
+      }
+    }
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [editingReceipt, selectedReceipt]);
+
+  useEffect(() => {
+    if (fetcher.state === "idle" && fetcher.data && "success" in fetcher.data) {
+      closeReceiptForm(); setSelectedReceipt(null); setNotice("Recibo guardado. Los saldos se actualizaron.");
+    }
+  }, [fetcher.data, fetcher.state]);
+
+  function closeReceiptForm() {
+    setEditingReceipt(undefined);
+    if (requestedClient || requestedMonth) {
+      const next = new URLSearchParams(params);
+      next.delete("cliente"); next.delete("mes");
+      setParams(next, { replace: true });
+    }
+  }
+
+  function saveReceipt(rec: Receipt) {
+    if (fetcher.state !== "idle") return;
+    fetcher.submit({ document: JSON.stringify(rec), ...(receipts.some(receipt => receipt.id === rec.id) ? { id: rec.id } : {}) }, { method: "post" });
+  }
+
+  function changeReceiptStatus(status: ReceiptStatus) {
+    if (!selectedReceipt) return;
+    const isValidTransition =
+      (selectedReceipt.status === "Borrador" && status === "Registrado") ||
+      (selectedReceipt.status === "Registrado" && status === "Anulado");
+    if (!isValidTransition) {
+      setNotice(`No se puede cambiar un recibo ${selectedReceipt.status.toLowerCase()} a ${status.toLowerCase()}.`);
+      return;
+    }
+    const updated = { ...selectedReceipt, status };
+    if (status === "Registrado") {
+      const error = receiptValidationError(updated, invoices, receipts);
+      if (error) {
+        setNotice(error);
+        return;
+      }
+    }
+    saveReceipt(updated);
+  }
+
+  if (editingReceipt !== undefined) {
+    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="mx-auto mt-4 max-w-4xl text-red-700">{serverError}</p>}<ReceiptForm receipt={editingReceipt} receipts={receipts} onCancel={closeReceiptForm} onSave={saveReceipt} /></fieldset>;
+  }
+
+  if (selectedReceipt) {
+    return <fieldset disabled={fetcher.state !== "idle"} className="min-w-0">{serverError && <p role="alert" className="p-4 text-red-700">{serverError}</p>}<ReceiptDetail receipt={selectedReceipt} notice={notice} onClose={() => setSelectedReceipt(null)} onEdit={() => setEditingReceipt(selectedReceipt)} onChangeStatus={changeReceiptStatus} /></fieldset>;
+  }
+
+  return (
+    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <SalesPageHeader
+        title="Recibos de Pago Clientes"
+        description="Registro de cobranzas e imputaciones de comprobantes."
+        action={
+          <button
+            type="button"
+            onClick={() => setEditingReceipt(null)}
+            className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700"
+          >
+            + Nuevo recibo
+          </button>
+        }
+      />
+
+      {notice && (
+        <div role="status" className="mt-5 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+          {notice}
+        </div>
+      )}
+
+      <SalesListPanel
+        title="Listado de recibos"
+        summary={`${filteredReceipts.length} ${filteredReceipts.length === 1 ? "recibo encontrado" : "recibos encontrados"}`}
+        filters={<>
+          <label className="sr-only" htmlFor="receipt-search">Buscar recibos</label>
+          <input id="receipt-search" type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar por número, cliente o factura..." className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100 lg:w-64" />
+          <label className="sr-only" htmlFor="receipt-status-filter">Filtrar recibos por estado</label>
+          <select id="receipt-status-filter" value={statusFilter} onChange={event => setStatusFilter(event.target.value)} className="h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100">
+            <option>Todos los estados</option>
+            {RECEIPT_STATUSES.map(status => <option key={status} value={status}>{status}</option>)}
+          </select>
+        </>}
+      >
+        {filteredReceipts.length === 0 ? (
+          <SalesEmptyState entity="recibos" onReset={() => { setSearch(""); setStatusFilter("Todos los estados"); }} />
+        ) : (
+          <>
+            <div className="hidden lg:grid lg:grid-cols-6 items-center gap-4 border-b border-gray-200 bg-gray-50 px-5 py-3 text-xs font-semibold uppercase tracking-wider text-gray-700">
+              <div className="min-w-0 text-center">Número / Fecha</div>
+              <div className="min-w-0 text-center">Cliente</div>
+              <div className="min-w-0 text-center">Comprobantes</div>
+              <div className="min-w-0 text-center">Total</div>
+              <div className="min-w-0 text-center">Estado</div>
+              <div className="min-w-0 text-center">Acciones</div>
+            </div>
+            <div className="divide-y divide-gray-100">
+            {filteredReceipts.map(receipt => {
+              const client = clients.find(c => c.id === receipt.clientId);
+              return (
+                <article key={receipt.id} className="grid min-w-0 grid-cols-2 items-center gap-x-4 gap-y-3 p-4 transition hover:bg-amber-50/30 lg:grid-cols-6 lg:gap-4 lg:px-5">
+                  <div className="min-w-0 text-left lg:text-center">
+                    <p className="mb-1 text-xs font-medium text-gray-500">{receipt.date}</p>
+                    <h3 className="break-words font-semibold leading-5 text-gray-900">{receipt.number}</h3>
+                  </div>
+                  <div className="min-w-0 text-left lg:text-center">
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">Cliente</p>
+                    <p className="mt-1 break-words text-sm font-medium text-gray-800 lg:mt-0">{client?.name || "Desconocido"}</p>
+                  </div>
+                  <div className="min-w-0 text-left lg:text-center">
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">Comprobantes</p>
+                    <p className="mt-1 break-words text-sm text-emerald-700 font-medium lg:mt-0">
+                      {receipt.invoices.map(i => i.invoiceNumber).join(", ") || (receipt.advanceOrderId ? `Seña de evento ${orders.find(order => order.id === receipt.advanceOrderId)?.number ?? ""}` : "Ninguno")}
+                    </p>
+                  </div>
+                  <div className="min-w-0 lg:text-center text-left">
+                    <p className="text-xs font-medium text-gray-500 lg:hidden">Total</p>
+                    <p className="mt-1 text-sm font-semibold text-gray-900 lg:mt-0">{formatCurrency(receipt.total)}</p>
+                  </div>
+                  <div className="flex flex-col items-start gap-1 lg:items-center">
+                    <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${getStatusClass(receipt.status)}`}>
+                      {receipt.status}
+                    </span>
+                  </div>
+                  <div className="col-span-2 flex flex-wrap items-center justify-end gap-2 border-t border-gray-100 pt-2 lg:col-span-1 lg:border-0 lg:pt-0 lg:justify-center">
+                    <button type="button" onClick={() => setSelectedReceipt(receipt)} className="rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</button>
+                    {receipt.status === "Borrador" && (
+                      <button type="button" onClick={() => setEditingReceipt(receipt)} className="rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 focus-visible:outline-2 focus-visible:outline-amber-600">Editar</button>
+                    )}
+                  </div>
+                </article>
+              );
+            })}
+            </div>
+          </>
+        )}
+      </SalesListPanel>
+    </div>
+  );
+}
