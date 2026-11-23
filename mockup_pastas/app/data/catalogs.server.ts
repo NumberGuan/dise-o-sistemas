@@ -58,12 +58,16 @@ export async function saveCatalogEntry(key: string, form: FormData) {
       const child = CATALOG_DEFINITIONS.find(item => "parent" in item && item.parent === key);
       if (child && catalogs[child.key].some(item => item.parentId === id && item.active)) throw new Error("Primero desactivá los registros que dependen de este registro.");
     }
+    const rawMaterials = definition.key === "marcas" ? form.getAll("materiasPrimas") : [];
+    if (rawMaterials.length > 500 || rawMaterials.some(value => typeof value !== "string" || !/^[1-9]\d{0,8}$/.test(value))) throw new Error("Las materias primas asociadas no son válidas.");
+    const materiasPrimas = [...new Set(rawMaterials.map(Number))];
     const nextId = String(Math.max(0, ...rows.map(item => /^\d+$/.test(item.id) ? Number(item.id) : 0)) + 1);
     const entry: CatalogEntry = {
       id: previous?.id ?? nextId, value: previous?.value ?? name.trim().replace(/\s+/g, " "),
       name: name.trim().replace(/\s+/g, " "), description: description.trim(), active: active === "true",
       ...(typeof parentId === "string" ? { parentId } : {}),
       ...(behavior === "pickup" || behavior === "shipping" ? { behavior } : {}),
+      ...(definition.key === "marcas" ? { materiasPrimas } : {}),
     };
     if (previous) rows[rows.indexOf(previous)] = entry;
     else rows.push(entry);

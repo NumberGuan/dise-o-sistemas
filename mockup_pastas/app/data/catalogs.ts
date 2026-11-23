@@ -1,5 +1,5 @@
 import { PROVINCIAS, LOCALIDADES, CALLES } from "./domicilios";
-import { UNIDADES, TIPOS_PRODUCTO, TIPOS_MATERIA_PRIMA, MARCAS } from "./produccion";
+import { UNIDADES, TIPOS_PRODUCTO, TIPOS_MATERIA_PRIMA, MARCAS, MATERIAS_PRIMAS_PRODUCCION } from "./produccion";
 
 export type CatalogEntry = {
   id: string;
@@ -9,6 +9,7 @@ export type CatalogEntry = {
   active: boolean;
   parentId?: string;
   behavior?: "pickup" | "shipping";
+  materiasPrimas?: number[];
 };
 
 export const CATALOG_DEFINITIONS = [
@@ -50,10 +51,21 @@ export function initialCatalogs(): Catalogs {
     unidades: UNIDADES.map(item => entry(String(item.idUnidad), item.unidad)),
     "tipos-producto": TIPOS_PRODUCTO.map(item => entry(String(item.idTipoProducto), item.tipo)),
     "tipos-materia-prima": TIPOS_MATERIA_PRIMA.map(item => entry(String(item.idTipoMateriaPrima), item.nombre)),
-    marcas: MARCAS.map(item => entry(String(item.idMarca), item.nombre)),
+    marcas: MARCAS.map(item => entry(String(item.idMarca), item.nombre, { materiasPrimas: materiasPrimasDeMarca(item.idMarca) })),
     "tipos-maquina": names(["Amasadora", "Sobadora", "Formadora", "Secadero"]),
     "tipos-mantenimiento": names(["Preventivo", "Correctivo"]),
   };
+}
+
+const materiasPrimasDeMarca = (idMarca: number) => MATERIAS_PRIMAS_PRODUCCION.filter(m => m.idMarca === idMarca).map(m => m.idMateriaPrima);
+
+// Materias primas asociadas a una marca; los catálogos guardados antes de la asociación usan la inicial.
+export function brandRawMaterials(brand: CatalogEntry) {
+  return brand.materiasPrimas ?? materiasPrimasDeMarca(Number(brand.id));
+}
+
+export function brandsForRawMaterial(catalogs: Catalogs, idMateriaPrima: number, retainedId?: string) {
+  return catalogs.marcas.filter(brand => brand.id === retainedId || (brand.active && brandRawMaterials(brand).includes(idMateriaPrima)));
 }
 
 export function catalogOptions(catalogs: Catalogs, key: CatalogKey, retained?: string) {

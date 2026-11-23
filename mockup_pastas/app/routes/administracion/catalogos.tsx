@@ -2,7 +2,8 @@ import { CatalogAddButton, CatalogField } from "~/components/InlineCatalog";
 import { useCatalogs } from "~/components/CatalogProvider";
 import { useEffect, useMemo, useState } from "react";
 import { Form, Link, useActionData, useLoaderData, useNavigation, useSearchParams } from "react-router";
-import { catalogDefinition, type CatalogEntry, type Catalogs, type CATALOG_DEFINITIONS } from "~/data/catalogs";
+import { brandRawMaterials, catalogDefinition, type CatalogEntry, type Catalogs, type CATALOG_DEFINITIONS } from "~/data/catalogs";
+import { MATERIAS_PRIMAS_PRODUCCION } from "~/data/produccion";
 import { getCatalogs, saveCatalogEntry } from "~/data/catalogs.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/catalogos";
@@ -93,13 +94,23 @@ function CatalogScreen({ definition }: { definition: (typeof CATALOG_DEFINITIONS
           {definition.key === "modalidades-entrega" && <label className="block text-sm font-medium">Forma de entrega *
             {selected ? <><input readOnly value={selected.behavior === "pickup" ? "Retiro: no requiere dirección" : "Envío: requiere dirección"} className={field} /><input type="hidden" name="behavior" value={selected.behavior} /></> : <select name="behavior" required defaultValue="shipping" className={field}><option value="shipping">Envío: requiere dirección</option><option value="pickup">Retiro: no requiere dirección</option></select>}
           </label>}
+          {definition.key === "marcas" && <fieldset>
+            <legend className="text-sm font-medium">Materias primas de esta marca</legend>
+            <p className="mt-1 text-xs text-gray-500">Al cargar una receta, la marca solo se ofrece para las materias primas marcadas.</p>
+            <div className="mt-2 grid max-h-64 gap-1 overflow-y-auto rounded-lg border border-gray-300 p-3 sm:grid-cols-2">
+              {MATERIAS_PRIMAS_PRODUCCION.map(material => <label key={material.idMateriaPrima} className="flex items-center gap-2 rounded px-1 py-1 text-sm hover:bg-amber-50">
+                <input type="checkbox" name="materiasPrimas" value={material.idMateriaPrima} defaultChecked={selected ? brandRawMaterials(selected).includes(material.idMateriaPrima) : false} className="h-4 w-4 accent-amber-600" />
+                {material.nombre}
+              </label>)}
+            </div>
+          </fieldset>}
           <label className="block text-sm font-medium">Descripción<textarea name="description" rows={3} maxLength={500} defaultValue={selected?.description} className={field} /></label>
           <label className="block text-sm font-medium">Estado *<select name="active" defaultValue={selected?.active === false ? "false" : "true"} className={field}><option value="true">Activo</option><option value="false">Inactivo</option></select></label>
           {selected && <p className="text-xs text-gray-500">Código: {selected.id}. Las operaciones anteriores conservan su referencia original aunque cambies el nombre.</p>}
           <div className="flex justify-end gap-3 border-t border-gray-100 pt-5"><Link to="?" aria-disabled={pending} onClick={event => { if (pending) event.preventDefault(); }} className={secondary}>Cancelar</Link><button disabled={pending} type="submit" className="rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700 disabled:opacity-50">{pending ? "Guardando…" : "Guardar"}</button></div>
         </Form>
       </section> : mode === "detalle" && selected ? <section className="max-w-2xl rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="text-xl font-semibold">{selected.name}</h2><dl className="mt-5 grid gap-4 text-sm">{[["Código", selected.id], ["Estado", selected.active ? "Activo" : "Inactivo"], ["Descripción", selected.description || "Sin descripción"], ...(parentDefinition ? [[parentDefinition.title, parentLabel(selected)]] : []), ...(selected.behavior ? [["Forma de entrega", selected.behavior === "pickup" ? "Retiro" : "Envío con dirección"]] : [])].map(([label, value]) => <div key={label}><dt className="text-gray-500">{label}</dt><dd className="mt-1 font-medium">{value}</dd></div>)}</dl>
+        <h2 className="text-xl font-semibold">{selected.name}</h2><dl className="mt-5 grid gap-4 text-sm">{[["Código", selected.id], ["Estado", selected.active ? "Activo" : "Inactivo"], ["Descripción", selected.description || "Sin descripción"], ...(parentDefinition ? [[parentDefinition.title, parentLabel(selected)]] : []), ...(selected.behavior ? [["Forma de entrega", selected.behavior === "pickup" ? "Retiro" : "Envío con dirección"]] : []), ...(definition.key === "marcas" ? [["Materias primas", MATERIAS_PRIMAS_PRODUCCION.filter(material => brandRawMaterials(selected).includes(material.idMateriaPrima)).map(material => material.nombre).join(", ") || "Sin materias primas asociadas"]] : [])].map(([label, value]) => <div key={label}><dt className="text-gray-500">{label}</dt><dd className="mt-1 font-medium">{value}</dd></div>)}</dl>
         <div className="mt-6 flex gap-3"><Link to="?" className={secondary}>Volver al listado</Link><Link to={`?vista=editar&registro=${selected.id}`} className={secondary}>Editar</Link></div>
       </section> : <>
         <dl className="mb-6 grid grid-cols-3 gap-3">{[["Total", rows.length], ["Activos", rows.filter(item => item.active).length], ["Inactivos", rows.filter(item => !item.active).length]].map(([label, value]) => <div key={label} className="rounded-xl border border-gray-200 bg-white p-4"><dt className="text-sm text-gray-500">{label}</dt><dd className="mt-1 text-2xl font-bold">{value}</dd></div>)}</dl>

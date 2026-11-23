@@ -208,6 +208,29 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
         assert.equal((await catalogs.getCatalogs())["tipos-cliente"].find(item => item.id === result.data.entry.id).name, "Cliente creado desde modal");
       }
     });
+    await t.test("Las marcas guardan sus materias primas y las recetas solo ofrecen las asociadas", async () => {
+      const brandForm = (name, ids, extra = {}) => {
+        const data = form(name, extra);
+        for (const id of ids) data.append("materiasPrimas", id);
+        return data;
+      };
+      let data = await catalogs.getCatalogs();
+      assert.deepEqual(model.brandRawMaterials(data.marcas.find(item => item.id === "1")), [1, 3]);
+      assert.deepEqual(model.brandsForRawMaterial(data, 1).map(item => item.id), ["1"]);
+      const created = await catalogs.saveCatalogEntry("marcas", brandForm("Harinera Test", ["1", "2", "2"]));
+      assert.deepEqual(created.materiasPrimas, [1, 2]);
+      data = await catalogs.getCatalogs();
+      assert.deepEqual(model.brandsForRawMaterial(data, 1).map(item => item.id).sort(), ["1", created.id].sort());
+      assert.equal(model.brandsForRawMaterial(data, 5).some(item => item.id === created.id), false);
+      await catalogs.saveCatalogEntry("marcas", brandForm("Harinera Test", ["5"], { id: created.id }));
+      data = await catalogs.getCatalogs();
+      assert.equal(model.brandsForRawMaterial(data, 1).some(item => item.id === created.id), false);
+      assert.equal(model.brandsForRawMaterial(data, 1, created.id).some(item => item.id === created.id), true);
+      await assert.rejects(catalogs.saveCatalogEntry("marcas", brandForm("Otra marca", ["abc"])), /no son válidas/);
+      const legacy = { ...data.marcas.find(item => item.id === "3") };
+      delete legacy.materiasPrimas;
+      assert.deepEqual(model.brandRawMaterials(legacy), [5, 6, 20, 21, 22, 23, 24]);
+    });
     await t.test("Un archivo inválido no se sobrescribe ni restablece silenciosamente", async () => {
       await fs.writeFile("data/catalogs.json", "contenido inválido");
       await assert.rejects(catalogs.getCatalogs(), /conservó/);

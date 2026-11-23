@@ -27,7 +27,7 @@ export type Producto = {
   stockProducto: number;
 };
 
-export type DetalleMateriaPrima = { idMateriaPrima: number; idUnidad: number; cantidadNecesaria: number };
+export type DetalleMateriaPrima = { idMateriaPrima: number; idUnidad: number; idMarca: number; cantidadNecesaria: number };
 export type DetalleRecetaMaquina = { idMaquina: string; horaInicio: string; horaFin: string };
 
 export type Receta = {
@@ -250,7 +250,7 @@ export const RECETAS: Receta[] = RECETAS_SEMILLA.map((receta) => ({
   ...receta,
   materiasPrimas: receta.materiasPrimas.map((d) => {
     const mp = MATERIAS_PRIMAS_PRODUCCION.find((m) => m.idMateriaPrima === d.idMateriaPrima)!;
-    return { ...d, idUnidad: mp.idUnidad };
+    return { ...d, idUnidad: mp.idUnidad, idMarca: mp.idMarca };
   }),
 }));
 

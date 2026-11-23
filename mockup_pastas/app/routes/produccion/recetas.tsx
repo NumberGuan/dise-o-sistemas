@@ -11,12 +11,13 @@ import {
   type DetalleMateriaPrima, type DetalleRecetaMaquina, type Receta,
 } from "~/data/produccion";
 import { Accordion, Collapse, rowMotion, toast } from "~/components/motion";
+import { brandsForRawMaterial } from "~/data/catalogs";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
 const filterClass = "h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 
-type MateriaPrimaRow = { key: string; idMateriaPrima: string; idUnidad: string; cantidadNecesaria: string };
+type MateriaPrimaRow = { key: string; idMateriaPrima: string; idUnidad: string; idMarca: string; cantidadNecesaria: string };
 type MaquinaRow = DetalleRecetaMaquina & { key: string };
 
 function formatTiempo(tiempo: string) {
@@ -25,18 +26,25 @@ function formatTiempo(tiempo: string) {
 }
 
 function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCancel: () => void; onSave: (r: Receta) => void }) {
-  const { UNIDADES } = useProductionCatalogs();
+  const { catalogs, UNIDADES } = useProductionCatalogs();
   const [id] = useState(recipe?.idReceta ?? siguienteId(RECETAS.map((r) => r.idReceta)));
+  const original = (m: MateriaPrimaRow) => recipe?.materiasPrimas.find((d) => String(d.idMateriaPrima) === m.idMateriaPrima);
+  const brandOptions = (m: MateriaPrimaRow) => m.idMateriaPrima ? brandsForRawMaterial(catalogs, Number(m.idMateriaPrima), original(m) && String(original(m)!.idMarca)) : [];
   const [nombre, setNombre] = useState(recipe?.nombre ?? "");
   const [procedimiento, setProcedimiento] = useState(recipe?.procedimiento ?? "");
   const [tiempo, setTiempo] = useState(recipe?.tiempoCoccion ?? "");
   const [temperatura, setTemperatura] = useState(recipe ? String(recipe.temperatura) : "");
-  const [materias, setMaterias] = useState<MateriaPrimaRow[]>(() => (recipe?.materiasPrimas ?? []).map((d, i) => ({ key: `mp-${i}`, idMateriaPrima: String(d.idMateriaPrima), idUnidad: String(d.idUnidad), cantidadNecesaria: String(d.cantidadNecesaria) })));
+  const [materias, setMaterias] = useState<MateriaPrimaRow[]>(() => (recipe?.materiasPrimas ?? []).map((d, i) => ({ key: `mp-${i}`, idMateriaPrima: String(d.idMateriaPrima), idUnidad: String(d.idUnidad), idMarca: String(d.idMarca), cantidadNecesaria: String(d.cantidadNecesaria) })));
   const [maquinas, setMaquinas] = useState<MaquinaRow[]>(() => (recipe?.maquinas ?? []).map((d, i) => ({ ...d, key: `maq-${i}` })));
   const [error, setError] = useState("");
 
   const updateMateria = (index: number, key: keyof MateriaPrimaRow, value: string) => setMaterias(materias.map((m, i) => i === index ? { ...m, [key]: value } : m));
-  const changeMateria = (index: number, idMateriaPrima: string) => setMaterias(materias.map((m, i) => i === index ? { ...m, idMateriaPrima, idUnidad: idMateriaPrima ? String(getMateriaPrima(Number(idMateriaPrima))?.idUnidad ?? "") : "" } : m));
+  const changeMateria = (index: number, idMateriaPrima: string) => setMaterias(materias.map((m, i) => {
+    if (i !== index) return m;
+    const next = { ...m, idMateriaPrima, idMarca: "", idUnidad: idMateriaPrima ? String(getMateriaPrima(Number(idMateriaPrima))?.idUnidad ?? "") : "" };
+    const marcas = brandOptions(next);
+    return { ...next, idMarca: marcas.length === 1 ? marcas[0].id : "" };
+  }));
   const updateMaquina = (index: number, key: keyof MaquinaRow, value: string) => setMaquinas(maquinas.map((m, i) => i === index ? { ...m, [key]: value } : m));
 
   function submit(e: FormEvent) {
@@ -47,12 +55,17 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
     if (materias.length === 0) return setError("Agregá al menos una materia prima.");
     if (materias.some((m) => !m.idMateriaPrima || !(Number(m.cantidadNecesaria) > 0))) return setError("Cada materia prima necesita una cantidad mayor a cero.");
     if (materias.some((m) => !m.idUnidad)) return setError("Seleccioná la unidad de cada materia prima.");
+    const sinMarca = materias.find((m) => !brandOptions(m).some((b) => b.id === m.idMarca));
+    if (sinMarca) {
+      const nombreMp = getMateriaPrima(Number(sinMarca.idMateriaPrima))?.nombre ?? "la materia prima";
+      return setError(brandOptions(sinMarca).length ? `Seleccioná la marca de ${nombreMp}.` : `${nombreMp} no tiene marcas asociadas. Asociala desde Gestión del sistema → Marcas.`);
+    }
     if (new Set(materias.map((m) => m.idMateriaPrima)).size !== materias.length) return setError("Hay materias primas repetidas.");
     if (maquinas.some((m) => !m.idMaquina || !m.horaInicio || !m.horaFin)) return setError("Completá máquina, hora de inicio y hora de fin en cada fila.");
     if (maquinas.some((m) => m.horaFin <= m.horaInicio)) return setError("La hora de fin tiene que ser posterior a la de inicio.");
     if (new Set(maquinas.map((m) => m.idMaquina)).size !== maquinas.length) return setError("Hay máquinas repetidas.");
 
-    const detalleMaterias: DetalleMateriaPrima[] = materias.map((m) => ({ idMateriaPrima: Number(m.idMateriaPrima), idUnidad: Number(m.idUnidad), cantidadNecesaria: Number(m.cantidadNecesaria) }));
+    const detalleMaterias: DetalleMateriaPrima[] = materias.map((m) => ({ idMateriaPrima: Number(m.idMateriaPrima), idUnidad: Number(m.idUnidad), idMarca: Number(m.idMarca), cantidadNecesaria: Number(m.cantidadNecesaria) }));
     const detalleMaquinas: DetalleRecetaMaquina[] = maquinas.map(({ idMaquina, horaInicio, horaFin }) => ({ idMaquina, horaInicio, horaFin }));
     onSave({ idReceta: id, nombre: nombre.trim(), procedimiento: procedimiento.trim(), tiempoCoccion: tiempo, temperatura: Number(temperatura), materiasPrimas: detalleMaterias, maquinas: detalleMaquinas });
   }
@@ -86,21 +99,28 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
         <div data-validation-message={materias.length ? "" : "Agregá al menos una materia prima."} className="mt-8">
           <div className="flex items-center justify-between">
             <h3 className="font-semibold text-gray-900">Materias primas</h3>
-            <button type="button" onClick={() => setMaterias([...materias, { key: `mp-${Date.now()}`, idMateriaPrima: "", idUnidad: "", cantidadNecesaria: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar materia prima</button>
+            <button type="button" onClick={() => setMaterias([...materias, { key: `mp-${Date.now()}`, idMateriaPrima: "", idUnidad: "", idMarca: "", cantidadNecesaria: "" }])} className="text-sm font-semibold text-amber-700 hover:text-amber-800">+ Agregar materia prima</button>
           </div>
           <div className="mt-4">
             {materias.length === 0 && <p className="text-sm text-gray-500">Todavía no agregaste materias primas.</p>}
             <AnimatePresence initial={false}>
             {materias.map((m, idx) => {
+              const marcas = brandOptions(m);
               return (
                 <Collapse key={m.key} className="pb-3">
                 <div className="relative rounded-lg border border-gray-200 bg-gray-50 p-4">
                   <button type="button" onClick={() => setMaterias(materias.filter((_, i) => i !== idx))} className="absolute right-2 top-2 p-2 text-gray-400 hover:text-red-600" aria-label="Quitar materia prima">✕</button>
-                  <div className="grid gap-4 pr-6 sm:grid-cols-[2fr_1fr_1fr]">
+                  <div className="grid gap-4 pr-6 sm:grid-cols-2 lg:grid-cols-[2fr_1.5fr_1fr_1fr]">
                     <label className={labelClass}>Materia prima <span className="text-rose-600">*</span>
                       <select required value={m.idMateriaPrima} onChange={(e) => changeMateria(idx, e.target.value)} className={field}>
                         <option value="">Seleccionar...</option>
                         {MATERIAS_PRIMAS_PRODUCCION.map((x) => <option key={x.idMateriaPrima} value={x.idMateriaPrima}>{x.nombre}</option>)}
+                      </select>
+                    </label>
+                    <label className={labelClass}>Marca <span className="text-rose-600">*</span>
+                      <select required disabled={!m.idMateriaPrima} value={m.idMarca} onChange={(e) => updateMateria(idx, "idMarca", e.target.value)} className={`${field} disabled:bg-gray-100`}>
+                        <option value="">{!m.idMateriaPrima ? "Elegí la materia prima" : marcas.length ? "Seleccionar..." : "Sin marcas asociadas"}</option>
+                        {marcas.map((b) => <option key={b.id} value={b.id}>{b.name}{!b.active ? " (inactiva)" : ""}</option>)}
                       </select>
                     </label>
                     <label className={labelClass}>Cantidad necesaria <span className="text-rose-600">*</span>
@@ -113,6 +133,7 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
                       </select>
                     </label>
                   </div>
+                  {m.idMateriaPrima && !marcas.length && <p className="mt-2 text-xs text-amber-800">Esta materia prima no tiene marcas asociadas. Podés asociarlas en Gestión del sistema → Marcas.</p>}
                 </div>
                 </Collapse>
               );
@@ -164,7 +185,7 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
 }
 
 function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: () => void; onEdit: () => void }) {
-  const { formatCantidad } = useProductionCatalogs();
+  const { formatCantidad, getMarca } = useProductionCatalogs();
   const productos = PRODUCTOS_PRODUCCION.filter((p) => p.idReceta === recipe.idReceta);
 
   return (
@@ -200,7 +221,10 @@ function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: (
                       const mp = getMateriaPrima(d.idMateriaPrima);
                       return (
                         <li key={d.idMateriaPrima} className="flex items-center justify-between gap-3 px-4 py-2.5 text-sm">
-                          <span className="text-gray-900">{mp?.nombre ?? "—"}</span>
+                          <span>
+                            <span className="text-gray-900">{mp?.nombre ?? "—"}</span>
+                            <span className="ml-2 text-xs text-gray-500">{getMarca(d.idMarca)}</span>
+                          </span>
                           <span className="font-medium text-gray-700">{formatCantidad(d.cantidadNecesaria, d.idUnidad)}</span>
                         </li>
                       );
