@@ -4,6 +4,7 @@ import ModulePageHeader from "~/components/ModulePageHeader";
 const heroImages = {
   catalogo: "/hero-pastas.jpg",
   carrito: "/hero-carrito.webp",
+  perfil: "/hero-perfil.webp",
 };
 
 type ShopPageHeroProps = {
