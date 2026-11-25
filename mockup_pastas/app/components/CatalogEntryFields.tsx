@@ -1,7 +1,8 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { useState, type ReactElement, type ReactNode } from "react";
 import { useCatalogs } from "~/components/CatalogProvider";
 import { brandRawMaterials, catalogDefinition, type CatalogEntry, type CatalogKey } from "~/data/catalogs";
-import { MATERIAS_PRIMAS_PRODUCCION } from "~/data/produccion";
+
 
 export const catalogInputClass = "mt-1 w-full rounded-lg border border-gray-300 bg-white px-3 py-2.5 text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-100";
 
@@ -14,6 +15,7 @@ type Props = {
 };
 
 export function CatalogEntryFields({ catalog, entry, initialParentId, initialMateriaPrima, renderParentField }: Props) {
+  const { MATERIAS_PRIMAS_PRODUCCION } = useInternalData("production");
   const catalogs = useCatalogs();
   const definition = catalogDefinition(catalog)!;
   const parentKey = "parent" in definition ? definition.parent : undefined;

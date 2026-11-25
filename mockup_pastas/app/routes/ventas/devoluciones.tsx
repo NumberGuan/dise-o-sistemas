@@ -1,23 +1,11 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import SalesDocument from "~/components/SalesDocument";
 import { SortableList, SortableTable } from "~/components/SortableRows";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
-import {
-  CUSTOMER_RETURN_STATUSES,
-  SAMPLE_CLIENTS,
-  SAMPLE_CUSTOMER_RETURNS,
-  SAMPLE_INVOICES,
-  SAMPLE_ORDERS,
-  SAMPLE_REMITS,
-  getRegisteredReturnedQuantity,
-  getRemitAvailableQuantity,
-  type CustomerReturn,
-  type CustomerReturnItem,
-  type CustomerReturnStatus,
-  type Remit,
-} from "~/data/sales";
+import { CUSTOMER_RETURN_STATUSES, type Invoice, type CustomerReturn, type CustomerReturnItem, type CustomerReturnStatus, type Remit } from "~/data/sales";
 
 function getStatusClass(status: CustomerReturnStatus) {
   switch (status) {
@@ -27,19 +15,21 @@ function getStatusClass(status: CustomerReturnStatus) {
   }
 }
 
-function getInvoiceForOrder(orderId: string) {
-  return SAMPLE_INVOICES.find(invoice => invoice.orderId === orderId && invoice.status !== "Anulado");
+function getInvoiceForOrder(invoices: Invoice[], orderId: string) {
+  return invoices.find(invoice => invoice.orderId === orderId && invoice.status !== "Anulado");
 }
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
 }
 
-function hasAvailableItems(remit: Remit, excludingReturnId?: string) {
+type ReturnsData = ReturnType<typeof useInternalData<"sales">>;
+
+function hasAvailableItems(getRemitAvailableQuantity: ReturnsData["getRemitAvailableQuantity"], remit: Remit, excludingReturnId?: string) {
   return remit.items.some(item => getRemitAvailableQuantity(remit, item.productId, excludingReturnId) > 0);
 }
 
-function validateCustomerReturn(customerReturn: CustomerReturn) {
+function validateCustomerReturn({ SAMPLE_REMITS, getRegisteredReturnedQuantity }: ReturnsData, customerReturn: CustomerReturn) {
   const remit = SAMPLE_REMITS.find(candidate => candidate.id === customerReturn.remitId);
   if (!remit) return "Seleccioná un remito válido.";
   if (remit.status === "Anulado") return "El remito seleccionado está anulado y no admite devoluciones.";
@@ -77,6 +67,8 @@ type ReturnFormProps = {
 };
 
 function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: ReturnFormProps) {
+  const sales = useInternalData("sales");
+  const { SAMPLE_REMITS, SAMPLE_CLIENTS, SAMPLE_ORDERS, SAMPLE_INVOICES, getRegisteredReturnedQuantity, SAMPLE_CUSTOMER_RETURNS, getRemitAvailableQuantity } = sales;
   const isNew = !customerReturn;
   const [remitId, setRemitId] = useState(customerReturn?.remitId || initialRemitId);
   const [date, setDate] = useState(customerReturn?.date || new Date().toISOString().split("T")[0]);
@@ -85,11 +77,11 @@ function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: Return
   const [quantities, setQuantities] = useState<Record<string, string>>(() => Object.fromEntries(customerReturn?.items.map(item => [item.productId, String(item.quantity)]) || []));
   const [error, setError] = useState("");
 
-  const availableRemits = SAMPLE_REMITS.filter(remit => remit.status === "Entregado" && hasAvailableItems(remit, customerReturn?.id));
+  const availableRemits = SAMPLE_REMITS.filter(remit => remit.status === "Entregado" && hasAvailableItems(getRemitAvailableQuantity, remit, customerReturn?.id));
   const selectedRemit = SAMPLE_REMITS.find(remit => remit.id === remitId);
   const selectedClient = SAMPLE_CLIENTS.find(client => client.id === selectedRemit?.clientId);
   const selectedOrder = SAMPLE_ORDERS.find(order => order.id === selectedRemit?.orderId);
-  const selectedInvoice = selectedOrder ? getInvoiceForOrder(selectedOrder.id) : undefined;
+  const selectedInvoice = selectedOrder ? getInvoiceForOrder(SAMPLE_INVOICES, selectedOrder.id) : undefined;
   const pricingItems = selectedInvoice?.items || selectedOrder?.items || [];
   const returnLines = selectedRemit?.items.map(item => {
     const returnQuantity = Number(quantities[item.productId] || 0);
@@ -155,7 +147,7 @@ function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: Return
       estimatedRefundTotal: Math.round(estimatedRefundAmount * 100) / 100,
       status,
     };
-    const validationError = validateCustomerReturn(nextReturn);
+    const validationError = validateCustomerReturn(sales, nextReturn);
     if (validationError) return setError(validationError);
     onSave(nextReturn);
   }
@@ -221,6 +213,7 @@ function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: Return
 type ReturnDetailProps = { customerReturn: CustomerReturn; notice: string; onClose: () => void; onEdit: () => void; onChangeStatus: (status: CustomerReturnStatus) => void };
 
 function ReturnDetail({ customerReturn, notice, onClose, onEdit, onChangeStatus }: ReturnDetailProps) {
+  const { SAMPLE_CLIENTS, SAMPLE_REMITS, SAMPLE_ORDERS, SAMPLE_INVOICES } = useInternalData("sales");
   const client = SAMPLE_CLIENTS.find(candidate => candidate.id === customerReturn.clientId);
   const remit = SAMPLE_REMITS.find(candidate => candidate.id === customerReturn.remitId);
   const order = SAMPLE_ORDERS.find(candidate => candidate.id === customerReturn.orderId);
@@ -240,6 +233,8 @@ function ReturnDetail({ customerReturn, notice, onClose, onEdit, onChangeStatus 
 }
 
 export default function Devoluciones() {
+  const sales = useInternalData("sales");
+  const { SAMPLE_CUSTOMER_RETURNS, SAMPLE_REMITS, SAMPLE_CLIENTS, SAMPLE_ORDERS, SAMPLE_INVOICES, getRemitAvailableQuantity } = sales;
   const [searchParams, setSearchParams] = useSearchParams();
   const [returns, setReturns] = useState<CustomerReturn[]>(() => [...SAMPLE_CUSTOMER_RETURNS]);
   const [search, setSearch] = useState("");
@@ -257,7 +252,7 @@ export default function Devoluciones() {
     } else if (requestedRemitId) {
       const requestedRemit = SAMPLE_REMITS.find(remit => remit.id === requestedRemitId);
       const existing = SAMPLE_CUSTOMER_RETURNS.filter(customerReturn => customerReturn.remitId === requestedRemitId);
-      if (requestedRemit?.status === "Entregado" && hasAvailableItems(requestedRemit)) setEditingReturn(null);
+      if (requestedRemit?.status === "Entregado" && hasAvailableItems(getRemitAvailableQuantity, requestedRemit)) setEditingReturn(null);
       else if (existing[0]) setSelectedReturn(existing[0]);
       else setNotice("El remito solicitado no admite una devolución: debe estar entregado y tener unidades disponibles.");
     }
@@ -299,7 +294,7 @@ export default function Devoluciones() {
     const previous = SAMPLE_CUSTOMER_RETURNS.find(existing => existing.id === nextReturn.id);
     if (previous && previous.status !== "Borrador") { setNotice("Solo las devoluciones en borrador pueden modificarse o registrarse."); return; }
     if (SAMPLE_CUSTOMER_RETURNS.some(existing => existing.number === nextReturn.number && existing.id !== nextReturn.id)) { setNotice("Ya existe una devolución con ese número."); return; }
-    const validationError = validateCustomerReturn(nextReturn);
+    const validationError = validateCustomerReturn(sales, nextReturn);
     if (validationError) { setNotice(validationError); return; }
     if (previous) SAMPLE_CUSTOMER_RETURNS[SAMPLE_CUSTOMER_RETURNS.findIndex(existing => existing.id === nextReturn.id)] = nextReturn;
     else SAMPLE_CUSTOMER_RETURNS.unshift(nextReturn);
@@ -316,7 +311,7 @@ export default function Devoluciones() {
     if (!validTransition) { setNotice(`No se puede cambiar una devolución ${selectedReturn.status.toLowerCase()} a ${status.toLowerCase()}.`); return; }
     const updated = { ...selectedReturn, status };
     if (status === "Registrada") {
-      const validationError = validateCustomerReturn(updated);
+      const validationError = validateCustomerReturn(sales, updated);
       if (validationError) { setNotice(validationError); return; }
     }
     const index = SAMPLE_CUSTOMER_RETURNS.findIndex(existing => existing.id === updated.id);

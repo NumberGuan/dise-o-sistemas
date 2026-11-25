@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import EmployeeDocument, { ProductionSection as EmployeeSection } from "~/components/ProductionDocument";
 import { SortableList } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
@@ -14,13 +15,7 @@ import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useMemo, useState, type FormEvent, useEffect } from "react";
 
-import {
-  EMPLOYEE_STATUSES,
-  SAMPLE_EMPLOYEES,
-  type Employee,
-  type EmployeeRole,
-  type EmployeeStatus,
-} from "~/data/employees";
+import { EMPLOYEE_STATUSES, type Employee, type EmployeeRole, type EmployeeStatus } from "~/data/employees";
 
 const inputClassName =
   "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
@@ -264,6 +259,7 @@ function EmployeeDetail({ employee, onBack, onEdit, onToggleStatus }: EmployeeDe
 }
 
 export default function Empleados() {
+  const SAMPLE_EMPLOYEES = useInternalData("employees");
   const [employees, setEmployees] = useState<Employee[]>(() => [...SAMPLE_EMPLOYEES]);
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<EmployeeRole | "Todos los cargos">("Todos los cargos");

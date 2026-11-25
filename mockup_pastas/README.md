@@ -52,11 +52,27 @@ npm run typecheck
 
 Para evitar conflictos de archivos generados en Windows y OneDrive, ejecutá `npm run typecheck` con el servidor de desarrollo detenido.
 
-Los datos de cuentas, perfiles de cliente, favoritos, carrito y pedidos de cuentas registradas se guardan en `data/users.json`. Los clientes locales de Ventas y los pedidos asociados a clientes locales se guardan en `data/sales.json`, que se inicializa con registros de muestra la primera vez que se usa. El archivo de cuentas se crea automáticamente si falta; mantené ambos archivos en el almacenamiento persistente del servidor.
+Los datos de cuentas, sesiones, perfiles de cliente, favoritos, carrito y pedidos de cuentas registradas se guardan en `data/users.json`. Los clientes locales de Ventas y los pedidos asociados a clientes locales se guardan en `data/sales.json`, que se inicializa con registros de muestra la primera vez que se usa. El archivo de cuentas se crea vacío si falta. Conservá el directorio `data/` en almacenamiento persistente y privado del servidor.
 
 Estos archivos JSON sirven para una instancia de la aplicación. Las escrituras del archivo de Ventas se serializan dentro del proceso y se reemplazan de forma atómica, pero JSON no coordina varias instancias ni ofrece una base de datos compartida. Para escalar a varios servidores, hace falta migrar esos datos a un servicio de almacenamiento transaccional.
 
-La maqueta no integra pagos externos ni sincronización de stock con un sistema de inventario. Los demás módulos conservan sus datos de muestra.
+La maqueta no integra pagos externos ni sincronización de stock con un sistema de inventario. Los módulos de muestra entregan sus datos desde el servidor según el rol y mantienen las ediciones de la maqueta durante la sesión de navegación.
+
+## Acceso y configuración de seguridad
+
+| Rol o estado | Acceso |
+| --- | --- |
+| Visitante | Catálogo y carrito público |
+| Cliente activo | Tienda, favoritos, carrito, perfil, cuenta mensual y pedidos propios |
+| Ventas | Clientes, pedidos y demás operaciones de Ventas. Datos de identificación laboral necesarios para asignar responsables |
+| Producción | Producción y Mantenimiento. Datos de identificación laboral necesarios para asignar responsables |
+| Administrador | Módulos internos, incluida Compras y la gestión de empleados y catálogos |
+
+Para crear la primera cuenta administradora o cambiar la contraseña de una existente, detené la aplicación y ejecutá `npm run admin:configure` desde `mockup_pastas`. Pasá `ADMIN_EMAIL` y `ADMIN_PASSWORD` como variables de entorno temporales. Elegí una contraseña única de 16 a 128 caracteres y retirala del entorno al terminar. El comando usa el `data/users.json` de esa instancia y revoca las sesiones de la cuenta actualizada. Si recuperás la cuenta administradora de la versión anterior, usá su correo existente. La antigua contraseña predeterminada está bloqueada.
+
+En producción, usá HTTPS y configurá un `SESSION_SECRET` aleatorio propio de al menos 32 caracteres. Si el servidor recibe solicitudes a través de un proxy que cambia el origen, configurá `APP_ORIGIN` con el origen HTTPS público de la aplicación. Configurá el proxy para respetar `Cache-Control: private, no-store` en las respuestas de la aplicación y servir solo los archivos estáticos de `build/client`. Después de actualizar desde una versión anterior, los usuarios deben iniciar sesión de nuevo.
+
+Ejecutá `npm run test:seguridad` para compilar y comprobar los permisos por rol, el acceso a pedidos propios, el cierre de sesiones y la ausencia de registros internos de muestra en los archivos públicos. Las pruebas usan cuentas temporales y almacenamiento aislado.
 
 ## Building for Production
 
@@ -76,10 +92,10 @@ To build and run using Docker:
 docker build -t my-app .
 
 # Run the container
-docker run -p 3000:3000 -e SESSION_SECRET="<secreto-aleatorio-unico>" my-app
+docker run -p 3000:3000 -e SESSION_SECRET -v pastas-data:/app/data my-app
 ```
 
-En producción, configurá `SESSION_SECRET` con un valor aleatorio propio y mantenelo fuera del repositorio. La aplicación no inicia en modo producción si falta este secreto.
+Para configurar la cuenta administradora en Docker, ejecutá `docker run --rm -e ADMIN_EMAIL -e ADMIN_PASSWORD -v pastas-data:/app/data my-app npm run admin:configure` con la instancia detenida y las variables configuradas en tu entorno.
 
 The containerized application can be deployed to any platform that supports Docker, including:
 

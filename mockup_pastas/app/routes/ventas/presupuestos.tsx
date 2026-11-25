@@ -1,20 +1,11 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import SalesDocument from "~/components/SalesDocument";
 import { SortableList, SortableTable } from "~/components/SortableRows";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
-import { SAMPLE_EMPLOYEES } from "~/data/employees";
-import {
-  SAMPLE_CLIENTS,
-  SAMPLE_PRODUCTS,
-  SAMPLE_BUDGETS,
-  SAMPLE_ORDERS,
-  BUDGET_STATUSES,
-  type Budget,
-  type BudgetStatus,
-  type BudgetItem,
-  type Order
-} from "~/data/sales";
+
+import { SAMPLE_PRODUCTS, BUDGET_STATUSES, type Budget, type BudgetStatus, type BudgetItem, type Order } from "~/data/sales";
 
 function getStatusClass(status: BudgetStatus) {
   switch (status) {
@@ -40,6 +31,7 @@ type BudgetFormProps = {
 };
 
 function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
+  const { SAMPLE_CLIENTS } = useInternalData("sales");
   const isNew = !budget;
   const [clientId, setClientId] = useState(budget?.clientId || "");
   const [date, setDate] = useState(budget?.date || new Date().toISOString().split("T")[0]);
@@ -327,6 +319,8 @@ type BudgetDetailProps = {
 };
 
 function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrder, conversionError, convertedOrder }: BudgetDetailProps) {
+  const { SAMPLE_CLIENTS, SAMPLE_ORDERS } = useInternalData("sales");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const client = SAMPLE_CLIENTS.find(c => c.id === budget.clientId);
   const associatedOrder = budget.orderId ? SAMPLE_ORDERS.find(order => order.id === budget.orderId) : undefined;
   const [employeeId, setEmployeeId] = useState("");
@@ -381,6 +375,8 @@ function BudgetDetail({ budget, onClose, onEdit, onChangeStatus, onConvertToOrde
 }
 
 export default function Presupuestos() {
+  const { SAMPLE_BUDGETS, SAMPLE_CLIENTS, SAMPLE_ORDERS } = useInternalData("sales");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const [budgets, setBudgets] = useState<Budget[]>(() => [...SAMPLE_BUDGETS]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos los estados");

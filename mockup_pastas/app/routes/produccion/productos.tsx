@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import ProductionDocument, { ProductionSection, productionDate } from "~/components/ProductionDocument";
 import { SortableList } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
@@ -9,9 +10,7 @@ import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
-import {
-  ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS, codigo, formatCurrency, getReceta, siguienteId, type Producto,
-} from "~/data/produccion";
+import { codigo, formatCurrency, siguienteId, type Producto } from "~/data/produccion";
 import { rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
@@ -19,6 +18,7 @@ const labelClass = "block text-sm font-medium text-gray-700";
 const filterClass = "h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 
 export function ProductForm({ product, onCancel, onSave, recipeDraft }: { product: Producto | null; onCancel: () => void; onSave: (p: Producto) => void; recipeDraft?: { idReceta: number; nombre: string } }) {
+  const { PRODUCTOS_PRODUCCION, RECETAS } = useInternalData("production");
   const { UNIDADES, TIPOS_PRODUCTO, SUBTIPOS_PRODUCTO } = useProductionCatalogs();
   const [id] = useState(product?.idProducto ?? siguienteId(PRODUCTOS_PRODUCCION.map((p) => p.idProducto)));
   const [nombre, setNombre] = useState(product?.nombre ?? "");
@@ -103,6 +103,7 @@ export function ProductForm({ product, onCancel, onSave, recipeDraft }: { produc
 }
 
 function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClose: () => void; onEdit: () => void }) {
+  const { getReceta, ORDENES_PRODUCCION } = useInternalData("production");
   const { getTipoProducto, getSubtipoProducto, formatCantidad } = useProductionCatalogs();
   const receta = getReceta(product.idReceta);
   const ordenes = ORDENES_PRODUCCION
@@ -129,6 +130,7 @@ function ProductDetails({ product, onClose, onEdit }: { product: Producto; onClo
 }
 
 export default function Productos() {
+  const { PRODUCTOS_PRODUCCION, getReceta } = useInternalData("production");
   const { TIPOS_PRODUCTO, getTipoProducto, getSubtipoProducto, formatCantidad } = useProductionCatalogs();
   const [products, setProducts] = useState(() => [...PRODUCTOS_PRODUCCION]);
   const [search, setSearch] = useState("");

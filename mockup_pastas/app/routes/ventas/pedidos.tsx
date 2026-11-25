@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import SalesDocument from "~/components/SalesDocument";
 import { SortableList, SortableTable } from "~/components/SortableRows";
 import { CatalogField } from "~/components/InlineCatalog";
@@ -8,23 +9,8 @@ import { deliveryNeedsAddress, catalogOptions, catalogDefaultValue } from "~/dat
 import { currentSalesDate, invoiceAmounts } from "~/data/billing";
 
 import { SalesFormHeader, SalesPageHeader } from "~/components/SalesLayout";
-import { 
-  SAMPLE_REMITS,
-  SAMPLE_PRODUCTS, 
-  formatClientAddress,
-  getClientAddresses,
-  ORDER_STATUSES, 
-  ORDER_KINDS,
-  COUNTER_CLIENT,
-  type OrderKind,
-  type PaymentMethod,
-  type Client, 
-  type Order, 
-  type OrderStatus, 
-  type OrderItem, 
-  type Product 
-} from "~/data/sales";
-import { SAMPLE_EMPLOYEES } from "~/data/employees";
+import { SAMPLE_PRODUCTS, formatClientAddress, getClientAddresses, ORDER_STATUSES, ORDER_KINDS, COUNTER_CLIENT, type OrderKind, type PaymentMethod, type Client, type Order, type OrderStatus, type OrderItem, type Product } from "~/data/sales";
+
 import { changeSalesOrderStatus, getSalesData, saveSalesOrder } from "~/data/sales.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/pedidos";
@@ -32,12 +18,13 @@ import type { Route } from "./+types/pedidos";
 const currency = (amount: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(amount);
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
-  return getSalesData();
+  await requireUserAndRole(request, ["Administrador", "Ventas"]);
+  const { clients, orders, invoices, receipts, cashSessions } = await getSalesData();
+  return { clients, orders, invoices, receipts, hasOpenCashSession: cashSessions.some(session => !session.closedAt) };
 };
 
 export const action = async ({ request }: Route.ActionArgs) => {
-  const actor = await requireUserAndRole(request, ["Ventas"]);
+  const actor = await requireUserAndRole(request, ["Administrador", "Ventas"]);
   const formData = await request.formData();
   const intent = formData.get("intent");
   try {
@@ -82,9 +69,10 @@ type OrderFormProps = {
 };
 
 function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps) {
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const catalogs = useCatalogs();
   const isNew = !order;
-  const { receipts, cashSessions } = useLoaderData<typeof loader>();
+  const { receipts, hasOpenCashSession } = useLoaderData<typeof loader>();
   const [kind, setKind] = useState<OrderKind>(order?.kind ?? "Regular");
   const [fulfillment, setFulfillment] = useState(order?.fulfillment ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío"));
   const [deliveryTime, setDeliveryTime] = useState(order?.deliveryTime ?? "");
@@ -197,7 +185,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
       <SalesFormHeader title={isNew ? "Formulario Nuevo Pedido" : `Editar Pedido ${order.number}`} onCancel={onCancel} pending={pending}>
-        {kind === "Evento" && !existingDeposit && !cashSessions.some(session => !session.closedAt) && <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Necesitás una caja abierta para cobrar la seña del evento. <Link to="/ventas/caja" className="font-semibold underline">Abrir caja</Link></p>}
+        {kind === "Evento" && !existingDeposit && !hasOpenCashSession && <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Necesitás una caja abierta para cobrar la seña del evento. <Link to="/ventas/caja" className="font-semibold underline">Abrir caja</Link></p>}
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="flex-1 overflow-y-auto px-6 py-5">
             {errorMsg && (
@@ -485,6 +473,8 @@ type OrderDetailsProps = {
 };
 
 function OrderDetails({ order, client, onClose, onEdit, onChangeStatus, backLabel }: OrderDetailsProps) {
+  const { SAMPLE_REMITS } = useInternalData("sales");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const catalogs = useCatalogs();
   const { invoices, receipts } = useLoaderData<typeof loader>();
   const deposit = receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
@@ -542,6 +532,7 @@ function OrderDetails({ order, client, onClose, onEdit, onChangeStatus, backLabe
 }
 
 export default function Pedidos() {
+  const { SAMPLE_REMITS } = useInternalData("sales");
   const initialData = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const fetcher = useFetcher<typeof action>();

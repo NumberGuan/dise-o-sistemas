@@ -15,11 +15,7 @@ import {
   ORDER_STATUSES,
   ORDER_KINDS,
   COUNTER_CLIENT,
-  SAMPLE_CLIENTS,
-  SAMPLE_ORDERS,
   SAMPLE_PRODUCTS,
-  SAMPLE_INVOICES,
-  SAMPLE_RECEIPTS,
   type Invoice,
   type Receipt,
   type Client,
@@ -27,8 +23,9 @@ import {
   type OrderItem,
   type OrderStatus,
 } from "~/data/sales";
-import { SAMPLE_EMPLOYEES } from "~/data/employees";
-import { customerAsClient } from "~/data/customer.server";
+import { SAMPLE_EMPLOYEES } from "./employees-fixtures.server";
+import { SAMPLE_CLIENTS, SAMPLE_ORDERS, SAMPLE_INVOICES, SAMPLE_RECEIPTS } from "./sales-fixtures.server";
+import { customerAsClient, mutateCustomer } from "~/data/customer.server";
 import { getUsers, mutateUser, type Role } from "~/utils/db.server";
 import { getClientMonthlyAccount, invoiceAmounts, money } from "~/data/billing";
 
@@ -391,13 +388,13 @@ export async function saveCustomerOrderEdit(userId: string, orderId: string, for
     }
     if (localIndex >= 0) {
       const user = (await getUsers()).find(item => item.id === userId);
-      if (!user) throw new Error("No encontramos ese pedido en tu cuenta.");
+      if (!user || user.role !== "Cliente" || user.customerStatus === "Inactivo") throw new Error("No encontramos ese pedido en tu cuenta.");
       checkInvoice();
       data.orders[localIndex] = apply(data.orders[localIndex], customerAsClient(user));
       await writeSalesData(data);
       return;
     }
-    await mutateUser(userId, user => {
+    await mutateCustomer(userId, user => {
       const orders = user.customerOrders ?? [];
       const index = orders.findIndex(order => order.id === orderId && order.clientId === clientId);
       if (index < 0) throw new Error("No encontramos ese pedido en tu cuenta.");

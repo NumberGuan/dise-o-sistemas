@@ -1,11 +1,11 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { PRODUCTOS_PRODUCCION, getVencimientoProducto } from "./produccion";
+import { PRODUCTOS_PRODUCCION, getVencimientoProducto } from "./produccion-fixtures.server";
 import { getSalesData } from "./sales.server";
 import { currentSalesDate } from "./billing";
 import { COUNTER_CLIENT } from "./sales";
-import { canDonateProduct, donationAvailability, validDonationDate, type Donation, type DonationItem } from "./donaciones";
+import { canDonateProduct, donationAvailability, validDonationDate, type Donation, type DonationItem, type DonationProduct } from "./donaciones";
 import type { Role } from "~/utils/db.server";
 
 const file = path.join(process.cwd(), "data", "donaciones.json");
@@ -40,6 +40,12 @@ async function write(rows: Donation[]) {
   }
 }
 
+export function getDonationProducts(): DonationProduct[] {
+  return PRODUCTOS_PRODUCCION.map(({ idProducto, nombre, idUnidad, stockProducto }) => ({
+    idProducto, nombre, idUnidad, stockProducto, expirationDate: getVencimientoProducto(idProducto),
+  }));
+}
+
 export function getDonations() { return serialize(read); }
 
 export async function saveDonation(input: unknown, role: Role) {
@@ -55,17 +61,18 @@ export async function saveDonation(input: unknown, role: Role) {
     if (typeof row.observations !== "string" || row.observations.length > 2000) throw new Error("Las observaciones pueden tener hasta 2000 caracteres.");
     if (!Array.isArray(row.items) || !row.items.length || row.items.length > 100) throw new Error("Agregá al menos un producto a la donación (máximo 100).");
     const donations = await read();
+    const products = getDonationProducts();
     const seen = new Set<number>();
     const items: DonationItem[] = row.items.map(raw => {
       if (!raw || typeof raw !== "object" || Array.isArray(raw)) throw new Error("El detalle de productos no es válido.");
-      const product = PRODUCTOS_PRODUCCION.find(candidate => candidate.idProducto === raw.productId);
+      const product = products.find(candidate => candidate.idProducto === raw.productId);
       if (!product || !canDonateProduct(product, date)) throw new Error("Solo se pueden donar productos con stock que venzan dentro de los próximos 7 días de la fecha de donación.");
       if (seen.has(product.idProducto)) throw new Error("Hay productos repetidos en la donación.");
       seen.add(product.idProducto);
       const quantity = raw.quantity;
       if (typeof quantity !== "number" || !Number.isFinite(quantity) || quantity <= 0 || Math.abs(quantity * 1000 - Math.round(quantity * 1000)) > 0.000001) throw new Error("Ingresá cantidades mayores que cero, con hasta 3 decimales.");
       if (quantity > donationAvailability(product, donations)) throw new Error(`La cantidad de ${product.nombre} supera las existencias disponibles para donar.`);
-      return { productId: product.idProducto, productName: product.nombre, unitId: product.idUnidad, expirationDate: getVencimientoProducto(product.idProducto) ?? "", quantity, unitPrice: 0, subtotal: 0 };
+      return { productId: product.idProducto, productName: product.nombre, unitId: product.idUnidad, expirationDate: product.expirationDate ?? "", quantity, unitPrice: 0, subtotal: 0 };
     });
     const next = Math.max(0, ...donations.map(donation => Number(donation.number.slice(4)) || 0)) + 1;
     const donation: Donation = { id: crypto.randomUUID(), number: `DON-${String(next).padStart(6, "0")}`, clientId: client.id, clientName: client.name, date, items, total: 0, observations: row.observations.trim() };

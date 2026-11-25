@@ -1,20 +1,10 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import SalesDocument from "~/components/SalesDocument";
 import { SortableList, SortableTable } from "~/components/SortableRows";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router";
 import { SalesFormHeader, SalesPageHeader, SalesListPanel, SalesEmptyState } from "~/components/SalesLayout";
-import {
-  SAMPLE_CLIENTS,
-  SAMPLE_CUSTOMER_RETURNS,
-  SAMPLE_ORDERS,
-  SAMPLE_REMITS,
-  getRemitAvailableQuantity,
-  formatClientAddress,
-  REMIT_STATUSES,
-  type Remit,
-  type RemitStatus,
-  type RemitItem
-} from "~/data/sales";
+import { formatClientAddress, REMIT_STATUSES, type Remit, type RemitStatus, type RemitItem } from "~/data/sales";
 
 function getStatusClass(status: RemitStatus) {
   switch (status) {
@@ -35,6 +25,7 @@ type RemitFormProps = {
 };
 
 function RemitForm({ remit, remits, initialOrderId, onCancel, onSave }: RemitFormProps) {
+  const { SAMPLE_ORDERS, SAMPLE_CLIENTS } = useInternalData("sales");
   const isNew = !remit;
   const [orderId, setOrderId] = useState(remit?.orderId || initialOrderId);
   const [date, setDate] = useState(remit?.date || new Date().toISOString().split("T")[0]);
@@ -223,6 +214,7 @@ type RemitDetailProps = {
 };
 
 function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDetailProps) {
+  const { SAMPLE_CLIENTS, SAMPLE_ORDERS, SAMPLE_CUSTOMER_RETURNS, getRemitAvailableQuantity } = useInternalData("sales");
   const client = SAMPLE_CLIENTS.find(c => c.id === remit.clientId);
   const order = SAMPLE_ORDERS.find(o => o.id === remit.orderId);
   const customerReturns = SAMPLE_CUSTOMER_RETURNS.filter(customerReturn => customerReturn.remitId === remit.id);
@@ -273,6 +265,7 @@ function RemitDetail({ remit, notice, onClose, onEdit, onChangeStatus }: RemitDe
 }
 
 export default function Remitos() {
+  const { SAMPLE_REMITS, SAMPLE_CLIENTS, SAMPLE_ORDERS } = useInternalData("sales");
   const [searchParams, setSearchParams] = useSearchParams();
   const [remits, setRemits] = useState<Remit[]>(() => [...SAMPLE_REMITS]);
   const [search, setSearch] = useState("");

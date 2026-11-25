@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import ProductionDocument, { ProductionSection } from "~/components/ProductionDocument";
 import { SortableList } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
@@ -9,9 +10,7 @@ import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
-import {
-  MATERIAS_PRIMAS_PRODUCCION, RECETAS, codigo, formatCurrency, siguienteId, type MateriaPrima,
-} from "~/data/produccion";
+import { codigo, formatCurrency, siguienteId, type MateriaPrima } from "~/data/produccion";
 import { rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
@@ -19,6 +18,7 @@ const labelClass = "block text-sm font-medium text-gray-700";
 const filterClass = "h-10 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 
 function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrima | null; onCancel: () => void; onSave: (m: MateriaPrima) => void }) {
+  const { MATERIAS_PRIMAS_PRODUCCION } = useInternalData("production");
   const { UNIDADES, TIPOS_MATERIA_PRIMA, MARCAS } = useProductionCatalogs();
   const [id] = useState(material?.idMateriaPrima ?? siguienteId(MATERIAS_PRIMAS_PRODUCCION.map((m) => m.idMateriaPrima)));
   const [nombre, setNombre] = useState(material?.nombre ?? "");
@@ -91,6 +91,7 @@ function RawMaterialForm({ material, onCancel, onSave }: { material: MateriaPrim
 }
 
 function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPrima; onClose: () => void; onEdit: () => void }) {
+  const { RECETAS } = useInternalData("production");
   const { getTipoMateriaPrima, getMarca, formatCantidad } = useProductionCatalogs();
   const recetas = RECETAS.flatMap((r) => {
     const uso = r.materiasPrimas.find((d) => d.idMateriaPrima === material.idMateriaPrima);
@@ -113,6 +114,7 @@ function RawMaterialDetails({ material, onClose, onEdit }: { material: MateriaPr
 }
 
 export default function MateriasPrimas() {
+  const { MATERIAS_PRIMAS_PRODUCCION } = useInternalData("production");
   const { TIPOS_MATERIA_PRIMA, MARCAS, getTipoMateriaPrima, getMarca, formatCantidad } = useProductionCatalogs();
   const [materials, setMaterials] = useState(() => [...MATERIAS_PRIMAS_PRODUCCION]);
   const [search, setSearch] = useState("");

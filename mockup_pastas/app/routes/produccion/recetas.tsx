@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import ProductionDocument, { ProductionSection } from "~/components/ProductionDocument";
 import { SortableList } from "~/components/SortableRows";
 import { CatalogField } from "~/components/InlineCatalog";
@@ -11,12 +12,8 @@ import { createPortal } from "react-dom";
 import { ProductForm } from "./productos";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
-import { SAMPLE_MACHINES } from "~/data/maintenance";
-import {
-  MATERIAS_PRIMAS_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS,
-  codigo, getMateriaPrima, siguienteId, guardarRecetaConProducto, unidadesCompatibles,
-  type DetalleMateriaPrima, type DetalleRecetaMaquina, type Receta, type Producto,
-} from "~/data/produccion";
+
+import { codigo, siguienteId, unidadesCompatibles, type DetalleMateriaPrima, type DetalleRecetaMaquina, type Receta, type Producto } from "~/data/produccion";
 import { Collapse, rowMotion, toast } from "~/components/motion";
 import { brandsForRawMaterial } from "~/data/catalogs";
 
@@ -54,6 +51,8 @@ function ProductCreateModal({ idReceta, nombre, product, onCancel, onSave }: { i
 }
 
 function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCancel: () => void; onSave: (r: Receta, p: Producto) => void }) {
+  const { RECETAS, PRODUCTOS_PRODUCCION, getMateriaPrima, MATERIAS_PRIMAS_PRODUCCION } = useInternalData("production");
+  const { SAMPLE_MACHINES } = useInternalData("maintenance");
   const { catalogs, UNIDADES, formatCantidad } = useProductionCatalogs();
   const [id] = useState(recipe?.idReceta ?? siguienteId(RECETAS.map((r) => r.idReceta)));
   const original = (m: MateriaPrimaRow) => recipe?.materiasPrimas.find((d) => String(d.idMateriaPrima) === m.idMateriaPrima);
@@ -243,6 +242,8 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
 }
 
 function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: () => void; onEdit: () => void }) {
+  const { PRODUCTOS_PRODUCCION, getMateriaPrima } = useInternalData("production");
+  const { SAMPLE_MACHINES } = useInternalData("maintenance");
   const { formatCantidad, getMarca } = useProductionCatalogs();
   const productos = PRODUCTOS_PRODUCCION.filter((p) => p.idReceta === recipe.idReceta);
 
@@ -270,6 +271,7 @@ function RecipeDetails({ recipe, onClose, onEdit }: { recipe: Receta; onClose: (
 }
 
 export default function Recetas() {
+  const { RECETAS, guardarRecetaConProducto } = useInternalData("production");
   const [recipes, setRecipes] = useState(() => [...RECETAS]);
   const [search, setSearch] = useState("");
   const { editing, setEditing, selected, setSelected, closeScreen, missing, params } = useRecordScreen(recipes, item => item.idReceta, "receta");

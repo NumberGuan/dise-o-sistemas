@@ -1,4 +1,6 @@
-import { getVencimientoProducto, type Producto } from "./produccion";
+import type { Producto } from "./produccion";
+
+export type DonationProduct = Pick<Producto, "idProducto" | "nombre" | "idUnidad" | "stockProducto"> & { expirationDate: string | null };
 
 export const DONATION_EXPIRY_DAYS = 7;
 export type DonationItem = {
@@ -31,8 +33,8 @@ export function daysToExpiration(expirationDate: string, date: string) {
   return (Date.parse(`${expirationDate}T12:00:00Z`) - Date.parse(`${date}T12:00:00Z`)) / 86400000;
 }
 
-export function canDonateProduct(product: Producto, date: string) {
-  const vencimiento = getVencimientoProducto(product.idProducto);
+export function canDonateProduct(product: DonationProduct, date: string) {
+  const vencimiento = product.expirationDate;
   if (!validDonationDate(date) || !validDonationDate(vencimiento)) return false;
   const days = daysToExpiration(vencimiento, date);
   return product.stockProducto > 0 && days >= 0 && days <= DONATION_EXPIRY_DAYS;
@@ -40,9 +42,9 @@ export function canDonateProduct(product: Producto, date: string) {
 
 // Producción usa stock de muestra. El registro persistente reserva lo ya donado
 // para que dos donaciones no puedan asignar las mismas existencias.
-export function donationAvailability(product: Producto, donations: Donation[]) {
+export function donationAvailability(product: DonationProduct, donations: Donation[]) {
   const donated = donations.flatMap(donation => donation.items)
-    .filter(item => item.productId === product.idProducto && item.expirationDate === getVencimientoProducto(product.idProducto))
+    .filter(item => item.productId === product.idProducto && item.expirationDate === product.expirationDate)
     .reduce((sum, item) => sum + item.quantity, 0);
   return Math.max(0, Math.round((product.stockProducto - donated) * 1000) / 1000);
 }

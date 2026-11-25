@@ -8,7 +8,7 @@ export default [
     route("catalogo", "routes/catalogo-publico.tsx"),
     route("carrito", "routes/carrito-publico.tsx"),
   ]),
-  
+
   route("", "routes/protected.tsx", [
     route("catalogos/:catalogo/crear", "routes/catalogos-crear.tsx"),
     layout("components/Layout.tsx", [
@@ -27,31 +27,34 @@ export default [
         route("recibos", "routes/ventas/recibos.tsx"),
       ]),
 
-      route("compras", "routes/compras.tsx", [
-        // Rutas internas de Compras (Administrador, Compras)
-        route("proveedores", "routes/compras/proveedores.tsx"),
-        route("proveedores/nueva", "routes/compras/proveedores-nuevo.tsx"),
-        route("proveedores/:id", "routes/compras/proveedores-detalle.tsx"),
-        route("proveedores/:id/modificar", "routes/compras/proveedores-modificar.tsx"),
-        route("ordenes", "routes/compras/ordenes.tsx"),
-        route("ordenes/nueva", "routes/compras/ordenes-nueva.tsx"),
-        route("ordenes/:id", "routes/compras/ordenes-detalle.tsx"),
-        route("presupuesto-proveedor", "routes/compras/presupuesto-proveedor.tsx"),
-        route("presupuesto-proveedor/:id", "routes/compras/presupuesto-proveedor-detalle.tsx"),
-        route("remito-proveedor", "routes/compras/remito-proveedor.tsx"),
-        route("remito-proveedor/:id", "routes/compras/remito-proveedor-detalle.tsx"),
-        route("factura-proveedor", "routes/compras/factura-proveedor.tsx"),
-        route("factura-proveedor/:id", "routes/compras/factura-proveedor-detalle.tsx"),
-        route("recibo-pago-proveedor", "routes/compras/recibo-pago-proveedor.tsx"),
-        route("recibo-pago-proveedor/:id", "routes/compras/recibo-pago-proveedor-detalle.tsx"),
-        route("remitos", "routes/compras/remitos.tsx"),
-        
-        // Rutas de Cliente
-        route("catalogo", "routes/compras/cliente-catalogo.tsx"),
-        route("carrito", "routes/compras/cliente-carrito.tsx"),
-        route("favoritos", "routes/compras/cliente-favoritos.tsx"),
-        route("perfil", "routes/compras/cliente-perfil.tsx"),
-        route("pedidos", "routes/compras/cliente-pedidos.tsx"),
+      route("compras", "routes/compras/layout.tsx", [
+        layout("routes/compras.tsx", [
+          route("proveedores", "routes/compras/proveedores.tsx"),
+          route("proveedores/nueva", "routes/compras/proveedores-nuevo.tsx"),
+          route("proveedores/:id", "routes/compras/proveedores-detalle.tsx"),
+          route("proveedores/:id/modificar", "routes/compras/proveedores-modificar.tsx"),
+          route("ordenes", "routes/compras/ordenes.tsx"),
+          route("ordenes/nueva", "routes/compras/ordenes-nueva.tsx"),
+          route("ordenes/:id", "routes/compras/ordenes-detalle.tsx"),
+          route("presupuesto-proveedor", "routes/compras/presupuesto-proveedor.tsx"),
+          route("presupuesto-proveedor/:id", "routes/compras/presupuesto-proveedor-detalle.tsx"),
+          route("remito-proveedor", "routes/compras/remito-proveedor.tsx"),
+          route("remito-proveedor/:id", "routes/compras/remito-proveedor-detalle.tsx"),
+          route("factura-proveedor", "routes/compras/factura-proveedor.tsx"),
+          route("factura-proveedor/:id", "routes/compras/factura-proveedor-detalle.tsx"),
+          route("recibo-pago-proveedor", "routes/compras/recibo-pago-proveedor.tsx"),
+          route("recibo-pago-proveedor/:id", "routes/compras/recibo-pago-proveedor-detalle.tsx"),
+          route("remitos", "routes/compras/remitos.tsx"),
+        ]),
+        index("routes/compras/index.tsx"),
+
+        layout("routes/compras/cliente-layout.tsx", [
+          route("catalogo", "routes/compras/cliente-catalogo.tsx"),
+          route("carrito", "routes/compras/cliente-carrito.tsx"),
+          route("favoritos", "routes/compras/cliente-favoritos.tsx"),
+          route("perfil", "routes/compras/cliente-perfil.tsx"),
+          route("pedidos", "routes/compras/cliente-pedidos.tsx"),
+        ]),
       ]),
 
       route("produccion", "routes/produccion.tsx", [

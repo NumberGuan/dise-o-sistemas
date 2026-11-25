@@ -7,4 +7,9 @@ export default defineConfig({
   resolve: {
     tsconfigPaths: true,
   },
+  server: {
+    fs: {
+      deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/data/*.json", "**/data/*.tmp", "**/*.server.*", "**/.codex-local-backup/**"],
+    },
+  },
 });

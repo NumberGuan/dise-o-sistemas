@@ -1,18 +1,13 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
 import { useNavigate } from "react-router";
 
-import {
-  getMontoPresupuesto,
-  PRESUPUESTOS_PROVEEDOR,
-} from "~/data/presupuestos";
-import {
-  formatFecha,
-  formatMoney,
-  getProveedorPorId,
-} from "~/data/ordenes";
+import { getMontoPresupuesto } from "~/data/presupuestos";
+import { formatFecha, formatMoney } from "~/data/ordenes";
 
 export default function PresupuestosListPage() {
+  const { PRESUPUESTOS_PROVEEDOR, getProveedorPorId } = useInternalData("purchases");
   const hoy = new Date().toISOString().slice(0, 10);
   const navigate = useNavigate();
 

@@ -10,6 +10,10 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import FormValidation from "~/components/FormValidation";
+import NavigationLoading from "~/components/NavigationLoading";
+import { protectResponse } from "~/utils/access.server";
+
+export const middleware = [protectResponse];
 
 export const links: Route.LinksFunction = () => [
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
@@ -43,7 +47,12 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  return <FormValidation><Outlet /></FormValidation>;
+  return (
+    <>
+      <FormValidation><Outlet /></FormValidation>
+      <NavigationLoading />
+    </>
+  );
 }
 
 export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
@@ -52,10 +61,12 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   let stack: string | undefined;
 
   if (isRouteErrorResponse(error)) {
-    message = error.status === 404 ? "No encontramos esta página" : "Ocurrió un error";
+    message = error.status === 403 ? "Acceso denegado" : error.status === 404 ? "No encontramos esta página" : "Ocurrió un error";
     details =
       error.status === 404
         ? "Revisá la dirección o volvé al inicio."
+        : error.status === 403
+          ? "Tu cuenta no tiene permiso para acceder a esta sección."
         : details;
   } else if (import.meta.env.DEV && error && error instanceof Error) {
     details = error.message;

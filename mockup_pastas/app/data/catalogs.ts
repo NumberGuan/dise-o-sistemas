@@ -1,6 +1,3 @@
-import { PROVINCIAS, LOCALIDADES, CALLES } from "./domicilios";
-import { UNIDADES, TIPOS_PRODUCTO, SUBTIPOS_PRODUCTO, TIPOS_MATERIA_PRIMA, MARCAS, MATERIAS_PRIMAS_PRODUCCION } from "./produccion";
-
 export type CatalogEntry = {
   id: string;
   value: string;
@@ -38,36 +35,8 @@ export function canCreateCatalog(role: string, key: string) {
   const definition = catalogDefinition(key);
   return Boolean(definition && (role === "Administrador" || role === "Producción" && definition.group === "Producción e inventario"));
 }
-const entry = (id: string, name: string, extra: Partial<CatalogEntry> = {}): CatalogEntry => ({ id, value: name, name, description: "", active: true, ...extra });
-const names = (values: readonly string[]) => values.map((name, index) => entry(String(index + 1), name));
-
-export function initialCatalogs(): Catalogs {
-  return {
-    "tipos-cliente": names(["Comercio", "Distribuidor", "Particular"]),
-    "modalidades-entrega": [entry("1", "Retiro en local", { behavior: "pickup" }), entry("2", "Envío", { behavior: "shipping" })],
-    "medios-pago": names(["Efectivo", "Transferencia", "Cheque", "Tarjeta de Crédito", "Tarjeta de Débito"]),
-    "tipos-iva": names(["Responsable inscripto", "Monotributista", "Consumidor final", "Exento"]),
-    // Se preservan los identificadores usados por los proveedores existentes.
-    "tipos-documento": names(["CUIT", "CUIL", "DNI", "Pasaporte", "Otro"]),
-    cargos: names(["Administrador", "Vendedor", "Repartidor"]),
-    provincias: PROVINCIAS.map(item => entry(item.id, item.nombre)),
-    localidades: LOCALIDADES.map(item => entry(item.id, item.nombre, { parentId: item.provinciaId })),
-    calles: CALLES.map(item => entry(item.id, item.nombre, { parentId: item.localidadId })),
-    unidades: UNIDADES.map(item => entry(String(item.idUnidad), item.unidad)),
-    "tipos-producto": TIPOS_PRODUCTO.map(item => entry(String(item.idTipoProducto), item.tipo)),
-    "subtipos-producto": SUBTIPOS_PRODUCTO.map(item => entry(String(item.idSubtipoProducto), item.subtipo, { parentId: String(item.idTipoProducto) })),
-    "tipos-materia-prima": TIPOS_MATERIA_PRIMA.map(item => entry(String(item.idTipoMateriaPrima), item.nombre)),
-    marcas: MARCAS.map(item => entry(String(item.idMarca), item.nombre, { materiasPrimas: materiasPrimasDeMarca(item.idMarca) })),
-    "tipos-maquina": names(["Amasadora", "Sobadora", "Formadora", "Secadero"]),
-    "tipos-mantenimiento": names(["Preventivo", "Correctivo"]),
-  };
-}
-
-const materiasPrimasDeMarca = (idMarca: number) => MATERIAS_PRIMAS_PRODUCCION.filter(m => m.idMarca === idMarca).map(m => m.idMateriaPrima);
-
-// Materias primas asociadas a una marca; los catálogos guardados antes de la asociación usan la inicial.
 export function brandRawMaterials(brand: CatalogEntry) {
-  return brand.materiasPrimas ?? materiasPrimasDeMarca(Number(brand.id));
+  return brand.materiasPrimas ?? [];
 }
 
 export function brandsForRawMaterial(catalogs: Catalogs, idMateriaPrima: number, retainedId?: string) {

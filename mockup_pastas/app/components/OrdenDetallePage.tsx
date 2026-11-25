@@ -1,16 +1,11 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import PurchaseDocument from "./PurchaseDocument";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
-import { getComprobantePorOrden } from "~/data/facturacion-proveedores";
-import {
-  PRESUPUESTOS,
-  getMarcaPorId,
-  getMontoTotal,
-  getOrdenPorId,
-  getProveedorPorId,
-} from "~/data/ordenes";
+
+import { getMontoTotal } from "~/data/ordenes";
 
 export default function OrdenDetallePage({
   ordenId,
@@ -19,6 +14,7 @@ export default function OrdenDetallePage({
   ordenId: string;
   onClose?: () => void;
 }) {
+  const { getOrdenPorId, getProveedorPorId, PRESUPUESTOS, getComprobantePorOrden, getMarcaPorId } = useInternalData("purchases");
   const navigate = useNavigate();
   const irVolver = () => (onClose ? onClose() : navigate("/compras/ordenes"));
   const orden = getOrdenPorId(Number(ordenId));

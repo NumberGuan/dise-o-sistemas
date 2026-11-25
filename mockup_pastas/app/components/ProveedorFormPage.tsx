@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import FormFrame from "~/components/FormFrame";
 import { CatalogField } from "~/components/InlineCatalog";
@@ -11,15 +12,7 @@ import BackToListButton from "~/components/BackToListButton";
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 
-import {
-  createProveedor,
-  getDomicilioPorId,
-  getProximoIdPersona,
-  getProveedorPorId,
-  updateProveedor,
-  type DomicilioInput,
-  type ProveedorInput,
-} from "~/data/proveedores";
+import { type DomicilioInput, type ProveedorInput } from "~/data/proveedores";
 
 const ESTADOS = ["Activo", "Inactivo"];
 
@@ -39,6 +32,7 @@ export default function ProveedorFormPage({
   proveedorId?: string;
   onClose?: () => void;
 } = {}) {
+  const { getProveedorPorId, getDomicilioPorId, getProximoIdPersona, updateProveedor, createProveedor } = useInternalData("purchases");
   const catalogs = useCatalogs();
   const TIPOS_DOCUMENTO = catalogs["tipos-documento"].map(item => ({ id: Number(item.id), nombre: item.name, active: item.active }));
   const getTipoDocumentoPorId = (id: number) => TIPOS_DOCUMENTO.find(item => item.id === id);

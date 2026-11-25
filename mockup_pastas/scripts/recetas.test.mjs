@@ -8,7 +8,9 @@ test("Recetas: cantidades por presentación y consumo en unidades de stock", asy
   const root = fileURLToPath(new URL("../", import.meta.url));
   const server = await createServer({ configFile: false, root, resolve: { alias: { "~": path.join(root, "app") } }, server: { middlewareMode: true, hmr: false }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } });
   try {
-    const model = await server.ssrLoadModule("/app/data/produccion.ts");
+    const production = await server.ssrLoadModule("/app/data/produccion.ts");
+    const fixtures = structuredClone(Object.fromEntries(Object.entries(await server.ssrLoadModule("/app/data/produccion-fixtures.server.ts")).filter(([, value]) => Array.isArray(value))));
+    const model = { ...production, ...fixtures, ...production.createProductionOperations(fixtures) };
     await t.test("Una docena de sorrentinos consume 200 g de harina y dos huevos", () => {
       const consumo = model.consumoDeReceta(4);
       assert.equal(consumo.find(m => m.idMateriaPrima === 2).cantidad, 0.2);

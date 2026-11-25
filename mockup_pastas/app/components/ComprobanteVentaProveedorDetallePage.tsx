@@ -1,25 +1,11 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import PurchaseDocument from "./PurchaseDocument";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import { Link, useNavigate } from "react-router";
 
 import BackToListButton from "~/components/BackToListButton";
-import {
-  numeroALetras,
-  getComprobantePorId,
-  getEstadoPago,
-  getMedioPagoPorId,
-  getRecibosDelComprobante,
-  getSaldoPendiente,
-  getTotalComprobante,
-  getTotalPagado,
-} from "~/data/facturacion-proveedores";
-import {
-  formatFecha,
-  formatMoney,
-  getMateriaPrimaPorId,
-  getOrdenes,
-  getProveedorPorId,
-} from "~/data/ordenes";
+import { numeroALetras, getMedioPagoPorId, getTotalComprobante } from "~/data/facturacion-proveedores";
+import { formatFecha, formatMoney } from "~/data/ordenes";
 
 export default function ComprobanteVentaProveedorDetallePage({
   comprobanteId,
@@ -28,6 +14,7 @@ export default function ComprobanteVentaProveedorDetallePage({
   comprobanteId: string;
   onClose?: () => void;
 }) {
+  const { getComprobantePorId, getProveedorPorId, getOrdenes, getRecibosDelComprobante, getTotalPagado, getSaldoPendiente, getEstadoPago, getMateriaPrimaPorId } = useInternalData("purchases");
   const navigate = useNavigate();
   const irVolver = () =>
     onClose ? onClose() : navigate("/compras/factura-proveedor");

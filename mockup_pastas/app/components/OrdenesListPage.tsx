@@ -1,17 +1,12 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
 import { useNavigate } from "react-router";
 
-import {
-  deleteOrden,
-  formatFecha,
-  formatMoney,
-  getMontoTotal,
-  getProveedorPorId,
-  useOrdenes,
-} from "~/data/ordenes";
+import { formatFecha, formatMoney, getMontoTotal } from "~/data/ordenes";
 
 export default function OrdenesListPage() {
+  const { useOrdenes, deleteOrden, getProveedorPorId } = useInternalData("purchases");
   const navigate = useNavigate();
 
   const ordenes = useOrdenes();

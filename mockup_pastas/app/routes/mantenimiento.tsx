@@ -1,17 +1,22 @@
+import { useInternalData } from "~/components/InternalDataProvider";
+import { restrictTo } from "~/utils/access.server";
 import { Outlet, useLocation } from "react-router";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/mantenimiento";
 
+export const middleware = [restrictTo("Administrador", "Producción")];
+
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireUserAndRole(request, ["Producción"]);
+  await requireUserAndRole(request, ["Administrador", "Producción"]);
   return null;
 };
 
 import ModuleDashboard from "~/components/ModuleDashboard";
 import { useCatalogs } from "~/components/CatalogProvider";
-import { SAMPLE_MAINTENANCES } from "~/data/maintenance";
+
 
 function MaintenanceDashboard() {
+  const { SAMPLE_MAINTENANCES } = useInternalData("maintenance");
   const catalogs = useCatalogs();
   const scheduled = SAMPLE_MAINTENANCES.filter((order) => order.status === "Programado").length;
   const inProgress = SAMPLE_MAINTENANCES.filter((order) => order.status === "En curso").length;

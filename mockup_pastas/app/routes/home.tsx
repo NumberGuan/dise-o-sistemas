@@ -25,22 +25,11 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
     throw redirect("/login");
   }
 
-  const requestPath = new URL(request.url).pathname;
-  const pathname = requestPath === "/_root.data"
-    ? "/"
-    : requestPath.endsWith("/_.data")
-      ? requestPath.replace(/_\.data$/, "")
-    : requestPath.endsWith(".data")
-      ? requestPath.slice(0, -".data".length)
-      : requestPath;
+  if (user.role === "Ventas") throw redirect("/ventas");
+  if (user.role === "Producción") throw redirect("/produccion");
+  if (user.role === "Cliente") throw redirect("/compras/catalogo");
 
-  if (pathname === "/") {
-    if (user.role === "Ventas") throw redirect("/ventas");
-    if (user.role === "Producción") throw redirect("/produccion");
-    if (user.role === "Cliente") throw redirect("/compras/catalogo");
-  }
-
-  const { passwordHash: _passwordHash, ...publicUser } = user;
+  const publicUser = { name: user.name, role: user.role };
   const sales = await getSalesData();
   const today = currentSalesDate();
   const months = [...new Set([today.slice(0, 7), ...sales.orders.map(order => order.date.slice(0, 7)), ...sales.invoices.map(invoice => invoice.date.slice(0, 7))])].filter(month => /^\d{4}-\d{2}$/.test(month)).sort().reverse();

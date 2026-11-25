@@ -9,12 +9,11 @@ import ClientMonthlyAccount from "~/components/ClientMonthlyAccount";
 import { getClientMonthlyAccount } from "~/data/billing";
 import { useState } from "react";
 import ClientAddressesEditor from "~/components/ClientAddressesEditor";
-import { customerAsClient } from "~/data/customer.server";
+import { customerAsClient, mutateCustomer } from "~/data/customer.server";
 import { getSalesData, preserveOrderAddresses } from "~/data/sales.server";
 import { Form, useActionData, useLoaderData, useNavigation } from "react-router";
 
 import { getClientAddresses, createFixedClientAddress, validateClientAddresses } from "~/data/sales";
-import { mutateUser } from "~/utils/db.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/cliente-perfil";
 export { default as ErrorBoundary } from "~/components/CustomerErrorBoundary";
@@ -55,7 +54,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
     const previousAddresses = getClientAddresses(customerAsClient(user)!);
     const savedAddresses = data.get("savedAddresses") ?? JSON.stringify(previousAddresses);
     const addressInput: unknown = JSON.parse(String(data.get("addresses") ?? "[]"));
-    await mutateUser(user.id, (current) => {
+    await mutateCustomer(user.id, (current) => {
       const currentAddresses = getClientAddresses(customerAsClient(current)!);
       if (savedAddresses !== JSON.stringify(currentAddresses)) {
         throw new Error("Las direcciones cambiaron desde otra pantalla. Revisá las direcciones actualizadas antes de guardar.");

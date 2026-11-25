@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { generateVoucherPdf } from "~/utils/voucher-pdf.client";
+import LoadingScreen from "./LoadingScreen";
 
 type Props = { printId: string; title: string; number: string; onClose: () => void };
 
@@ -57,7 +58,7 @@ export default function ShareVoucher({ printId, title, number, onClose }: Props)
       <button type="button" onClick={onClose} aria-label="Cerrar" className="rounded-lg px-3 py-2 hover:bg-gray-100">✕</button>
     </div>
     <div className="mt-5 space-y-4 text-sm">
-      {!file && !error && <p role="status">Generando PDF del comprobante…</p>}
+      {!file && !error && <LoadingScreen message="Generando PDF del comprobante…" />}
       {error && <><p role="alert" className="text-red-700">{error}</p><button type="button" onClick={() => setAttempt(value => value + 1)} className="rounded-lg border px-4 py-2 font-semibold">Reintentar</button></>}
       {file && <>
         <p>El PDF contiene la misma información y el mismo diseño del comprobante para imprimir.</p>

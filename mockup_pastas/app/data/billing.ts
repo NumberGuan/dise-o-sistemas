@@ -47,6 +47,7 @@ export function monthLabel(month: string) {
 
 export function getClientMonthlyAccount(client: Client, orders: Order[], invoices: Invoice[], receipts: Receipt[], asOfMonth = currentSalesMonth()) {
   if (client.type !== "Comercio") return [];
+  const clientReceipts = receipts.filter(receipt => receipt.clientId === client.id);
   const groups = new Map<string, { month: string; orderCount: number; total: number; paid: number; balance: number; unbilled: number; invoiceIds: string[]; payableFrom: string }>();
   for (const order of orders.filter(order => order.clientId === client.id && order.status !== "Cancelado")) {
     const month = order.date.slice(0, 7);
@@ -54,7 +55,7 @@ export function getClientMonthlyAccount(client: Client, orders: Order[], invoice
     const group = groups.get(month) ?? { month, orderCount: 0, total: 0, paid: 0, balance: 0, unbilled: 0, invoiceIds: [], payableFrom: nextSalesMonth(month) };
     const invoice = invoices.find(invoice => invoice.orderId === order.id && invoice.clientId === client.id && invoice.status === "Emitido" && invoice.type !== "Nota de Crédito");
     const amount = invoice ? invoice.total : invoiceAmounts(order.items, client.type, order.discount).total;
-    const paid = invoice ? getInvoicePaymentSummary(invoice, undefined, receipts).paid : receipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
+    const paid = invoice ? getInvoicePaymentSummary(invoice, undefined, clientReceipts).paid : clientReceipts.filter(receipt => receipt.advanceOrderId === order.id && receipt.status === "Registrado").reduce((sum, receipt) => sum + receipt.total, 0);
     group.orderCount += 1;
     group.total = money(group.total + amount);
     group.paid = money(group.paid + paid);

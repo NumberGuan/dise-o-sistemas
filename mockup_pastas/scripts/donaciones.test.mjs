@@ -18,14 +18,14 @@ test("Donaciones: destinatario, vencimiento, existencias y valor cero", async t 
     const model = await server.ssrLoadModule("/app/data/donaciones.ts");
     const service = await server.ssrLoadModule("/app/data/donaciones.server.ts");
     const sales = await server.ssrLoadModule("/app/data/sales.server.ts");
-    const production = await server.ssrLoadModule("/app/data/produccion.ts");
+    const products = service.getDonationProducts();
     const route = await server.ssrLoadModule("/app/routes/ventas/donacion.tsx");
     const db = await server.ssrLoadModule("/app/utils/db.server.ts");
     const session = await server.ssrLoadModule("/app/utils/session.server.ts");
     const input = { clientId: "c-148", date: "2026-10-17", observations: "Entrega sin cargo", items: [{ productId: 1, quantity: 2, unitPrice: 5000, subtotal: 10000 }], total: 10000 };
 
     await t.test("Solo admite vencimientos desde la fecha elegida hasta siete días después", () => {
-      const product = production.PRODUCTOS_PRODUCCION[0];
+      const product = products[0];
       assert.equal(model.canDonateProduct(product, "2026-10-13"), true);
       assert.equal(model.canDonateProduct(product, "2026-10-12"), false);
       assert.equal(model.canDonateProduct(product, "2026-10-20"), true);
@@ -45,7 +45,7 @@ test("Donaciones: destinatario, vencimiento, existencias y valor cero", async t 
       assert.equal(donation.items[0].expirationDate, "2026-10-20");
       assert.deepEqual(await service.getDonations(), [donation]);
       assert.deepEqual(await sales.getSalesData(), before);
-      assert.equal(model.donationAvailability(production.PRODUCTOS_PRODUCCION[0], [donation]), 43);
+      assert.equal(model.donationAvailability(products[0], [donation]), 43);
     });
     await t.test("Rechaza clientes inválidos, cantidades inválidas y productos fuera del plazo", async () => {
       for (const clientId of ["", "inexistente", "consumidor-final", "c-144"]) await assert.rejects(service.saveDonation({ ...input, clientId }, "Ventas"), /cliente activo/);
@@ -64,7 +64,7 @@ test("Donaciones: destinatario, vencimiento, existencias y valor cero", async t 
       assert.equal(new Set(donations.map(donation => donation.number)).size, 2);
     });
     await t.test("Solo Ventas y Administración acceden y registran donaciones", async () => {
-      for (const role of ["Cliente", "Compras", "Ventas", "Administrador"]) {
+      for (const role of ["Cliente", "Producción", "Ventas", "Administrador"]) {
         const user = { id: `test-${role}`, name: role, email: `${role}@example.test`, role, passwordHash: "unused" };
         await db.saveUser(user);
         const login = await session.createUserSession(user.id, "/");
@@ -79,7 +79,7 @@ test("Donaciones: destinatario, vencimiento, existencias y valor cero", async t 
           assert.ok((await route.loader({ request: request("GET") })).clients.length);
           assert.equal((await route.action({ request: request("POST") })).success, true);
         } else {
-          for (const [handler, method] of [[route.loader, "GET"], [route.action, "POST"]]) await assert.rejects(handler({ request: request(method) }), error => error instanceof Response && error.status === 302);
+          for (const [handler, method] of [[route.loader, "GET"], [route.action, "POST"]]) await assert.rejects(handler({ request: request(method) }), error => error instanceof Response && error.status === 403);
           await assert.rejects(service.saveDonation(input, role), /permiso/);
         }
       }

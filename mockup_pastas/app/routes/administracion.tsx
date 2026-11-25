@@ -1,3 +1,4 @@
+import { restrictTo } from "~/utils/access.server";
 import { CatalogAddButton } from "~/components/InlineCatalog";
 import ModulePageHeader from "~/components/ModulePageHeader";
 import { useState } from "react";
@@ -13,6 +14,8 @@ const MODULE_STYLES: Record<string, { initials: string; description: string }> =
   "Producción e inventario": { initials: "PI", description: "Clasificaciones y unidades para productos e insumos." },
   Mantenimiento: { initials: "MA", description: "Clasificaciones para el cuidado de las máquinas." },
 };
+
+export const middleware = [restrictTo("Administrador")];
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   await requireUserAndRole(request, ["Administrador"]);

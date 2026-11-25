@@ -1,23 +1,11 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import PurchaseDocument from "./PurchaseDocument";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import { useNavigate } from "react-router";
 
 import BackToListButton from "~/components/BackToListButton";
-import {
-  EMPRESA,
-  numeroALetras,
-  getComprobantePorId,
-  getMedioPagoPorId,
-  getReciboPorId,
-  getSaldoPendiente,
-  getTotalComprobante,
-  getTotalPagado,
-} from "~/data/facturacion-proveedores";
-import {
-  formatMoney,
-  getOrdenes,
-  getProveedorPorId,
-} from "~/data/ordenes";
+import { EMPRESA, numeroALetras, getMedioPagoPorId, getTotalComprobante } from "~/data/facturacion-proveedores";
+import { formatMoney } from "~/data/ordenes";
 
 export default function ReciboPagoProveedorDetallePage({
   reciboId,
@@ -26,6 +14,7 @@ export default function ReciboPagoProveedorDetallePage({
   reciboId: string;
   onClose?: () => void;
 }) {
+  const { getReciboPorId, getComprobantePorId, getProveedorPorId, getOrdenes, getTotalPagado, getSaldoPendiente } = useInternalData("purchases");
   const navigate = useNavigate();
   const irVolver = () =>
     onClose ? onClose() : navigate("/compras/recibo-pago-proveedor");

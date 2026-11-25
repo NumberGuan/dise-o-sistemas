@@ -14,7 +14,7 @@ type OrderLineDraft = {
 };
 
 export default function CustomerOrderEditor({ order, addresses, version, detailUrl }: {
-  order: Order;
+  order: Pick<Order, "id" | "fulfillment" | "kind" | "deliveryAddress" | "deliveryAddressId" | "items" | "observations">;
   addresses: ClientAddress[];
   version: string;
   detailUrl: string;

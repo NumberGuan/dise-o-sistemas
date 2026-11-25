@@ -1,3 +1,4 @@
+import ClientDocument, { ProductionSection as ClientSection } from "~/components/ProductionDocument";
 import { SortableList, SortableTable } from "~/components/SortableRows";
 import { CatalogField } from "~/components/InlineCatalog";
 import PhoneFields, { PhoneDetails } from "~/components/PhoneFields";
@@ -17,12 +18,13 @@ import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/clientes";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  const user = await requireUserAndRole(request, ["Ventas"]);
-  return { ...await getSalesData(), canChangeClientType: user.role === "Administrador" };
+  const user = await requireUserAndRole(request, ["Administrador", "Ventas"]);
+  const { clients, orders, invoices, receipts } = await getSalesData();
+  return { clients, orders, invoices, receipts, canChangeClientType: user.role === "Administrador" };
 };
 
 export const action = async ({ request }: Route.ActionArgs) => {
-  const user = await requireUserAndRole(request, ["Ventas"]);
+  const user = await requireUserAndRole(request, ["Administrador", "Ventas"]);
   const formData = await request.formData();
   if (formData.get("intent") !== "save-client") return { error: "La acción solicitada no está disponible." };
   try {
@@ -145,38 +147,31 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
   const activity = orders.filter(order => order.clientId === client.id).sort((a, b) => b.date.localeCompare(a.date) || b.number.localeCompare(a.number));
   const currency = (value: number) => new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS" }).format(value);
   const date = (value: string) => value ? value.split("-").reverse().join("/") : "Sin programar";
-  const statusClass: Record<string, string> = {
-    Pendiente: "bg-amber-100 text-amber-800", "En preparación": "bg-sky-100 text-sky-800",
-    "Listo para remito": "bg-emerald-100 text-emerald-800", Facturado: "bg-purple-100 text-purple-800", Cancelado: "bg-red-100 text-red-800",
-  };
-  return (
-    <div className="mx-auto max-w-7xl space-y-6 px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={`Cliente ${client.name}`} onCancel={onClose} />
-      <section aria-labelledby="client-detail-title" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4 border-b border-gray-200 px-5 py-4 sm:px-6">
-          <div><p className="text-xs font-medium uppercase tracking-wide text-gray-500">{client.code} · {client.type}</p><h2 id="client-detail-title" className="mt-1 text-lg font-semibold">Datos del cliente</h2></div>
-          {canEdit && <button type="button" onClick={onEdit} className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700">Editar cliente</button>}
-        </div>
-        <div className="grid gap-7 p-5 sm:p-6 lg:grid-cols-2">
-          <div><h3 className="text-sm font-semibold">Información y contacto</h3>
-            <dl className="mt-4 grid gap-x-6 gap-y-4 text-sm sm:grid-cols-2">
-              {[["Nombre / razón social", client.name], ["Tipo de documento", client.documentType], ["CUIT/CUIL", client.cuitCuil], ["Tipo IVA", client.ivaType], ["Correo", client.email], ["Estado", client.status]].map(([label, value]) => <div key={label}><dt className="text-xs text-gray-500">{label}</dt><dd className="mt-1 break-words font-medium text-gray-800">{value || "Sin dato"}</dd></div>)}
-              <PhoneDetails primary={client.phone} additional={client.additionalPhones} />
-            </dl>
-          </div>
-          <div><h3 className="text-sm font-semibold">Dirección fija y complementarias</h3>
-            <ul className="mt-4 space-y-3 text-sm text-gray-700">{getClientAddresses(client).map((address, index) => <li key={address.id} className="rounded-lg bg-gray-50 p-3"><p className="font-medium text-gray-900">{index === 0 ? "Dirección fija · Facturación" : address.label}</p><p className="mt-1">{formatClientAddress(address)}</p></li>)}</ul>
-            {!getClientAddresses(client).length && <p className="mt-4 text-sm text-gray-500">Sin domicilios registrados.</p>}
-            {client.notes && <div className="mt-4 rounded-lg bg-amber-50 p-3"><p className="text-xs font-semibold text-amber-900">Observaciones</p><p className="mt-1 whitespace-pre-wrap text-sm text-amber-900">{client.notes}</p></div>}
-          </div>
-        </div>
-      </section>
+  const addresses = getClientAddresses(client);
 
-      <section aria-labelledby="client-orders-title" className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-4 sm:px-6"><div><h2 id="client-orders-title" className="text-lg font-semibold">Pedidos del cliente</h2><p className="mt-1 text-sm text-gray-500">{activity.length} {activity.length === 1 ? "pedido registrado" : "pedidos registrados"}</p></div><p className="text-xs text-gray-500">Abrí un pedido para consultar su detalle.</p></div>
-        <div className="overflow-x-auto"><SortableTable
+  return <ClientDocument moduleLabel="Ventas" title="Ficha de cliente" name={client.name} code={client.code} status={client.status} onClose={onClose}
+    actions={canEdit && <button type="button" onClick={onEdit} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50 focus-visible:outline-2 focus-visible:outline-amber-600">Editar cliente</button>}
+    metadata={[
+      { label: "Tipo de cliente", value: client.type || "Sin informar" },
+      { label: client.documentType || "Documento", value: client.cuitCuil || "Sin informar" },
+      { label: "Condición frente al IVA", value: client.ivaType || "Sin informar" },
+    ]}>
+    <ClientSection title="Datos de contacto">
+      <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-2">
+        <div><dt>Correo electrónico</dt><dd>{client.email || "Sin informar"}</dd></div>
+        <PhoneDetails primary={client.phone} additional={client.additionalPhones} />
+      </dl>
+    </ClientSection>
+    <ClientSection title="Domicilios registrados">
+      {addresses.length ? <div className="production-document-table"><table><thead><tr><th scope="col">Referencia</th><th scope="col">Domicilio completo</th></tr></thead><tbody>{addresses.map((address, index) => <tr key={address.id}>
+        <td>{index === 0 ? "Dirección fija · Facturación" : address.label || `Dirección complementaria ${index}`}</td><td>{formatClientAddress(address) || "Sin informar"}</td>
+      </tr>)}</tbody></table></div> : <p>Sin domicilios registrados.</p>}
+    </ClientSection>
+    <ClientSection title="Historial de pedidos">
+      <p className="production-document-note">{activity.length} {activity.length === 1 ? "pedido registrado" : "pedidos registrados"}. Seleccioná Ver detalle para consultar un pedido.</p>
+      <div className="production-document-table"><SortableTable
             rows={activity}
-            className="w-full text-left text-sm"
+            className="w-full min-w-[720px] text-left text-sm"
             headClassName="border-b border-gray-200 bg-gray-50 text-xs text-gray-500"
             bodyClassName="divide-y divide-gray-100"
             newest="Fecha"
@@ -193,15 +188,15 @@ function ClientDetails({ client, orders, onClose, onEdit, canEdit }: { client: C
           >
             {mapRows => <>
               {mapRows(order => <tr key={order.id} className="hover:bg-gray-50">
-              <td className="whitespace-nowrap px-5 py-4 font-semibold">{order.number}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.date)}</td><td className="px-5 py-4">{order.kind ?? "Regular"}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.deliveryDate)}</td><td className="whitespace-nowrap px-5 py-4"><span className={`rounded-full px-2.5 py-1 text-xs font-medium ${statusClass[order.status] ?? "bg-gray-100 text-gray-700"}`}>{order.status}</span></td><td className="whitespace-nowrap px-5 py-4 font-semibold">{currency(order.total)}</td><td className="px-5 py-4"><Link to={`/ventas/pedidos?pedido=${encodeURIComponent(order.id)}&volverCliente=${encodeURIComponent(client.id)}`} aria-label={`Ver detalle del pedido ${order.number}`} className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</Link></td>
+              <td className="whitespace-nowrap px-5 py-4 font-semibold">{order.number}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.date)}</td><td className="px-5 py-4">{order.kind ?? "Regular"}</td><td className="whitespace-nowrap px-5 py-4 text-gray-600">{date(order.deliveryDate)}</td><td className="whitespace-nowrap px-5 py-4">{order.status}</td><td className="whitespace-nowrap px-5 py-4 font-semibold">{currency(order.total)}</td><td className="px-5 py-4"><Link to={`/ventas/pedidos?pedido=${encodeURIComponent(order.id)}&volverCliente=${encodeURIComponent(client.id)}`} aria-label={`Ver detalle del pedido ${order.number}`} className="whitespace-nowrap rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-amber-800 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-amber-600">Ver detalle</Link></td>
             </tr>
 )}{!activity.length && <tr><td colSpan={7} className="px-5 py-12 text-center text-gray-500">Este cliente todavía no tiene pedidos registrados.</td></tr>}
             </>}
           </SortableTable></div>
-      </section>
-      {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} />}
-    </div>
-  );
+    </ClientSection>
+    {client.type === "Comercio" && <ClientMonthlyAccount months={months} clientId={client.id} presentation="document" />}
+    <ClientSection title="Observaciones"><p className="production-document-procedure">{client.notes || "Sin observaciones registradas."}</p></ClientSection>
+  </ClientDocument>;
 }
 
 export default function Clientes() {

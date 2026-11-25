@@ -22,12 +22,13 @@ import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/comprobantes";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
-  return getSalesData();
+  await requireUserAndRole(request, ["Administrador", "Ventas"]);
+  const { clients, orders, invoices, receipts } = await getSalesData();
+  return { clients, orders, invoices, receipts };
 };
 
 export const action = async ({ request }: Route.ActionArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
+  await requireUserAndRole(request, ["Administrador", "Ventas"]);
   try {
     const data = await request.formData();
     const raw = data.get("document");

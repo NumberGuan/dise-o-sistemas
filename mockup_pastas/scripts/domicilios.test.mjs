@@ -9,8 +9,10 @@ test("Domicilios tabulados compartidos", async t => {
   const server = await createServer({ configFile: false, root, resolve: { alias: { "~": path.join(root, "app") } }, server: { middlewareMode: true }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } });
   try {
     const catalog = await server.ssrLoadModule("/app/data/domicilios.ts");
-    const sales = await server.ssrLoadModule("/app/data/sales.ts");
-    const suppliers = await server.ssrLoadModule("/app/data/proveedores.ts");
+    const sales = { ...await server.ssrLoadModule("/app/data/sales.ts"), ...await server.ssrLoadModule("/app/data/sales-fixtures.server.ts") };
+    const { createSuppliers } = await server.ssrLoadModule("/app/data/proveedores.ts");
+    const { purchasesFixtures } = await server.ssrLoadModule("/app/data/compras-fixtures.server.ts");
+    const suppliers = createSuppliers(structuredClone(purchasesFixtures.suppliers));
     const address = { id: "casa", label: "Casa", province: "Buenos Aires", locality: "La Plata", street: "Calle 7", streetNumber: "123", floor: "", apartment: "" };
 
     await t.test("Las tablas tienen claves únicas y relaciones existentes", () => {

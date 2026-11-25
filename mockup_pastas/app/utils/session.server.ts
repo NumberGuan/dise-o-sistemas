@@ -1,12 +1,19 @@
 import { createCookieSessionStorage, redirect } from "react-router";
-import { getUserById, mutateUser, type User, type Role } from "./db.server";
+import { createHash, createHmac, randomBytes } from "node:crypto";
+import { canAccessAccount, getUserById, mutateUser, type User, type Role } from "./db.server";
 import { guestCartItems, mergeGuestCart } from "~/data/guest-cart";
 
 const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
-if (!configuredSessionSecret && process.env.NODE_ENV === "production") {
-  throw new Error("SESSION_SECRET es obligatorio en producción.");
+if (process.env.NODE_ENV === "production" && (!configuredSessionSecret || configuredSessionSecret.length < 32)) {
+  throw new Error("SESSION_SECRET debe tener al menos 32 caracteres en producción.");
 }
-const sessionSecret = configuredSessionSecret || "super-secret-mockup-key";
+const sessionSecret = configuredSessionSecret || randomBytes(32).toString("hex");
+const sessionLifetime = 60 * 60 * 24 * 30;
+const hashSessionToken = (token: string) => createHash("sha256").update(token).digest("hex");
+
+function credentialVersion(user: User) {
+  return createHmac("sha256", sessionSecret).update(user.id).update("\0").update(user.passwordHash).digest("hex");
+}
 
 export const sessionStorage = createCookieSessionStorage({
   cookie: {
@@ -15,21 +22,32 @@ export const sessionStorage = createCookieSessionStorage({
     secrets: [sessionSecret],
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: sessionLifetime,
     httpOnly: true,
   },
 });
 
-export async function createUserSession(userId: string, redirectTo: string, request?: Request) {
+export async function createUserSession(userId: string, redirectTo: string, request?: Request, expectedPasswordHash?: string) {
   const session = await sessionStorage.getSession(request?.headers.get("Cookie"));
   const cart = guestCartItems(session.get("guestCart"));
-  if (cart.length) {
-    await mutateUser(userId, user => {
-      if (user.role === "Cliente") user.cart = mergeGuestCart(user.cart ?? [], cart);
-    });
-  }
+  if (request) await revokeSession(session.get("userId"), session.get("sessionToken"));
+
+  const token = randomBytes(32).toString("hex");
+  const now = Date.now();
+  const user = await mutateUser(userId, user => {
+    if (!canAccessAccount(user) || (expectedPasswordHash && expectedPasswordHash !== user.passwordHash)) {
+      throw new Error("La cuenta no está habilitada.");
+    }
+    if (cart.length && user.role === "Cliente") user.cart = mergeGuestCart(user.cart ?? [], cart);
+    user.sessions = [
+      ...((user.sessions ?? []).filter(session => session.expiresAt > now).slice(-19)),
+      { tokenHash: hashSessionToken(token), expiresAt: now + sessionLifetime * 1000 },
+    ];
+  });
   session.unset("guestCart");
   session.set("userId", userId);
+  session.set("sessionToken", token);
+  session.set("credentialVersion", credentialVersion(user));
   return redirect(redirectTo, {
     headers: {
       "Set-Cookie": await sessionStorage.commitSession(session),
@@ -42,41 +60,31 @@ export async function getUserSession(request: Request) {
   return sessionStorage.getSession(cookie);
 }
 
-export async function getUserId(request: Request) {
+export async function getUser(request: Request) {
   const session = await getUserSession(request);
   const userId = session.get("userId");
-  if (!userId || typeof userId !== "string") return null;
-  return userId;
+  const token = session.get("sessionToken");
+  if (typeof userId !== "string" || typeof token !== "string") return null;
+
+  const user = await getUserById(userId);
+  if (!user || !canAccessAccount(user) || session.get("credentialVersion") !== credentialVersion(user)) return null;
+  const tokenHash = hashSessionToken(token);
+  return user.sessions?.some(session => session.tokenHash === tokenHash && session.expiresAt > Date.now()) ? user : null;
 }
 
-export async function requireUserId(
-  request: Request,
-  redirectTo: string = new URL(request.url).pathname
-) {
-  const userId = await getUserId(request);
-  if (!userId) {
-    const searchParams = new URLSearchParams([["redirectTo", redirectTo]]);
-    throw redirect(`/login?${searchParams}`);
-  }
-  return userId;
-}
-
-export async function getUser(request: Request) {
-  const userId = await getUserId(request);
-  if (typeof userId !== "string") {
-    return null;
-  }
-
-  try {
-    const user = await getUserById(userId);
-    return user || null;
-  } catch {
-    throw await logout(request);
-  }
+async function revokeSession(userId: unknown, token: unknown) {
+  if (typeof userId !== "string" || typeof token !== "string") return;
+  const user = await getUserById(userId);
+  const tokenHash = hashSessionToken(token);
+  if (!user?.sessions?.some(session => session.tokenHash === tokenHash)) return;
+  await mutateUser(userId, current => {
+    current.sessions = current.sessions?.filter(session => session.tokenHash !== tokenHash);
+  });
 }
 
 export async function logout(request: Request) {
   const session = await getUserSession(request);
+  await revokeSession(session.get("userId"), session.get("sessionToken"));
   return redirect("/login", {
     headers: {
       "Set-Cookie": await sessionStorage.destroySession(session),
@@ -84,18 +92,19 @@ export async function logout(request: Request) {
   });
 }
 
-export async function requireUserAndRole(request: Request, allowedRoles: Role[]) {
+export async function requireUser(request: Request) {
   const user = await getUser(request);
   if (!user) {
     const searchParams = new URLSearchParams([["redirectTo", new URL(request.url).pathname]]);
     throw redirect(`/login?${searchParams}`);
   }
-  
-  // Administrador has access to everything by default in our business logic
-  if (!allowedRoles.includes(user.role) && user.role !== "Administrador") {
-    // Instead of throwing a 403 ErrorBoundary, redirect them to the root
-    // The root loader in home.tsx will route them to their permitted screen
-    throw redirect("/");
+  return user;
+}
+
+export async function requireUserAndRole(request: Request, allowedRoles: readonly Role[]) {
+  const user = await requireUser(request);
+  if (!allowedRoles.includes(user.role)) {
+    throw new Response("No tenés permiso para acceder a esta sección.", { status: 403 });
   }
   return user;
 }

@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import {
   EMPRESA,
   formatearCUIT,
@@ -5,19 +6,15 @@ import {
   numeroALetras,
   type ComprobanteVentaProveedor,
 } from "~/data/facturacion-proveedores";
-import {
-  formatFecha,
-  formatMoney,
-  getMateriaPrimaPorId,
-  getProveedorPorId,
-} from "~/data/ordenes";
-import { getDomicilioPorId } from "~/data/proveedores";
+import { formatFecha, formatMoney } from "~/data/ordenes";
+
 
 export default function FacturaProveedorPrintable({
   comprobante,
 }: {
   comprobante: ComprobanteVentaProveedor;
 }) {
+  const { getProveedorPorId, getDomicilioPorId, getMateriaPrimaPorId } = useInternalData("purchases");
   const proveedor = getProveedorPorId(comprobante.idProveedor);
   const domicilio = proveedor
     ? getDomicilioPorId(proveedor.idDomicilio)

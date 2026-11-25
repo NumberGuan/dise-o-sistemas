@@ -1,7 +1,39 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import crypto from "node:crypto";
-import { CATALOG_DEFINITIONS, catalogDefinition, initialCatalogs, type Catalogs, type CatalogEntry } from "./catalogs";
+import { CATALOG_DEFINITIONS, catalogDefinition, type Catalogs, type CatalogEntry } from "./catalogs";
+
+import { PROVINCIAS, LOCALIDADES, CALLES } from "./domicilios";
+import { UNIDADES, TIPOS_PRODUCTO, SUBTIPOS_PRODUCTO, TIPOS_MATERIA_PRIMA, MARCAS } from "./produccion";
+import { MATERIAS_PRIMAS_PRODUCCION } from "./produccion-fixtures.server";
+import type { Role } from "~/utils/db.server";
+
+const entry = (id: string, name: string, extra: Partial<CatalogEntry> = {}): CatalogEntry => ({ id, value: name, name, description: "", active: true, ...extra });
+const names = (values: readonly string[]) => values.map((name, index) => entry(String(index + 1), name));
+
+export function initialCatalogs(): Catalogs {
+  return {
+    "tipos-cliente": names(["Comercio", "Distribuidor", "Particular"]),
+    "modalidades-entrega": [entry("1", "Retiro en local", { behavior: "pickup" }), entry("2", "Envío", { behavior: "shipping" })],
+    "medios-pago": names(["Efectivo", "Transferencia", "Cheque", "Tarjeta de Crédito", "Tarjeta de Débito"]),
+    "tipos-iva": names(["Responsable inscripto", "Monotributista", "Consumidor final", "Exento"]),
+    // Se preservan los identificadores usados por los proveedores existentes.
+    "tipos-documento": names(["CUIT", "CUIL", "DNI", "Pasaporte", "Otro"]),
+    cargos: names(["Administrador", "Vendedor", "Repartidor"]),
+    provincias: PROVINCIAS.map(item => entry(item.id, item.nombre)),
+    localidades: LOCALIDADES.map(item => entry(item.id, item.nombre, { parentId: item.provinciaId })),
+    calles: CALLES.map(item => entry(item.id, item.nombre, { parentId: item.localidadId })),
+    unidades: UNIDADES.map(item => entry(String(item.idUnidad), item.unidad)),
+    "tipos-producto": TIPOS_PRODUCTO.map(item => entry(String(item.idTipoProducto), item.tipo)),
+    "subtipos-producto": SUBTIPOS_PRODUCTO.map(item => entry(String(item.idSubtipoProducto), item.subtipo, { parentId: String(item.idTipoProducto) })),
+    "tipos-materia-prima": TIPOS_MATERIA_PRIMA.map(item => entry(String(item.idTipoMateriaPrima), item.nombre)),
+    marcas: MARCAS.map(item => entry(String(item.idMarca), item.nombre, { materiasPrimas: materiasPrimasDeMarca(item.idMarca) })),
+    "tipos-maquina": names(["Amasadora", "Sobadora", "Formadora", "Secadero"]),
+    "tipos-mantenimiento": names(["Preventivo", "Correctivo"]),
+  };
+}
+
+const materiasPrimasDeMarca = (idMarca: number) => MATERIAS_PRIMAS_PRODUCCION.filter(m => m.idMarca === idMarca).map(m => m.idMateriaPrima);
 
 const filePath = path.join(process.cwd(), "data", "catalogs.json");
 let queue: Promise<unknown> = Promise.resolve();
@@ -20,7 +52,9 @@ async function readCatalogs(): Promise<Catalogs> {
       if (!(key in saved)) continue;
       const rows: unknown = Reflect.get(saved, key);
       if (!Array.isArray(rows) || rows.some(row => !row || typeof row.id !== "string" || typeof row.name !== "string" || typeof row.value !== "string" || typeof row.description !== "string" || typeof row.active !== "boolean")) throw new Error("Formato inválido");
-      result[key] = rows;
+      result[key] = key === "marcas"
+        ? rows.map(row => ({ ...row, materiasPrimas: row.materiasPrimas ?? materiasPrimasDeMarca(Number(row.id)) }))
+        : rows;
     }
     return result;
   } catch (error) {
@@ -30,6 +64,25 @@ async function readCatalogs(): Promise<Catalogs> {
 }
 
 export const getCatalogs = () => serialized(readCatalogs);
+
+const addressCatalogs = ["provincias", "localidades", "calles"] as const;
+const customerCatalogs = ["modalidades-entrega", "tipos-documento", "tipos-iva", ...addressCatalogs] as const;
+const visibleCatalogs: Record<Exclude<Role, "Administrador">, readonly (keyof Catalogs)[]> = {
+  Cliente: customerCatalogs,
+  Ventas: [...customerCatalogs, "tipos-cliente", "medios-pago", "unidades"],
+  Producción: ["unidades", "tipos-producto", "subtipos-producto", "tipos-materia-prima", "marcas", "tipos-maquina", "tipos-mantenimiento"],
+};
+
+export async function getCatalogsForRole(role: Role): Promise<Catalogs> {
+  const catalogs = await getCatalogs();
+  if (role === "Administrador") return catalogs;
+  for (const { key } of CATALOG_DEFINITIONS) {
+    catalogs[key] = visibleCatalogs[role].includes(key)
+      ? catalogs[key].map(entry => ({ ...entry, description: "" }))
+      : [];
+  }
+  return catalogs;
+}
 const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim().replace(/\s+/g, " ").toLocaleLowerCase("es-AR");
 
 export async function saveCatalogEntry(key: string, form: FormData) {

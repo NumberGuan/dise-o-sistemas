@@ -9,6 +9,7 @@ export interface User {
   id: string;
   email: string;
   passwordHash: string;
+  sessions?: { tokenHash: string; expiresAt: number }[];
   role: Role;
   name: string;
   phone?: string;
@@ -35,11 +36,13 @@ export interface User {
   customerOrders?: import('~/data/sales').Order[];
 }
 
-export type PublicUser = Omit<User, "passwordHash">;
+export type PublicUser = Pick<User, "name" | "role" | "cart">;
 
 const DB_PATH = path.join(process.cwd(), 'data', 'users.json');
 
-async function ensureDb() {
+let initialization: Promise<void> | undefined;
+
+async function initializeDb() {
   await fs.mkdir(path.dirname(DB_PATH), { recursive: true });
   try {
     await fs.access(DB_PATH);
@@ -48,22 +51,19 @@ async function ensureDb() {
     if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
   }
 
-  const defaultAdmin: User = {
-    id: crypto.randomUUID(),
-    email: 'admin@admin.com',
-    passwordHash: hashPassword('admin123'),
-    role: 'Administrador',
-    name: 'Administrador Inicial'
-  };
   try {
-    await fs.writeFile(DB_PATH, JSON.stringify([defaultAdmin], null, 2), { flag: 'wx' });
+    await fs.writeFile(DB_PATH, '[]', { flag: 'wx', mode: 0o600 });
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error;
   }
 }
 
 export async function getUsers(): Promise<User[]> {
-  await ensureDb();
+  initialization ??= initializeDb().catch(error => {
+    initialization = undefined;
+    throw error;
+  });
+  await initialization;
   const data: unknown = JSON.parse(await fs.readFile(DB_PATH, 'utf-8'));
   if (!Array.isArray(data)) throw new Error('User database must contain an array');
   return data as User[];
@@ -80,7 +80,7 @@ function serialized<T>(operation: () => Promise<T>): Promise<T> {
 async function writeUsersAtomically(users: User[]) {
   const temporaryPath = `${DB_PATH}.${process.pid}.${crypto.randomUUID()}.tmp`;
   try {
-    await fs.writeFile(temporaryPath, JSON.stringify(users, null, 2), { encoding: 'utf-8', flag: 'wx' });
+    await fs.writeFile(temporaryPath, JSON.stringify(users, null, 2), { encoding: 'utf-8', flag: 'wx', mode: 0o600 });
     await fs.rename(temporaryPath, DB_PATH);
   } catch (error) {
     await fs.rm(temporaryPath, { force: true }).catch(() => undefined);
@@ -108,6 +108,28 @@ export async function getUserById(id: string) {
   return users.find(u => u.id === id);
 }
 
+export async function configureAdministrator(emailInput: string, password: string) {
+  const email = emailInput.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254 || password.length < 16 || password.length > 128) {
+    throw new Error("Indicá un correo válido y una contraseña de entre 16 y 128 caracteres.");
+  }
+  await serialized(async () => {
+    const users = await getUsers();
+    const existing = users.find(user => user.email.toLowerCase() === email);
+    if (existing && existing.role !== "Administrador") {
+      throw new Error("El correo ya pertenece a una cuenta con otro rol.");
+    }
+    const passwordHash = hashPassword(password);
+    if (existing) {
+      existing.passwordHash = passwordHash;
+      delete existing.sessions;
+    } else {
+      users.push({ id: crypto.randomUUID(), email, passwordHash, role: "Administrador", name: "Administrador" });
+    }
+    await writeUsersAtomically(users);
+  });
+}
+
 export async function mutateUser(id: string, mutate: (current: User, users: readonly User[]) => User | void): Promise<User> {
   return serialized(async () => {
     const users = await getUsers();
@@ -115,9 +137,11 @@ export async function mutateUser(id: string, mutate: (current: User, users: read
     if (index === -1) throw new Error('User not found');
     const current = users[index];
     const original = JSON.stringify(current);
+    const { role, passwordHash } = current;
     const replacement = mutate(current, users);
     const updated = replacement ?? current;
     if (updated.id !== id) throw new Error('A user mutation cannot change the user id');
+    if (updated.role !== role || updated.passwordHash !== passwordHash || updated.customerStatus === 'Inactivo') delete updated.sessions;
     if (JSON.stringify(updated) === original) return current;
     users[index] = updated;
     await writeUsersAtomically(users);
@@ -137,10 +161,24 @@ export function hashPassword(password: string): string {
 
 export function verifyPassword(password: string, storedHash: string): boolean {
   try {
-    const [salt, key] = storedHash.split(':');
-    const hash = crypto.scryptSync(password, salt, 64).toString('hex');
-    return key === hash;
+    const [salt, key, extra] = storedHash.split(':');
+    if (extra !== undefined || !/^[0-9a-f]{128}$/.test(key ?? "") || !/^[0-9a-f]{32}$/.test(salt)) return false;
+    const hash = crypto.scryptSync(password, salt, 64);
+    return crypto.timingSafeEqual(Buffer.from(key, 'hex'), hash);
   } catch {
     return false;
   }
+}
+
+const legacyAdminPasswords = new Map<string, boolean>();
+
+export function canAccessAccount(user: User) {
+  if (user.role === 'Cliente') return user.customerStatus !== 'Inactivo';
+  if (user.role === 'Ventas' || user.role === 'Producción') return true;
+  if (user.role !== 'Administrador') return false;
+
+  if (!legacyAdminPasswords.has(user.passwordHash)) {
+    legacyAdminPasswords.set(user.passwordHash, verifyPassword('admin123', user.passwordHash));
+  }
+  return !legacyAdminPasswords.get(user.passwordHash);
 }

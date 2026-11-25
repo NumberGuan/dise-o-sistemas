@@ -18,5 +18,7 @@ FROM node:24-alpine
 COPY ./package.json package-lock.json /app/
 COPY --from=production-dependencies-env /app/node_modules /app/node_modules
 COPY --from=build-env /app/build /app/build
+COPY ./app/utils/db.server.ts /app/app/utils/db.server.ts
+COPY ./scripts/configure-admin.mjs /app/scripts/configure-admin.mjs
 WORKDIR /app
 CMD ["npm", "run", "start"]

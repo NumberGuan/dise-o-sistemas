@@ -49,8 +49,19 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   if (id && !order) throw new Response(null, { status: 404 });
   const version = order?.status === "Pendiente" && params.get("vista") === "editar" ? customerOrderVersion(order) : null;
   const addresses = version ? getClientAddresses(client).filter(address => address.street.trim() && address.locality.trim()) : [];
-  return { recipient: user.name, orders: customerOrders, order, version, addresses };
+  return {
+    recipient: user.name,
+    orders: customerOrders.map(({ id, number, date, status }) => ({ id, number, date, status })),
+    order: order && customerOrderDetails(order),
+    version,
+    addresses,
+  };
 };
+
+function customerOrderDetails(order: Order) {
+  const { id, number, kind, fulfillment, deliveryTime, date, deliveryDate, deliveryAddressId, deliveryAddress, items, subtotal, discount, total, status, observations } = order;
+  return { id, number, kind, fulfillment, deliveryTime, date, deliveryDate, deliveryAddressId, deliveryAddress, items, subtotal, discount, total, status, observations };
+}
 
 export const action = async ({ request }: Route.ActionArgs) => {
   const user = await requireUserAndRole(request, ["Cliente"]);
@@ -71,7 +82,7 @@ function OrderStatusLabel({ status }: { status: OrderStatus }) {
   return <span className={`inline-block rounded-full px-2.5 py-1 text-xs font-semibold ${statusClasses[status] ?? "bg-gray-100 text-gray-800"}`}>{status}</span>;
 }
 
-function OrderDetails({ order, recipient }: { order: Order; recipient: string }) {
+function OrderDetails({ order, recipient }: { order: ReturnType<typeof customerOrderDetails>; recipient: string }) {
   const deliveryDate = `${formatOrderDate(order.deliveryDate)}${order.deliveryTime ? ` a las ${order.deliveryTime}` : ""}`;
   return (
     <div className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm">

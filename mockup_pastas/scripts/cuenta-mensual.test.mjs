@@ -23,7 +23,7 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
     assert.ok(!path.resolve("data/sales.json").startsWith(project));
     assert.ok(!path.resolve("data/users.json").startsWith(project));
     // Los módulos fijan sus rutas después de cambiar a la carpeta temporal.
-    const model = await server.ssrLoadModule("/app/data/sales.ts");
+    const model = { ...await server.ssrLoadModule("/app/data/sales.ts"), ...await server.ssrLoadModule("/app/data/sales-fixtures.server.ts") };
     const billing = await server.ssrLoadModule("/app/data/billing.ts");
     const current = billing.currentSalesMonth();
     const previousDate = new Date(`${current}-01T12:00:00Z`);
@@ -148,7 +148,7 @@ test("Descuento de comercios, cuenta mensual y cobros persistentes", async t => 
       await service.saveSalesReceipt({ status: "Anulado" }, draft.id);
       assert.equal((await sales.getSalesData()).clients[0].balance, 20570);
     });
-    const employees = await server.ssrLoadModule("/app/data/employees.ts");
+    const employees = await server.ssrLoadModule("/app/data/employees-fixtures.server.ts");
     const orderInput = extras => ({ clientId: client.id, employeeId: employees.SAMPLE_EMPLOYEES.find(employee => employee.status === "Activo").id, date: `${current}-01`, deliveryDate: `${current}-25`, fulfillment: "Retiro en local", deliveryAddressType: "client", items: [{ ...item, quantity: 1 }], discount: 0, observations: "", ...extras });
     await t.test("Mostrador admite consumidor final y cliente elegido y permite facturar", async () => {
       const counter = await sales.saveSalesOrder(orderInput({ kind: "Mostrador", clientId: "" }));

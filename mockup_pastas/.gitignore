@@ -7,5 +7,5 @@
 /build/
 
 # Runtime data
-/data/users.json
-/data/sales.json
+/data/
+.env.*

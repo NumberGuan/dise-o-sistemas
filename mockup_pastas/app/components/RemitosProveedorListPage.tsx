@@ -1,14 +1,13 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
 import { useNavigate } from "react-router";
 
-import {
-  getCantidadTotalRemito,
-  REMITOS,
-} from "~/data/remitos";
-import { formatFecha, getOrdenes, getProveedorPorId } from "~/data/ordenes";
+import { getCantidadTotalRemito } from "~/data/remitos";
+import { formatFecha } from "~/data/ordenes";
 
 export default function RemitosProveedorListPage() {
+  const { REMITOS, getProveedorPorId, getOrdenes } = useInternalData("purchases");
   const navigate = useNavigate();
 
   return (

@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import MaintenanceDocument, { MaintenanceSection, maintenanceDate } from "~/components/MaintenanceDocument";
 import { SortableList } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
@@ -9,16 +10,17 @@ import { validCatalogValue } from "~/data/catalogs";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
-import { MACHINE_STATUSES, SAMPLE_MACHINES, SAMPLE_MAINTENANCES, type Machine, type MachineStatus } from "~/data/maintenance";
+import { MACHINE_STATUSES, type Machine, type MachineStatus } from "~/data/maintenance";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
 const badge = (s: MachineStatus) => s === "Activa" ? "bg-emerald-100 text-emerald-800" : s === "En mantenimiento" ? "bg-sky-100 text-sky-800" : s === "Fuera de servicio" ? "bg-red-100 text-red-800" : "bg-gray-200 text-gray-700";
-const nextCode = () => `MAQ-${String(Math.max(0, ...SAMPLE_MACHINES.map((m) => Number(m.code.match(/\d+$/)?.[0]) || 0)) + 1).padStart(3, "0")}`;
+const nextCode = (machines: Machine[]) => `MAQ-${String(Math.max(0, ...machines.map((m) => Number(m.code.match(/\d+$/)?.[0]) || 0)) + 1).padStart(3, "0")}`;
 
 function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; onCancel: () => void; onSave: (m: Machine) => void }) {
+  const { SAMPLE_MACHINES } = useInternalData("maintenance");
   const catalogs = useCatalogs();
-  const [code] = useState(machine?.code ?? nextCode());
+  const [code] = useState(machine?.code ?? nextCode(SAMPLE_MACHINES));
   const [name, setName] = useState(machine?.name ?? "");
   const [type, setType] = useState(machine?.type ?? "");
   const [brand, setBrand] = useState(machine?.brand ?? "");
@@ -100,6 +102,7 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
 }
 
 function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine: Machine; onClose: () => void; onEdit: () => void; onToggleStatus: () => void; }) {
+  const { SAMPLE_MAINTENANCES } = useInternalData("maintenance");
   const history = SAMPLE_MAINTENANCES.filter((x) => x.items.some(i => i.machineId === machine.id)).sort((a, b) => b.estimatedDate.localeCompare(a.estimatedDate));
   const last = history.find((x) => x.status === "Finalizado");
   const next = [...history].reverse().find((x) => x.status === "Programado");
@@ -133,6 +136,7 @@ function MachineDetails({ machine, onClose, onEdit, onToggleStatus }: { machine:
 }
 
 export default function Maquinas() {
+  const { SAMPLE_MACHINES } = useInternalData("maintenance");
   const [machines, setMachines] = useState(() => [...SAMPLE_MACHINES]);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("Todos");

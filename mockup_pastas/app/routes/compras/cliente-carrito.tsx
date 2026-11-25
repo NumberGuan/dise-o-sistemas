@@ -10,10 +10,10 @@ import ShopPageHero from "~/components/ShopPageHero";
 import { Link, useFetcher, useFetchers, useLoaderData } from "react-router";
 import { randomUUID } from "node:crypto";
 
-import { CLIENT_ADDRESS_LABEL_MAX_LENGTH, MAX_CLIENT_ADDRESSES, SAMPLE_ORDERS, SAMPLE_PRODUCTS, getClientAddresses, formatClientAddress } from "~/data/sales";
-import { customerAsClient, saveCustomerDeliveryAddress, type CustomerAddressResult, type CustomerMutationResult } from "~/data/customer.server";
+import { CLIENT_ADDRESS_LABEL_MAX_LENGTH, MAX_CLIENT_ADDRESSES, SAMPLE_PRODUCTS, getClientAddresses, formatClientAddress } from "~/data/sales";
+import { SAMPLE_ORDERS } from "~/data/sales-fixtures.server";
+import { mutateCustomer, customerAsClient, saveCustomerDeliveryAddress, type CustomerAddressResult, type CustomerMutationResult } from "~/data/customer.server";
 import { requireUserAndRole } from "~/utils/session.server";
-import { mutateUser } from "~/utils/db.server";
 import type { Route } from "./+types/cliente-carrito";
 export { default as ErrorBoundary } from "~/components/CustomerErrorBoundary";
 
@@ -62,7 +62,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       const fulfillment = formData.get("fulfillment") ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío");
       if (!validCatalogValue(catalogs, "modalidades-entrega", fulfillment)) return { error: "Seleccioná una modalidad de entrega activa." };
       const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
-      await mutateUser(user.id, (current, users) => {
+      await mutateCustomer(user.id, (current, users) => {
         if ((current.customerStatus ?? "Activo") !== "Activo") {
           checkoutError = "Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.";
           return;
@@ -131,7 +131,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       const fulfillment = formData.get("fulfillment") ?? catalogDefaultValue(catalogs, "modalidades-entrega", "Envío");
       if (!validCatalogValue(catalogs, "modalidades-entrega", fulfillment)) return { error: "Seleccioná una modalidad de entrega activa." };
       const needsAddress = deliveryNeedsAddress(catalogs, fulfillment);
-      await mutateUser(user.id, (current) => {
+      await mutateCustomer(user.id, (current) => {
         const cart = current.cart ?? [];
         if (!cart.some((item) => item.productId === productId)) return;
         current.cart = cart.filter((item) => item.productId !== productId);
@@ -160,7 +160,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
       return { error: "La cantidad indicada es demasiado grande." };
     }
     let found = false;
-    await mutateUser(user.id, (current) => {
+    await mutateCustomer(user.id, (current) => {
       const cart = (current.cart ?? []).map((item) => ({ ...item }));
       const existing = cart.find((item) => item.productId === productId);
       if (!existing) return;

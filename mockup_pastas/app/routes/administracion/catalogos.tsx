@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
 import FormalPageHeader from "~/components/FormalPageHeader";
@@ -8,7 +9,7 @@ import { useCatalogs } from "~/components/CatalogProvider";
 import { useEffect, useMemo, useState } from "react";
 import { Form, Link, useActionData, useLoaderData, useNavigation, useSearchParams } from "react-router";
 import { brandRawMaterials, catalogDefinition, type CatalogEntry, type Catalogs, type CATALOG_DEFINITIONS } from "~/data/catalogs";
-import { MATERIAS_PRIMAS_PRODUCCION } from "~/data/produccion";
+
 import { getCatalogs, saveCatalogEntry } from "~/data/catalogs.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/catalogos";
@@ -40,6 +41,7 @@ export default function CatalogPage() {
 }
 
 function CatalogScreen({ definition }: { definition: (typeof CATALOG_DEFINITIONS)[number]; catalogs: Catalogs }) {
+  const { MATERIAS_PRIMAS_PRODUCCION } = useInternalData("production");
   const catalogs = useCatalogs();
   const [params, setParams] = useSearchParams();
   const result = useActionData<typeof action>();

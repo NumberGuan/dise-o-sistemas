@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import FormFrame from "~/components/FormFrame";
@@ -5,16 +6,7 @@ import BackToListButton from "~/components/BackToListButton";
 import { useMemo, useState, type FormEvent } from "react";
 import { useNavigate } from "react-router";
 
-import {
-  MATERIAS_PRIMAS,
-  PRESUPUESTOS,
-  createOrden,
-  formatMoney,
-  getMarcaPorId,
-  getOrdenPorId,
-  getProveedorPorId,
-  useProveedores,
-} from "~/data/ordenes";
+import { formatMoney } from "~/data/ordenes";
 
 type OrdenItem = {
   key: number;
@@ -48,6 +40,7 @@ export default function OrdenCompraPage({
   ordenId?: string;
   onClose?: () => void;
 } = {}) {
+  const { getOrdenPorId, useProveedores, PRESUPUESTOS, getMarcaPorId, createOrden, getProveedorPorId, MATERIAS_PRIMAS } = useInternalData("purchases");
   const navigate = useNavigate();
   const irVolver = () =>
     onClose ? onClose() : navigate("/compras/ordenes");

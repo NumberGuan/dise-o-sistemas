@@ -16,8 +16,10 @@ test("Teléfonos principales y adicionales", async t => {
     await fs.mkdir("data");
     await fs.writeFile("data/users.json", "[]");
     const sales = await server.ssrLoadModule("/app/data/sales.server.ts");
-    const model = await server.ssrLoadModule("/app/data/sales.ts");
-    const suppliers = await server.ssrLoadModule("/app/data/proveedores.ts");
+    const model = { ...await server.ssrLoadModule("/app/data/sales.ts"), ...await server.ssrLoadModule("/app/data/sales-fixtures.server.ts") };
+    const { createSuppliers } = await server.ssrLoadModule("/app/data/proveedores.ts");
+    const { purchasesFixtures } = await server.ssrLoadModule("/app/data/compras-fixtures.server.ts");
+    const suppliers = createSuppliers(structuredClone(purchasesFixtures.suppliers));
     const db = await server.ssrLoadModule("/app/utils/db.server.ts");
     const session = await server.ssrLoadModule("/app/utils/session.server.ts");
     const profile = await server.ssrLoadModule("/app/routes/compras/cliente-perfil.tsx");

@@ -1,24 +1,14 @@
-import {
-  EMPRESA,
-  formatearCUIT,
-  getComprobantePorId,
-  getMedioPagoPorId,
-  numeroALetras,
-  type ReciboPagoProveedor,
-} from "~/data/facturacion-proveedores";
-import {
-  formatFecha,
-  formatMoney,
-  getOrdenes,
-  getProveedorPorId,
-} from "~/data/ordenes";
-import { getDomicilioPorId } from "~/data/proveedores";
+import { useInternalData } from "~/components/InternalDataProvider";
+import { EMPRESA, formatearCUIT, getMedioPagoPorId, numeroALetras, type ReciboPagoProveedor } from "~/data/facturacion-proveedores";
+import { formatFecha, formatMoney } from "~/data/ordenes";
+
 
 export default function ReciboPagoProveedorPrintable({
   recibo,
 }: {
   recibo: ReciboPagoProveedor;
 }) {
+  const { getComprobantePorId, getProveedorPorId, getDomicilioPorId, getOrdenes } = useInternalData("purchases");
   const comprobante = getComprobantePorId(recibo.idComprobanteVentaProveedor);
   const proveedor = comprobante
     ? getProveedorPorId(comprobante.idProveedor)

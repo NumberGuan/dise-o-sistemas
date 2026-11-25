@@ -1,15 +1,13 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
 import { Link, useNavigate } from "react-router";
 
-import {
-  RECIBOS_PAGO_PROVEEDOR,
-  getComprobantePorId,
-  getMedioPagoPorId,
-} from "~/data/facturacion-proveedores";
-import { formatFecha, formatMoney, getProveedorPorId } from "~/data/ordenes";
+import { getMedioPagoPorId } from "~/data/facturacion-proveedores";
+import { formatFecha, formatMoney } from "~/data/ordenes";
 
 export default function RecibosPagoProveedorListPage() {
+  const { RECIBOS_PAGO_PROVEEDOR, getComprobantePorId, getProveedorPorId } = useInternalData("purchases");
   const navigate = useNavigate();
 
   return (

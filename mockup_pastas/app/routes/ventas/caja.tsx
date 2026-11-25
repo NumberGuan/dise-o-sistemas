@@ -16,7 +16,7 @@ const button = "rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-w
 const panel = "rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
+  await requireUserAndRole(request, ["Administrador", "Ventas"]);
   const data = await getSalesData();
   const sessions = data.cashSessions;
   const requested = new URL(request.url).searchParams.get("caja");
@@ -25,7 +25,7 @@ export const loader = async ({ request }: Route.LoaderArgs) => {
   return { sessions, session, summary, hasOpen: sessions.some(row => !row.closedAt), legacyCount: data.receipts.filter(receipt => !receipt.cashSessionId && receipt.status === "Registrado").length };
 };
 export const action = async ({ request }: Route.ActionArgs) => {
-  const actor = await requireUserAndRole(request, ["Ventas"]);
+  const actor = await requireUserAndRole(request, ["Administrador", "Ventas"]);
   try { return await updateCash(await request.formData(), { id: actor.id, name: actor.name }); }
   catch (error) { return { error: error instanceof Error ? error.message : "No se pudo guardar la operación." }; }
 };

@@ -1,19 +1,10 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
 import { useNavigate } from "react-router";
 
-import {
-  COMPROBANTES_VENTA_PROVEEDOR,
-  getEstadoPago,
-  getTotalComprobante,
-  type EstadoPago,
-} from "~/data/facturacion-proveedores";
-import {
-  formatFecha,
-  formatMoney,
-  getOrdenes,
-  getProveedorPorId,
-} from "~/data/ordenes";
+import { getTotalComprobante, type EstadoPago } from "~/data/facturacion-proveedores";
+import { formatFecha, formatMoney } from "~/data/ordenes";
 
 const estadoClasses: Record<EstadoPago, string> = {
   Pagado: "bg-emerald-100 text-emerald-700",
@@ -22,6 +13,7 @@ const estadoClasses: Record<EstadoPago, string> = {
 };
 
 export default function ComprobantesProveedorListPage() {
+  const { COMPROBANTES_VENTA_PROVEEDOR, getProveedorPorId, getOrdenes, getEstadoPago } = useInternalData("purchases");
   const navigate = useNavigate();
 
   return (

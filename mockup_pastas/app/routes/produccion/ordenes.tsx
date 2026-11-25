@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import ProductionDocument, { ProductionSection, productionDate } from "~/components/ProductionDocument";
 import { SortableList } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
@@ -9,13 +10,9 @@ import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { Link } from "react-router";
-import { SAMPLE_EMPLOYEES } from "~/data/employees";
-import { SAMPLE_MACHINES } from "~/data/maintenance";
-import {
-  ESTADOS_ORDEN_PRODUCCION, MATERIAS_PRIMAS_PRODUCCION, ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION,
-  codigo, consumoDeReceta, consumoTotal, getMateriaPrima, getProducto, getReceta, siguienteId,
-  type ConsumoMateriaPrima, type DetalleOrdenProduccion, type EstadoOrdenProduccion, type OrdenProduccion,
-} from "~/data/produccion";
+
+
+import { ESTADOS_ORDEN_PRODUCCION, codigo, consumoTotal, siguienteId, type MateriaPrima, type ConsumoMateriaPrima, type DetalleOrdenProduccion, type EstadoOrdenProduccion, type OrdenProduccion } from "~/data/produccion";
 import { AnimatedBadge, Collapse, EASE_OUT, HoldToConfirm, rowMotion, toast } from "~/components/motion";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
@@ -23,7 +20,7 @@ const labelClass = "block text-sm font-medium text-gray-700";
 const badge = (s: EstadoOrdenProduccion) => s === "Pendiente" ? "bg-amber-100 text-amber-800" : s === "En proceso" ? "bg-sky-100 text-sky-800" : s === "Finalizada" ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700";
 const today = () => new Date().toISOString().slice(0, 10);
 const numero = (o: OrdenProduccion) => codigo("OP", o.idOrdenProduccion, 4);
-const empleado = (id: string) => SAMPLE_EMPLOYEES.find((e) => e.id === id)?.name ?? "—";
+const empleado = (employees: { id: string; name: string }[], id: string) => employees.find((e) => e.id === id)?.name ?? "—";
 
 type MateriaRow = { key: string; idMateriaPrima: string; cantidad: string };
 type ProductoRow = { key: string; idProducto: string; tandas: number; materias: MateriaRow[] };
@@ -50,20 +47,22 @@ function TandasCounter({ value, onChange, label }: { value: number; onChange: (n
 let rowSeq = 0;
 const nextKey = (prefix: string) => `${prefix}-${++rowSeq}`;
 const toMateriaRows = (consumo: ConsumoMateriaPrima[]): MateriaRow[] => consumo.map((m) => ({ key: nextKey("mp"), idMateriaPrima: String(m.idMateriaPrima), cantidad: String(m.cantidad) }));
-const stockDe = (idMateriaPrima: number) => getMateriaPrima(idMateriaPrima)?.stockMateriaPrima ?? 0;
-const nombresMp = (consumo: ConsumoMateriaPrima[]) => consumo.map((m) => getMateriaPrima(m.idMateriaPrima)?.nombre).join(", ");
+type BuscarMateriaPrima = (id: number) => MateriaPrima | undefined;
+const stockDe = (getMateriaPrima: BuscarMateriaPrima, idMateriaPrima: number) => getMateriaPrima(idMateriaPrima)?.stockMateriaPrima ?? 0;
+const nombresMp = (getMateriaPrima: BuscarMateriaPrima, consumo: ConsumoMateriaPrima[]) => consumo.map((m) => getMateriaPrima(m.idMateriaPrima)?.nombre).join(", ");
 
 // Materias primas cuyo consumo total supera el stock disponible.
-const faltantes = (consumo: ConsumoMateriaPrima[]) => consumo.filter((m) => m.cantidad > stockDe(m.idMateriaPrima));
+const faltantes = (getMateriaPrima: BuscarMateriaPrima, consumo: ConsumoMateriaPrima[]) => consumo.filter((m) => m.cantidad > stockDe(getMateriaPrima, m.idMateriaPrima));
 
 function ConsumoResumen({ consumo }: { consumo: ConsumoMateriaPrima[] }) {
+  const { getMateriaPrima } = useInternalData("production");
   const { formatCantidad } = useProductionCatalogs();
   if (consumo.length === 0) return <p className="text-sm text-gray-500">Sin materias primas cargadas.</p>;
   return (
     <ul className="divide-y divide-gray-100 text-sm">
       {consumo.map((m) => {
         const mp = getMateriaPrima(m.idMateriaPrima);
-        const falta = m.cantidad > stockDe(m.idMateriaPrima);
+        const falta = m.cantidad > stockDe(getMateriaPrima, m.idMateriaPrima);
         return (
           <li key={m.idMateriaPrima} className="flex items-center justify-between gap-3 py-2">
             <span className="text-gray-800">{mp?.nombre ?? "—"}</span>
@@ -79,6 +78,8 @@ function ConsumoResumen({ consumo }: { consumo: ConsumoMateriaPrima[] }) {
 }
 
 function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProduccion | null; onCancel: () => void; onSave: (o: OrdenProduccion) => void }) {
+  const { ORDENES_PRODUCCION, consumoDeReceta, getProducto, getReceta, PRODUCTOS_PRODUCCION, getMateriaPrima, MATERIAS_PRIMAS_PRODUCCION } = useInternalData("production");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const [id] = useState(order?.idOrdenProduccion ?? siguienteId(ORDENES_PRODUCCION.map((o) => o.idOrdenProduccion)));
   const [fechaEmision, setFechaEmision] = useState(order?.fechaEmision ?? today());
   const [idEmpleado, setIdEmpleado] = useState(order?.idEmpleado ?? "");
@@ -101,7 +102,7 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
     materiasPrimas: p.materias.filter((m) => m.idMateriaPrima && Number(m.cantidad) > 0).map((m) => ({ idMateriaPrima: Number(m.idMateriaPrima), cantidad: Number(m.cantidad) })),
   }));
   const consumo = consumoTotal(detalleBorrador);
-  const sinStock = faltantes(consumo);
+  const sinStock = faltantes(getMateriaPrima, consumo);
 
   function submit(e: FormEvent) {
     e.preventDefault();
@@ -221,7 +222,7 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
           <div className="mt-6 rounded-xl border border-gray-200 bg-white p-4">
             <h3 className="font-semibold text-gray-900">Total de materia prima de la orden</h3>
             <p className="mt-1 text-xs text-gray-500">Se descuenta del stock al iniciar la producción.</p>
-            {sinStock.length > 0 && <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">No alcanza el stock de {nombresMp(sinStock)}. Podés guardar la orden, pero no iniciarla hasta reponer.</p>}
+            {sinStock.length > 0 && <p role="status" className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">No alcanza el stock de {nombresMp(getMateriaPrima, sinStock)}. Podés guardar la orden, pero no iniciarla hasta reponer.</p>}
             <div className="mt-2"><ConsumoResumen consumo={consumo} /></div>
           </div>
         )}
@@ -241,6 +242,9 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
   onEdit: () => void;
   onTransition: (next: EstadoOrdenProduccion, cantidades: Record<number, string>, fechaFin: string, vencimiento: string) => string | void;
 }) {
+  const { getProducto, getReceta, getMateriaPrima } = useInternalData("production");
+  const { SAMPLE_MACHINES } = useInternalData("maintenance");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const { getUnidad, formatCantidad } = useProductionCatalogs();
   const [cantidades, setCantidades] = useState<Record<number, string>>(() => Object.fromEntries(order.detalle.map((d) => [d.idProducto, d.cantidadRealGenerada == null ? "" : String(d.cantidadRealGenerada)])));
   const [fechaFin, setFechaFin] = useState(today());
@@ -252,9 +256,9 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
   const handleTransition = (next: EstadoOrdenProduccion) => setError(onTransition(next, cantidades, fechaFin, vencimiento) ?? "");
 
   return <ProductionDocument title="Orden de producción" name={`Lote ${order.nmrLote}`} code={numero(order)} status={order.estado} onClose={onClose}
-    actions={<><PrintVoucher title="Orden de producción" document={{ number: numero(order), date: order.fechaEmision, status: order.estado, items: order.detalle.map(line => { const product = getProducto(line.idProducto); return { productName: `${product?.nombre ?? "Producto"} · ${product ? getUnidad(product.idUnidad) : ""}`, quantity: line.cantidadRealGenerada ?? undefined }; }) }} recipient={empleado(order.idEmpleado)} recipientLabel="Responsable de producción" details={[{ label: "Lote", value: String(order.nmrLote) }, { label: "Inicio", value: order.fechaInicio ?? "Sin iniciar" }, { label: "Finalización", value: order.fechaFinalizacion ?? "Pendiente" }, { label: "Cantidades", value: "Producción real registrada. Un guion indica una cantidad aún no registrada." }]} signature />{order.estado === "Pendiente" && <button type="button" onClick={onEdit} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar orden</button>}</>}
+    actions={<><PrintVoucher title="Orden de producción" document={{ number: numero(order), date: order.fechaEmision, status: order.estado, items: order.detalle.map(line => { const product = getProducto(line.idProducto); return { productName: `${product?.nombre ?? "Producto"} · ${product ? getUnidad(product.idUnidad) : ""}`, quantity: line.cantidadRealGenerada ?? undefined }; }) }} recipient={empleado(SAMPLE_EMPLOYEES, order.idEmpleado)} recipientLabel="Responsable de producción" details={[{ label: "Lote", value: String(order.nmrLote) }, { label: "Inicio", value: order.fechaInicio ?? "Sin iniciar" }, { label: "Finalización", value: order.fechaFinalizacion ?? "Pendiente" }, { label: "Cantidades", value: "Producción real registrada. Un guion indica una cantidad aún no registrada." }]} signature />{order.estado === "Pendiente" && <button type="button" onClick={onEdit} className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-700 hover:bg-gray-50">Editar orden</button>}</>}
     metadata={[
-      { label: "Empleado responsable", value: empleado(order.idEmpleado) },
+      { label: "Empleado responsable", value: empleado(SAMPLE_EMPLOYEES, order.idEmpleado) },
       { label: "Fecha de emisión", value: productionDate(order.fechaEmision) },
       { label: "Número de lote", value: String(order.nmrLote) },
       { label: "Inicio de producción", value: productionDate(order.fechaInicio) },
@@ -331,6 +335,8 @@ function ProductionOrderDetails({ order, onClose, onEdit, onTransition }: {
 }
 
 export default function OrdenesProduccion() {
+  const { ORDENES_PRODUCCION, getProducto, getMateriaPrima, MATERIAS_PRIMAS_PRODUCCION, PRODUCTOS_PRODUCCION } = useInternalData("production");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const { formatCantidad } = useProductionCatalogs();
   const [orders, setOrders] = useState(() => [...ORDENES_PRODUCCION]);
   const [search, setSearch] = useState("");
@@ -370,8 +376,8 @@ export default function OrdenesProduccion() {
     if (!selected) return;
     if (next === "En proceso") {
       const consumo = consumoTotal(selected.detalle);
-      const sinStock = faltantes(consumo);
-      if (sinStock.length > 0) return `No hay stock suficiente de ${nombresMp(sinStock)}.`;
+      const sinStock = faltantes(getMateriaPrima, consumo);
+      if (sinStock.length > 0) return `No hay stock suficiente de ${nombresMp(getMateriaPrima, sinStock)}.`;
       consumo.forEach((m) => {
         const i = MATERIAS_PRIMAS_PRODUCCION.findIndex((x) => x.idMateriaPrima === m.idMateriaPrima);
         if (i >= 0) MATERIAS_PRIMAS_PRODUCCION[i] = { ...MATERIAS_PRIMAS_PRODUCCION[i], stockMateriaPrima: Math.round((MATERIAS_PRIMAS_PRODUCCION[i].stockMateriaPrima - m.cantidad) * 1000) / 1000 };
@@ -452,7 +458,7 @@ export default function OrdenesProduccion() {
                 [["Lote", row => row.nmrLote], "min-w-0 text-left lg:text-center"],
                 [["Productos", row => row.detalle.map(line => getProducto(line.idProducto)?.nombre).filter(Boolean).join(', ')], "min-w-0 text-left"],
                 [["Emisión", row => row.fechaEmision], "min-w-0 text-left lg:text-center"],
-                [["Responsable", row => empleado(row.idEmpleado)], "min-w-0 text-left lg:text-center"],
+                [["Responsable", row => empleado(SAMPLE_EMPLOYEES, row.idEmpleado)], "min-w-0 text-left lg:text-center"],
                 [["Estado", row => row.estado], "min-w-0 text-left lg:text-center"],
                 ["Acciones"],
               ]}
@@ -480,7 +486,7 @@ export default function OrdenesProduccion() {
                       </div>
                       <div className="min-w-0 text-left lg:text-center">
                         <p className="text-xs font-medium text-gray-500 lg:hidden">Responsable</p>
-                        <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{empleado(o.idEmpleado)}</p>
+                        <p className="mt-1 break-words text-sm text-gray-900 lg:mt-0">{empleado(SAMPLE_EMPLOYEES, o.idEmpleado)}</p>
                       </div>
                       <div className="flex flex-col items-start gap-1 lg:items-center">
                         <span className="text-xs font-medium text-gray-500 lg:hidden">Estado</span>

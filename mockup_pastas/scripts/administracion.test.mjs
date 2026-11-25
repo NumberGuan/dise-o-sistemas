@@ -19,7 +19,7 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
     await fs.writeFile("data/users.json", "[]");
     const catalogs = await server.ssrLoadModule("/app/data/catalogs.server.ts");
     const model = await server.ssrLoadModule("/app/data/catalogs.ts");
-    const salesModel = await server.ssrLoadModule("/app/data/sales.ts");
+    const salesModel = { ...await server.ssrLoadModule("/app/data/sales.ts"), ...await server.ssrLoadModule("/app/data/sales-fixtures.server.ts") };
     const sales = await server.ssrLoadModule("/app/data/sales.server.ts");
     const billing = await server.ssrLoadModule("/app/data/billing.server.ts");
     const db = await server.ssrLoadModule("/app/utils/db.server.ts");
@@ -41,7 +41,7 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
       await assert.rejects(fs.access("data/catalogs.json"), { code: "ENOENT" });
     });
     await t.test("Los tipos de máquina se incorporan a catálogos existentes y conservan las selecciones históricas", async () => {
-      const previous = model.initialCatalogs();
+      const previous = catalogs.initialCatalogs();
       delete previous["tipos-maquina"];
       await fs.writeFile("data/catalogs.json", JSON.stringify(previous));
       const initial = await catalogs.getCatalogs();
@@ -143,7 +143,7 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
           assert.equal((await route.action({ request: request("POST"), params: { catalogo: "medios-pago" } })).success, true);
           await assert.rejects(route.loader({ request: request("GET"), params: { catalogo: "desconocido" } }), error => error instanceof Response && error.status === 404);
         } else {
-          for (const [handler, method] of [[route.loader, "GET"], [route.action, "POST"]]) await assert.rejects(handler({ request: request(method), params: { catalogo: "medios-pago" } }), error => error instanceof Response && error.status === 302);
+          for (const [handler, method] of [[route.loader, "GET"], [route.action, "POST"]]) await assert.rejects(handler({ request: request(method), params: { catalogo: "medios-pago" } }), error => error instanceof Response && error.status === 403);
         }
       }
     });
@@ -196,7 +196,7 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
           return inline.action({ request, params: { catalogo } });
         };
         if (role !== "Administrador") {
-          await assert.rejects(run(), error => error instanceof Response && error.status === 302);
+          await assert.rejects(run(), error => error instanceof Response && error.status === 403);
           continue;
         }
         const result = await run();
@@ -236,7 +236,7 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
         assert.equal(model.canCreateCatalog("Producción", key), false);
         await assert.rejects(run(key), error => error instanceof Response && error.status === 403);
       }
-      await assert.rejects(route.loader({ request: new Request("http://localhost/administracion/catalogos/unidades", { headers: { Cookie: cookie } }), params: { catalogo: "unidades" } }), error => error instanceof Response && error.status === 302);
+      await assert.rejects(route.loader({ request: new Request("http://localhost/administracion/catalogos/unidades", { headers: { Cookie: cookie } }), params: { catalogo: "unidades" } }), error => error instanceof Response && error.status === 403);
       const { InlineCatalogProvider, CatalogField } = await server.ssrLoadModule("/app/components/InlineCatalog.tsx");
       const current = await catalogs.getCatalogs();
       const creatableCatalogs = model.CATALOG_DEFINITIONS.filter(item => model.canCreateCatalog("Producción", item.key)).map(item => item.key);
@@ -248,7 +248,10 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
       assert.doesNotMatch(markup, /Agregar cargo/);
       const { CatalogContext } = await server.ssrLoadModule("/app/components/CatalogProvider.tsx");
       const { CatalogEntryFields } = await server.ssrLoadModule("/app/components/CatalogEntryFields.tsx");
-      const brandMarkup = renderToStaticMarkup(createElement(CatalogContext.Provider, { value: current }, createElement(CatalogEntryFields, { catalog: "marcas", initialMateriaPrima: 2 })));
+      const { InternalDataProvider } = await server.ssrLoadModule("/app/components/InternalDataProvider.tsx");
+      const { getInternalData } = await server.ssrLoadModule("/app/data/internal.server.ts");
+      const brandMarkup = renderToStaticMarkup(createElement(InternalDataProvider, { initial: getInternalData("Producción") },
+        createElement(CatalogContext.Provider, { value: current }, createElement(CatalogEntryFields, { catalog: "marcas", initialMateriaPrima: 2 }))));
       assert.match(brandMarkup, /<input[^>]*name="materiasPrimas"[^>]*checked=""[^>]*value="2"/);
     });
     await t.test("Las marcas guardan sus materias primas y las recetas solo ofrecen las asociadas", async () => {
@@ -272,10 +275,14 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
       await assert.rejects(catalogs.saveCatalogEntry("marcas", brandForm("Otra marca", ["abc"])), /no son válidas/);
       const legacy = { ...data.marcas.find(item => item.id === "3") };
       delete legacy.materiasPrimas;
-      assert.deepEqual(model.brandRawMaterials(legacy), [5, 6, 20, 21, 22, 23, 24]);
+      const stored = JSON.parse(await fs.readFile("data/catalogs.json", "utf8"));
+      stored.marcas = stored.marcas.map(brand => brand.id === legacy.id ? legacy : brand);
+      await fs.writeFile("data/catalogs.json", JSON.stringify(stored));
+      const migrated = (await catalogs.getCatalogs()).marcas.find(brand => brand.id === legacy.id);
+      assert.deepEqual(model.brandRawMaterials(migrated), [5, 6, 20, 21, 22, 23, 24]);
     });
     await t.test("Los subtipos de producto dependen de un tipo y cubren todos los productos", async () => {
-      const production = await server.ssrLoadModule("/app/data/produccion.ts");
+      const production = { ...await server.ssrLoadModule("/app/data/produccion.ts"), ...await server.ssrLoadModule("/app/data/produccion-fixtures.server.ts") };
       let data = await catalogs.getCatalogs();
       const subtypes = data["subtipos-producto"];
       for (const product of production.PRODUCTOS_PRODUCCION) {
@@ -289,7 +296,7 @@ test("Administración: catálogos persistentes y opciones compartidas", async t 
       await assert.rejects(save("subtipos-producto", "moñitos", { parentId: "1" }), /Ya existe/);
       await save("subtipos-producto", "Moñitos", { parentId: "2" });
       await assert.rejects(save("tipos-producto", "Pasta seca", { id: "1", active: "false" }), /dependen/);
-      const previous = model.initialCatalogs();
+      const previous = catalogs.initialCatalogs();
       delete previous["subtipos-producto"];
       await fs.writeFile("data/catalogs.json", JSON.stringify(previous));
       data = await catalogs.getCatalogs();

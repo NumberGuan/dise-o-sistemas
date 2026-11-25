@@ -1,14 +1,11 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import { useCatalogs } from "~/components/CatalogProvider";
 import { PhoneDetails } from "~/components/PhoneFields";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
-import {
-  getDomicilioPorId,
-  getNombreCompletoProveedor,
-  getProveedorPorId,
-} from "~/data/proveedores";
+import { getNombreCompletoProveedor } from "~/data/proveedores";
 
 const formatDocumento = (nro: number) =>
   nro.toLocaleString("es-AR", { useGrouping: true });
@@ -20,6 +17,7 @@ export default function ProveedorDetallePage({
   proveedorId: string;
   onClose?: () => void;
 }) {
+  const { getProveedorPorId, getDomicilioPorId } = useInternalData("purchases");
   const catalogs = useCatalogs();
   const TIPOS_DOCUMENTO = catalogs["tipos-documento"].map(item => ({ id: Number(item.id), nombre: item.name, active: item.active }));
   const getTipoDocumentoPorId = (id: number) => TIPOS_DOCUMENTO.find(item => item.id === id);

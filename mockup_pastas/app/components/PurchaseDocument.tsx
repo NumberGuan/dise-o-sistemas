@@ -1,6 +1,7 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import type { ComponentProps } from "react";
 import { EMPRESA, formatearCUIT } from "~/data/facturacion-proveedores";
-import { getDomicilioPorId, TIPOS_DOCUMENTO, type Proveedor } from "~/data/proveedores";
+import { TIPOS_DOCUMENTO, type Proveedor } from "~/data/proveedores";
 import SalesDocument from "./SalesDocument";
 
 type Props = Omit<ComponentProps<typeof SalesDocument>, "moduleLabel" | "client" | "issuer" | "recipient" | "recipientLines" | "recipientLabel"> & {
@@ -9,6 +10,7 @@ type Props = Omit<ComponentProps<typeof SalesDocument>, "moduleLabel" | "client"
 };
 
 export default function PurchaseDocument({ supplier, issuedBySupplier = true, ...document }: Props) {
+  const { getDomicilioPorId } = useInternalData("purchases");
   const address = supplier ? getDomicilioPorId(supplier.idDomicilio) : undefined;
   const supplierLines = supplier ? [
     `${TIPOS_DOCUMENTO.find(type => type.id === supplier.idTipoDocumento)?.nombre ?? "Documento"}: ${supplier.idTipoDocumento === 1 ? formatearCUIT(supplier.nroDocumento) : supplier.nroDocumento}`,

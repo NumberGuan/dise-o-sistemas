@@ -1,21 +1,18 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import ModuleDashboard from "~/components/ModuleDashboard";
-import {
-  ORDER_STATUSES,
-  SAMPLE_BUDGETS,
-  SAMPLE_INVOICES,
-  SAMPLE_REMITS,
-} from "~/data/sales";
+import { ORDER_STATUSES } from "~/data/sales";
 import { getSalesData } from "~/data/sales.server";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/index";
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireUserAndRole(request, ["Ventas"]);
+  await requireUserAndRole(request, ["Administrador", "Ventas"]);
   const { orders } = await getSalesData();
   return { orders };
 };
 
 export default function Ventas({ loaderData }: Route.ComponentProps) {
+  const { SAMPLE_INVOICES, SAMPLE_REMITS, SAMPLE_BUDGETS } = useInternalData("sales");
   const orders = loaderData.orders;
   const ordersInProgress = orders.filter(
     (order) => order.status === "Pendiente" || order.status === "En preparación",

@@ -1,14 +1,12 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import PurchaseDocument from "./PurchaseDocument";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
-import { getOrdenes, getProveedorPorId } from "~/data/ordenes";
-import {
-  getCantidadTotalRemito,
-  getRemitoPorId,
-} from "~/data/remitos";
-import { getMateriaPrimaPorId } from "~/data/ordenes";
+
+import { getCantidadTotalRemito } from "~/data/remitos";
+
 
 export default function RemitoProveedorDetallePage({
   remitoId,
@@ -17,6 +15,7 @@ export default function RemitoProveedorDetallePage({
   remitoId: string;
   onClose?: () => void;
 }) {
+  const { getRemitoPorId, getProveedorPorId, getOrdenes, getMateriaPrimaPorId } = useInternalData("purchases");
   const navigate = useNavigate();
   const irVolver = () =>
     onClose ? onClose() : navigate("/compras/remito-proveedor");

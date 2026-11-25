@@ -1,16 +1,11 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import PurchaseDocument from "./PurchaseDocument";
 import FormalPageHeader from "~/components/FormalPageHeader";
 import BackToListButton from "~/components/BackToListButton";
 import { useNavigate } from "react-router";
 
-import {
-  getMontoPresupuesto,
-  getPresupuestoPorId,
-} from "~/data/presupuestos";
-import {
-  getMateriaPrimaPorId,
-  getProveedorPorId,
-} from "~/data/ordenes";
+import { getMontoPresupuesto } from "~/data/presupuestos";
+
 
 export default function PresupuestoDetallePage({
   presupuestoId,
@@ -19,6 +14,7 @@ export default function PresupuestoDetallePage({
   presupuestoId: string;
   onClose?: () => void;
 }) {
+  const { getPresupuestoPorId, getProveedorPorId, getMateriaPrimaPorId } = useInternalData("purchases");
   const navigate = useNavigate();
   const irVolver = () =>
     onClose ? onClose() : navigate("/compras/presupuesto-proveedor");

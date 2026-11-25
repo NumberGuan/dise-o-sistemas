@@ -1,3 +1,4 @@
+import { useInternalData } from "~/components/InternalDataProvider";
 import MaintenanceDocument, { MaintenanceSection, maintenanceDate } from "~/components/MaintenanceDocument";
 import { SortableList } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
@@ -9,20 +10,22 @@ import RecordPage, { RecordNotFound } from "~/components/RecordPage";
 import { useRecordScreen } from "~/utils/useRecordScreen";
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link } from "react-router";
-import { SAMPLE_EMPLOYEES } from "~/data/employees";
-import { MAINTENANCE_STATUSES, SAMPLE_MACHINES, SAMPLE_MAINTENANCES, type MaintenanceOrder, type MaintenanceOrderItem, type MaintenanceStatus, type MaintenanceType } from "~/data/maintenance";
+
+import { MAINTENANCE_STATUSES, type MaintenanceOrder, type MaintenanceOrderItem, type MaintenanceStatus, type MaintenanceType } from "~/data/maintenance";
 
 const field = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-100";
 const labelClass = "block text-sm font-medium text-gray-700";
 const badge = (s: MaintenanceStatus) => s === "Programado" ? "bg-amber-100 text-amber-800" : s === "En curso" ? "bg-sky-100 text-sky-800" : s === "Finalizado" ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700";
-const nextNumber = () => `MAN-${String(Math.max(0, ...SAMPLE_MAINTENANCES.map((m) => Number(m.number.match(/\d+$/)?.[0]) || 0)) + 1).padStart(4, "0")}`;
+const nextNumber = (orders: MaintenanceOrder[]) => `MAN-${String(Math.max(0, ...orders.map((m) => Number(m.number.match(/\d+$/)?.[0]) || 0)) + 1).padStart(4, "0")}`;
 
 function formatCurrency(amount: number) {
   return new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", minimumFractionDigits: 2 }).format(amount);
 }
 
 function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { item: MaintenanceOrder | null; preselectedMachineId?: string; onCancel: () => void; onSave: (m: MaintenanceOrder, start: boolean) => void }) {
-  const [number] = useState(item?.number ?? nextNumber());
+  const { SAMPLE_MACHINES, SAMPLE_MAINTENANCES } = useInternalData("maintenance");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
+  const [number] = useState(item?.number ?? nextNumber(SAMPLE_MAINTENANCES));
   const [issueDate, setIssueDate] = useState(item?.issueDate ?? new Date().toISOString().slice(0, 10));
   const [estimatedDate, setEstimatedDate] = useState(item?.estimatedDate ?? new Date().toISOString().slice(0, 10));
   const [responsibleType, setResponsibleType] = useState<"Empleado" | "Externo">(item?.responsibleType ?? "Empleado");
@@ -183,6 +186,8 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
 }
 
 function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: MaintenanceOrder; onClose: () => void; onEdit: () => void; onTransition: (next: MaintenanceStatus, items: MaintenanceOrderItem[], endDate: string) => { error?: string } | void; }) {
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
+  const { SAMPLE_MACHINES } = useInternalData("maintenance");
   const employee = order.responsibleType === "Empleado" ? SAMPLE_EMPLOYEES.find((e) => e.id === order.responsibleEmployeeId) : null;
   const responsibleName = order.responsibleType === "Empleado" ? (employee?.name ?? "—") : (order.externalResponsibleName ?? "—");
 
@@ -278,6 +283,8 @@ function MaintenanceDetails({ order, onClose, onEdit, onTransition }: { order: M
 }
 
 export default function Mantenimientos() {
+  const { SAMPLE_MAINTENANCES, SAMPLE_MACHINES } = useInternalData("maintenance");
+  const SAMPLE_EMPLOYEES = useInternalData("employeeDirectory");
   const [orders, setOrders] = useState(() => [...SAMPLE_MAINTENANCES]);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("Todos");

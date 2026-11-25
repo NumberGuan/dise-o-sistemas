@@ -19,6 +19,15 @@ const defaultCustomerData = {
   notes: "",
 } satisfies NonNullable<User["customerData"]>;
 
+export function mutateCustomer(id: string, mutate: Parameters<typeof mutateUser>[1]) {
+  return mutateUser(id, (user, users) => {
+    if (user.role !== "Cliente" || user.customerStatus === "Inactivo") {
+      throw new Error("La cuenta de cliente no está habilitada.");
+    }
+    return mutate(user, users);
+  });
+}
+
 export function customerAsClient(user: User): Client | null {
   if (user.role !== "Cliente") return null;
   const customerData = user.customerData ?? defaultCustomerData;
@@ -55,7 +64,7 @@ export async function saveCustomerDeliveryAddress(userId: string, intent: "add-d
   try {
     const catalog = intent === "add-delivery-address" ? catalogAddressData(await getCatalogs()) : undefined;
     let addressId = "";
-    await mutateUser(userId, (current) => {
+    await mutateCustomer(userId, (current) => {
       const client = customerAsClient(current);
       if (!client) throw new Error("La cuenta de cliente ya no está disponible.");
       const addresses = getClientAddresses(client);
@@ -106,7 +115,7 @@ export async function updateCustomerProductData(user: User, formData: FormData):
 
   try {
     if (intent === "toggle-favorite" || intent === "remove-favorite") {
-      await mutateUser(user.id, (current) => {
+      await mutateCustomer(user.id, (current) => {
         const favorites = new Set(current.favorites ?? []);
         if (intent === "remove-favorite" || favorites.has(productId)) favorites.delete(productId);
         else favorites.add(productId);
@@ -123,7 +132,7 @@ export async function updateCustomerProductData(user: User, formData: FormData):
         return { error: "Elegí una cantidad entre 1 y 1000." };
       }
       let invalidQuantity = false;
-      await mutateUser(user.id, (current) => {
+      await mutateCustomer(user.id, (current) => {
         const cart = (current.cart ?? []).map((item) => ({ ...item }));
         const existing = cart.find((item) => item.productId === productId);
         const nextQuantity = (existing?.quantity ?? 0) + quantityToAdd;

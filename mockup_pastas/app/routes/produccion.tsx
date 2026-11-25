@@ -1,16 +1,21 @@
+import { useInternalData } from "~/components/InternalDataProvider";
+import { restrictTo } from "~/utils/access.server";
 import { Outlet, useLocation } from "react-router";
 import { requireUserAndRole } from "~/utils/session.server";
 import type { Route } from "./+types/produccion";
 
+export const middleware = [restrictTo("Administrador", "Producción")];
+
 export const loader = async ({ request }: Route.LoaderArgs) => {
-  await requireUserAndRole(request, ["Producción"]);
+  await requireUserAndRole(request, ["Administrador", "Producción"]);
   return null;
 };
 
 import ModuleDashboard from "~/components/ModuleDashboard";
-import { ESTADOS_ORDEN_PRODUCCION, MATERIAS_PRIMAS_PRODUCCION, ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS } from "~/data/produccion";
+import { ESTADOS_ORDEN_PRODUCCION } from "~/data/produccion";
 
 function ProductionDashboard() {
+  const { ORDENES_PRODUCCION, PRODUCTOS_PRODUCCION, RECETAS, MATERIAS_PRIMAS_PRODUCCION } = useInternalData("production");
   const inProgress = ORDENES_PRODUCCION.filter((order) => order.estado === "En proceso").length;
   const pending = ORDENES_PRODUCCION.filter((order) => order.estado === "Pendiente").length;
   const ordersByStatus = ESTADOS_ORDEN_PRODUCCION.map((status) => ({
