@@ -29,7 +29,7 @@ export default function ClienteFavoritos() {
   return (
     <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       <div className="mb-6">
-        <ShopPageHero title="Mis favoritos" description="Productos que guardaste desde tu catálogo.">
+        <ShopPageHero title="Mis favoritos" art="favoritos" description="Productos que guardaste desde tu catálogo.">
           <span className="rounded-full border border-[#eadfd3] bg-white/85 px-3 py-1.5 text-sm text-gray-700">{favoriteProducts.length} {favoriteProducts.length === 1 ? "producto" : "productos"}</span>
         </ShopPageHero>
       </div>

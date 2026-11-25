@@ -1,33 +1,23 @@
 import { useId, type ReactNode } from "react";
-import ModulePageHeader from "~/components/ModulePageHeader";
 
 const heroImages = {
   catalogo: "/hero-pastas.jpg",
   carrito: "/hero-carrito.webp",
+  favoritos: "/hero-favoritos.webp",
+  pedidos: "/hero-pedidos.webp",
   perfil: "/hero-perfil.webp",
 };
 
 type ShopPageHeroProps = {
   title: string;
   description?: string;
-  art?: keyof typeof heroImages;
+  art: keyof typeof heroImages;
   label?: string;
   children?: ReactNode;
 };
 
 export default function ShopPageHero({ title, description, art, label = "Compras", children }: ShopPageHeroProps) {
   const titleId = useId();
-  if (!art) {
-    return (
-      <ModulePageHeader labelledBy={titleId}>
-        <p className="text-sm font-medium text-amber-700">{label}</p>
-        <h1 id={titleId} className="mt-1">{title}</h1>
-        {description && <p className="mt-2 max-w-lg text-sm leading-6 text-gray-700">{description}</p>}
-        {children && <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div>}
-      </ModulePageHeader>
-    );
-  }
-
   const isCatalog = art === "catalogo";
 
   return (

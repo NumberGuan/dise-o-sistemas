@@ -5,7 +5,6 @@ import { Link, data, redirect, useActionData, useLoaderData, useSearchParams } f
 import CustomerOrderEditor from "~/components/CustomerOrderEditor";
 import PrintVoucher from "~/components/PrintVoucher";
 import ShopPageHero from "~/components/ShopPageHero";
-import FormalPageHeader from "~/components/FormalPageHeader";
 import { getClientAddresses, type Order, type OrderStatus } from "~/data/sales";
 import { customerAsClient } from "~/data/customer.server";
 import { customerOrderVersion, getSalesData, saveCustomerOrderEdit } from "~/data/sales.server";
@@ -124,13 +123,10 @@ export default function ClientePedidos() {
         <>
           <Link to={ordersUrl} className="text-sm font-semibold text-amber-800 underline underline-offset-4">Volver a Mis pedidos</Link>
           <div className="mb-5 mt-3">
-            <FormalPageHeader className="flex flex-wrap items-center justify-between gap-3">
-              <h1>{version ? "Editar pedido" : "Pedido"} {order.number}</h1>
-              <div className="flex flex-wrap items-center gap-2">
-                <OrderStatusLabel status={order.status} />
-                {!version && order.status === "Pendiente" && <Link to={orderUrl(order.id, "editar")} className={`${actionClass} bg-white`}>Editar</Link>}
-              </div>
-            </FormalPageHeader>
+            <ShopPageHero title={`${version ? "Editar pedido" : "Pedido"} ${order.number}`} art="pedidos">
+              <OrderStatusLabel status={order.status} />
+              {!version && order.status === "Pendiente" && <Link to={orderUrl(order.id, "editar")} className={`${actionClass} bg-white`}>Editar</Link>}
+            </ShopPageHero>
           </div>
           {actionData?.error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{actionData.error}</p>}
           {params.get("vista") === "guardado" && <p role="status" className="mb-4 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Se guardaron los cambios del pedido.</p>}
@@ -138,7 +134,7 @@ export default function ClientePedidos() {
         </>
       ) : (
         <>
-          <div className="mb-6"><ShopPageHero title="Mis pedidos" /></div>
+          <div className="mb-6"><ShopPageHero title="Mis pedidos" art="pedidos" /></div>
           {!orders.length ? (
             <section className="rounded-2xl border border-dashed border-[#dfd0c0] bg-white px-6 py-14 text-center">
               <h2 className="text-lg font-semibold">Todavía no tenés pedidos</h2>
