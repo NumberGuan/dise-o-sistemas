@@ -94,7 +94,7 @@ function CustomerProfileForm({ profile }: { profile: Awaited<ReturnType<typeof l
   const actionData = useActionData<typeof action>();
   const navigation = useNavigation();
   const isSaving = navigation.state === "submitting";
-  const inputClass = "mt-2 min-h-11 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700";
+  const inputClass = "mt-2 min-h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700";
   const labelClass = "block text-sm font-semibold text-gray-800";
 
   return <section className="shop-panel rounded-2xl border" aria-labelledby="profile-data-title"><Form noValidate method="post" className="space-y-6 p-5 sm:p-7" autoComplete="on">

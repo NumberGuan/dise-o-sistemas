@@ -272,7 +272,7 @@ export default function ClienteCarrito() {
         {!isActive && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.</p>}
         {isActive && needsAddress && !selectedAddress && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Agregá una dirección de entrega para continuar.</p>}
         <label htmlFor="order-observations" className="mt-4 block text-sm font-medium text-gray-700">Observaciones de entrega</label>
-        <textarea id="order-observations" name="observations" rows={2} maxLength={500} className="mt-1 w-full rounded-xl border border-[#e5d9cb] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-amber-700" placeholder="Indicaciones para recibir el pedido" />
+        <textarea id="order-observations" name="observations" rows={2} maxLength={500} className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-amber-700" placeholder="Indicaciones para recibir el pedido" />
         {fetcher.state === "idle" && fetcher.data?.error && <p role="alert" className="mt-3 text-sm text-red-700">{fetcher.data.error}</p>}
         <div className="mt-4 flex flex-col gap-3 shop-rule border-t pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button type="submit" disabled={!canCheckout} className="min-h-11 shrink-0 shop-primary px-5 text-sm font-semibold text-white disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
       </fetcher.Form>}

@@ -2,18 +2,18 @@
 
 :root {
   --pasta-cream: #fffaf1;
-  --pasta-paper: #f6efe2;
+  --pasta-paper: #f3f1eb;
   --pasta-olive: #20231a;
-  --pasta-list-heading: #353b2e;
-  --pasta-tint: #f0f2eb;
-  --pasta-tint-strong: #e4e8dc;
-  --pasta-tint-line: #c8cfbd;
-  --pasta-muted-olive: #cdd8bf;
-  --pasta-muted: #665c4c;
-  --pasta-peach: #efbb88;
-  --pasta-terracotta: #b4482d;
-  --pasta-terracotta-dark: #913821;
-  --pasta-line: #e1d2bd;
+  --pasta-list-heading: #eceee9;
+  --pasta-tint: #f1f2ef;
+  --pasta-tint-strong: #e4e7e1;
+  --pasta-tint-line: #cbd0c7;
+  --pasta-muted-olive: #d2d8cb;
+  --pasta-muted: #555b50;
+  --pasta-focus: #626b5c;
+  --pasta-action: #4a5145;
+  --pasta-action-dark: #343a31;
+  --pasta-line: #dadcd4;
   --pasta-serif: Georgia, "Times New Roman", serif;
 }
 
@@ -45,10 +45,10 @@
   min-width: 0;
   min-height: 8.5rem;
   align-content: center;
-  border: 1px solid #eadfd3;
+  border: 1px solid var(--pasta-line);
   border-radius: 0.875rem;
   padding: 1.5rem clamp(1rem, 3vw, 2rem);
-  background: #fffaf4;
+  background: var(--pasta-paper);
 }
 
 .module-page-header-image {
@@ -132,24 +132,25 @@
 
 @media screen {
   :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) {
-    border-color: var(--pasta-list-heading);
+    border-color: var(--pasta-tint-line);
     background: var(--pasta-list-heading);
-    color: var(--pasta-cream);
+    color: var(--pasta-action-dark);
   }
 
   :is(.staff-shell, .shop-store) .page-surface thead :is(tr, th, td) {
-    border-color: #ffffff2b;
+    border-color: var(--pasta-tint-line);
     background: transparent;
     color: inherit;
   }
 
   :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button:hover,
   :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button[data-sorted] {
-    color: var(--pasta-muted-olive);
+    background: var(--pasta-tint-strong);
+    color: var(--pasta-olive);
   }
 
   :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button:focus-visible {
-    outline-color: var(--pasta-muted-olive);
+    outline-color: var(--pasta-focus);
   }
 
   :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button svg {
@@ -194,40 +195,29 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif,
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
-  /* Identidad cromatica: terracota, ladrillo, azul pizarra y superficies suaves. */
+  /* Acentos grises con matiz oliva y superficies neutras. */
   --color-brand-50: var(--pasta-tint);
   --color-brand-100: var(--pasta-tint-strong);
   --color-brand-200: var(--pasta-tint-line);
-  --color-brand-300: #aab39e;
-  --color-brand-400: #bd8563;
-  --color-brand-500: #c25b3e;
-  --color-brand-600: #ad452b;
-  --color-brand-700: #8f3522;
-  --color-brand-800: #742d22;
-  --color-brand-900: #60281f;
-  --color-brand-950: #35130f;
+  --color-brand-300: #a7afa1;
+  --color-brand-400: #8b9584;
+  --color-brand-500: var(--pasta-focus);
+  --color-brand-600: var(--pasta-action);
+  --color-brand-700: var(--pasta-action-dark);
+  --color-brand-800: #30362e;
+  --color-brand-900: #252a24;
+  --color-brand-950: #191d17;
 
-  --color-tertiary-50: #fff6f1;
-  --color-tertiary-100: #fee9dc;
-  --color-tertiary-200: #fbd0ba;
-  --color-tertiary-300: #f4ad8a;
-  --color-tertiary-400: #eb875f;
-  --color-tertiary-500: #e06d44;
-  --color-tertiary-600: #c85330;
-  --color-tertiary-700: #a64128;
-  --color-tertiary-800: #863625;
-  --color-tertiary-900: #6d3023;
-
-  --color-slateblue-50: #f5f8fc;
-  --color-slateblue-100: #e9eff7;
-  --color-slateblue-200: #d6e0ed;
-  --color-slateblue-300: #b7c5d6;
-  --color-slateblue-400: #8a9bb0;
-  --color-slateblue-500: #64748b;
-  --color-slateblue-600: #4a5b70;
-  --color-slateblue-700: #34445a;
-  --color-slateblue-800: #223148;
-  --color-slateblue-900: #0f172a;
+  --color-slateblue-50: var(--pasta-tint);
+  --color-slateblue-100: var(--pasta-tint-strong);
+  --color-slateblue-200: var(--pasta-line);
+  --color-slateblue-300: #b8bfb4;
+  --color-slateblue-400: #737a6e;
+  --color-slateblue-500: var(--pasta-muted);
+  --color-slateblue-600: #4d5549;
+  --color-slateblue-700: #41483e;
+  --color-slateblue-800: var(--pasta-action-dark);
+  --color-slateblue-900: var(--pasta-olive);
   --color-slateblue-950: #090f1d;
 
   /* Las utilidades ya usadas en todas las pantallas consumen los tokens nuevos. */
@@ -258,17 +248,6 @@
   --color-amber-900: var(--color-brand-900);
   --color-amber-950: var(--color-brand-950);
 
-  --color-orange-50: var(--color-tertiary-50);
-  --color-orange-100: var(--color-tertiary-100);
-  --color-orange-200: var(--color-tertiary-200);
-  --color-orange-300: var(--color-tertiary-300);
-  --color-orange-400: var(--color-tertiary-400);
-  --color-orange-500: var(--color-tertiary-500);
-  --color-orange-600: var(--color-tertiary-600);
-  --color-orange-700: var(--color-tertiary-700);
-  --color-orange-800: var(--color-tertiary-800);
-  --color-orange-900: var(--color-tertiary-900);
-
   /* Estados: matices armonizados, pero distinguibles por tono y luminosidad. */
   --color-emerald-50: #eef9f5;
   --color-emerald-100: #d6f1e7;
@@ -297,15 +276,16 @@
   --color-violet-100: #e7ebf1;
   --color-violet-700: #3f5068;
 
+  /* Las utilidades de error conservan su función con un acento neutro. */
   --color-red-50: var(--pasta-tint);
   --color-red-100: var(--pasta-tint-strong);
   --color-red-200: var(--pasta-tint-line);
-  --color-red-300: #aab39e;
-  --color-red-500: #b15838;
-  --color-red-600: #9d432c;
-  --color-red-700: #873824;
-  --color-red-800: #822a24;
-  --color-red-900: #6d2823;
+  --color-red-300: #a7afa1;
+  --color-red-500: var(--pasta-focus);
+  --color-red-600: #535b4f;
+  --color-red-700: #3d453a;
+  --color-red-800: var(--pasta-action-dark);
+  --color-red-900: var(--pasta-olive);
   --color-rose-50: var(--color-red-50);
   --color-rose-100: var(--color-red-100);
   --color-rose-200: var(--color-red-200);
@@ -419,6 +399,10 @@ body {
   white-space: normal;
   text-align: left;
 }
+:where([role="alert"]):is(.bg-red-50, .bg-rose-50) {
+  box-shadow: inset 3px 0 0 var(--pasta-focus);
+}
+
 input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
   border-color: var(--color-red-600);
   outline-color: var(--color-red-600);

@@ -34,22 +34,22 @@ export default function TiendaPublica() {
   const loginUrl = authUrl("login");
   const registerUrl = authUrl("register");
   const destination = !isCatalog || cartCount > 0 ? "/compras/carrito" : `/compras/catalogo${catalogSearch}`;
-  return <div className={`min-h-screen bg-[#fbf8f3] text-gray-900${isCatalog ? " shop-store shop-store-public" : ""}`}>
-    <header className="sticky top-0 z-30 border-b border-[#eadfd3] bg-white">
+  return <div className={`min-h-screen bg-[var(--pasta-paper)] text-gray-900${isCatalog ? " shop-store shop-store-public" : ""}`}>
+    <header className="sticky top-0 z-30 border-b border-gray-200 bg-white">
       <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
         <Link to="/login" className="shop-store-brand flex items-center gap-3 font-bold"><Logo /><span>Fábrica de Pastas</span></Link>
         <nav aria-label="Tienda pública" className="flex flex-wrap items-center gap-3 text-sm font-semibold">
           <NavLink to="/catalogo" className="rounded-lg px-3 py-2 text-amber-900 hover:bg-amber-50">Catálogo</NavLink>
-          <NavLink to="/carrito" className="rounded-lg border border-[#e5d9cb] px-3 py-2 hover:bg-amber-50">Carrito ({cartCount})</NavLink>
+          <NavLink to="/carrito" className="rounded-lg border border-gray-300 px-3 py-2 hover:bg-amber-50">Carrito ({cartCount})</NavLink>
           <Link to={loginUrl} preventScrollReset aria-haspopup="dialog" className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-black hover:bg-gray-50">Ingresar</Link>
           <Link to={registerUrl} preventScrollReset aria-haspopup="dialog" className="shop-store-register rounded-lg bg-amber-800 px-3 py-2 text-white hover:bg-amber-900">Crear cuenta</Link>
         </nav>
       </div>
     </header>
     <main className="min-w-0 p-3 sm:p-5">
-      <div className="page-surface min-w-0 rounded-2xl border border-[#eadfd3] bg-white shadow-sm"><Outlet /></div>
+      <div className="page-surface min-w-0 rounded-2xl border border-gray-200 bg-white shadow-sm"><Outlet /></div>
     </main>
-    <footer className="mt-8 border-t border-[#eadfd3] px-4 py-6 text-center text-xs text-gray-600">Fábrica de Pastas · Catálogo público</footer>
+    <footer className="mt-8 border-t border-gray-200 px-4 py-6 text-center text-xs text-gray-600">Fábrica de Pastas · Catálogo público</footer>
     <AuthDialog mode={mode} loginUrl={loginUrl} registerUrl={registerUrl} closeUrl={closeUrl} redirectTo={destination} storefront />
   </div>;
 }
