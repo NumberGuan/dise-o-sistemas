@@ -72,6 +72,8 @@ Para crear la primera cuenta administradora o cambiar la contraseña de una exis
 
 En producción, usá HTTPS y configurá un `SESSION_SECRET` aleatorio propio de al menos 32 caracteres. Si el servidor recibe solicitudes a través de un proxy que cambia el origen, configurá `APP_ORIGIN` con el origen HTTPS público de la aplicación. Configurá el proxy para respetar `Cache-Control: private, no-store` en las respuestas de la aplicación y servir solo los archivos estáticos de `build/client`. Después de actualizar desde una versión anterior, los usuarios deben iniciar sesión de nuevo.
 
+En desarrollo, si no configurás `SESSION_SECRET`, la aplicación genera un secreto local y lo guarda en `data/.session-secret` para conservar las sesiones al recargar o reiniciar el servidor. Mantené ese archivo privado si respaldás el directorio `data/`.
+
 Ejecutá `npm run test:seguridad` para compilar y comprobar los permisos por rol, el acceso a pedidos propios, el cierre de sesiones y la ausencia de registros internos de muestra en los archivos públicos. Las pruebas usan cuentas temporales y almacenamiento aislado.
 
 ## Building for Production

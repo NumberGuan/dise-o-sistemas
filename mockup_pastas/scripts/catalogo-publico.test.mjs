@@ -13,8 +13,11 @@ test("Catálogo público, carrito de visitante y acceso para comprar", async t =
   const readOptional = file => fs.readFile(file).catch(error => { if (error.code === "ENOENT") return null; throw error; });
   const originals = await Promise.all(files.map(readOptional));
   const sandbox = await fs.mkdtemp(path.join(os.tmpdir(), "pastas-catalogo-publico-"));
-  const server = await createServer({ configFile: false, root: project, resolve: { alias: { "~": path.join(project, "app") } }, server: { middlewareMode: true }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } });
+  const serverOptions = { configFile: false, root: project, resolve: { alias: { "~": path.join(project, "app") } }, server: { middlewareMode: true, ws: false }, appType: "custom", optimizeDeps: { noDiscovery: true, include: [] } };
+  const server = await createServer(serverOptions);
+  const previousSessionSecret = process.env.SESSION_SECRET;
   try {
+    delete process.env.SESSION_SECRET;
     process.chdir(sandbox);
     assert.ok(!path.resolve("data/users.json").startsWith(project));
     await fs.mkdir("data");
@@ -108,6 +111,22 @@ test("Catálogo público, carrito de visitante y acceso para comprar", async t =
       await assert.rejects(() => shop.loader({ request: request("/carrito", authenticatedCookie) }), response => response instanceof Response && response.headers.get("Location") === "/compras/carrito");
       await session.createUserSession(user.id, "/", request("/login", authenticatedCookie));
       assert.equal((await db.getUserById(user.id)).cart[0].quantity, 4);
+    });
+    await t.test("Una sesión de desarrollo sigue válida al volver a cargar el servidor", async () => {
+      const authenticatedCookie = cookieOf(await session.createUserSession("fixture", "/"));
+      const pageRequest = () => request("/compras/perfil", authenticatedCookie);
+      assert.equal((await session.getUser(pageRequest()))?.id, "fixture");
+
+      const restartedServer = await createServer(serverOptions);
+      try {
+        const restartedSession = await restartedServer.ssrLoadModule("/app/utils/session.server.ts");
+        assert.notEqual(restartedSession.sessionStorage, session.sessionStorage);
+        assert.equal((await restartedSession.getUser(pageRequest()))?.id, "fixture");
+        await restartedSession.logout(pageRequest());
+        assert.equal(await session.getUser(pageRequest()), null);
+      } finally {
+        await restartedServer.close();
+      }
     });
     await t.test("Registrarse conserva el carrito y continúa en la pantalla de compra", async () => {
       const guestCookie = cookieOf(await guest.updateGuestCart(request("/catalogo", undefined, { intent: "add-to-cart", productId: "p-2" })));
@@ -218,6 +237,8 @@ test("Catálogo público, carrito de visitante y acceso para comprar", async t =
       assert.match((await edit(ownerCookie, { orderId: event.id, version: sales.customerOrderVersion(updatedEvent) })).error, /pedidos pendientes/);
     });
   } finally {
+    if (previousSessionSecret === undefined) delete process.env.SESSION_SECRET;
+    else process.env.SESSION_SECRET = previousSessionSecret;
     process.chdir(originalCwd);
     await server.close();
     for (const [index, file] of files.entries()) assert.deepEqual(await readOptional(file), originals[index], "Los datos reales deben permanecer intactos");

@@ -1,6 +1,9 @@
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import { fileURLToPath } from "node:url";
+import { defineConfig, normalizePath } from "vite";
+
+const runtimeData = normalizePath(fileURLToPath(new URL("./data", import.meta.url)));
 
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter()],
@@ -8,8 +11,11 @@ export default defineConfig({
     tsconfigPaths: true,
   },
   server: {
+    watch: {
+      ignored: [runtimeData, `${runtimeData}/**`],
+    },
     fs: {
-      deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/data/*.json", "**/data/*.tmp", "**/*.server.*", "**/.codex-local-backup/**"],
+      deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/data/*.json", "**/data/*.tmp", "**/data/.session-secret*", "**/*.server.*", "**/.codex-local-backup/**"],
     },
   },
 });

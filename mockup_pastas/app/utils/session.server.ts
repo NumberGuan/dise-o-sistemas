@@ -1,5 +1,7 @@
 import { createCookieSessionStorage, redirect } from "react-router";
-import { createHash, createHmac, randomBytes } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID } from "node:crypto";
+import { linkSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import path from "node:path";
 import { canAccessAccount, getUserById, mutateUser, type User, type Role } from "./db.server";
 import { guestCartItems, mergeGuestCart } from "~/data/guest-cart";
 
@@ -7,9 +9,38 @@ const configuredSessionSecret = process.env.SESSION_SECRET?.trim();
 if (process.env.NODE_ENV === "production" && (!configuredSessionSecret || configuredSessionSecret.length < 32)) {
   throw new Error("SESSION_SECRET debe tener al menos 32 caracteres en producción.");
 }
-const sessionSecret = configuredSessionSecret || randomBytes(32).toString("hex");
+const sessionSecret = configuredSessionSecret || loadDevelopmentSessionSecret();
 const sessionLifetime = 60 * 60 * 24 * 30;
 const hashSessionToken = (token: string) => createHash("sha256").update(token).digest("hex");
+
+function loadDevelopmentSessionSecret() {
+  const directory = path.join(process.cwd(), "data");
+  const file = path.join(directory, ".session-secret");
+  try {
+    return readSecret();
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+  }
+
+  mkdirSync(directory, { recursive: true, mode: 0o700 });
+  const temporary = `${file}.${randomUUID()}.tmp`;
+  try {
+    writeFileSync(temporary, randomBytes(32).toString("hex"), { flag: "wx", mode: 0o600 });
+    // Publish the complete file without replacing a secret created by another process.
+    linkSync(temporary, file);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+  } finally {
+    rmSync(temporary, { force: true });
+  }
+  return readSecret();
+
+  function readSecret() {
+    const secret = readFileSync(file, "utf8").trim();
+    if (!/^[0-9a-f]{64}$/.test(secret)) throw new Error("El secreto local de sesión no es válido.");
+    return secret;
+  }
+}
 
 function credentialVersion(user: User) {
   return createHmac("sha256", sessionSecret).update(user.id).update("\0").update(user.passwordHash).digest("hex");
