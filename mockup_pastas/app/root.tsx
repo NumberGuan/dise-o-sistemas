@@ -10,6 +10,7 @@ import {
 import type { Route } from "./+types/root";
 import "./app.css";
 import storefrontStylesheet from "./components/storefront.css?url";
+import staffStylesheet from "./components/staff.css?url";
 import FormValidation from "~/components/FormValidation";
 import NavigationLoading from "~/components/NavigationLoading";
 import { protectResponse } from "~/utils/access.server";
@@ -18,6 +19,7 @@ export const middleware = [protectResponse];
 
 export const links: Route.LinksFunction = () => [
   { rel: "stylesheet", href: storefrontStylesheet },
+  { rel: "stylesheet", href: staffStylesheet },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
@@ -76,11 +78,13 @@ export function ErrorBoundary({ error }: Route.ErrorBoundaryProps) {
   }
 
   return (
-    <main className="pt-16 p-4 container mx-auto">
-      <h1>{message}</h1>
-      <p>{details}</p>
+    <main className="app-error mx-auto max-w-3xl px-4 py-12 sm:px-6">
+      <header className="module-page-header">
+        <h1>{message}</h1>
+        <p className="mt-2 text-sm leading-6">{details}</p>
+      </header>
       {stack && (
-        <pre className="w-full p-4 overflow-x-auto">
+        <pre className="mt-4 w-full overflow-x-auto rounded-xl border border-gray-200 bg-white p-4">
           <code>{stack}</code>
         </pre>
       )}

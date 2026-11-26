@@ -1,14 +1,14 @@
 .shop-store {
-  --shop-cream: #fffaf1;
-  --shop-paper: #f6efe2;
-  --shop-olive: #20231a;
-  --shop-muted: #665c4c;
-  --shop-peach: #efbb88;
-  --shop-terracotta: #b4482d;
-  --shop-terracotta-dark: #913821;
-  --shop-line: #e1d2bd;
+  --shop-cream: var(--pasta-cream);
+  --shop-paper: var(--pasta-paper);
+  --shop-olive: var(--pasta-olive);
+  --shop-muted: var(--pasta-muted);
+  --shop-peach: var(--pasta-peach);
+  --shop-terracotta: var(--pasta-terracotta);
+  --shop-terracotta-dark: var(--pasta-terracotta-dark);
+  --shop-line: var(--pasta-line);
   --shop-field-line: #a89983;
-  --shop-serif: Georgia, "Times New Roman", serif;
+  --shop-serif: var(--pasta-serif);
   background: var(--shop-paper);
   color: var(--shop-olive);
 }

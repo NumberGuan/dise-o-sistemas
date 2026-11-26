@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+:root {
+  --pasta-cream: #fffaf1;
+  --pasta-paper: #f6efe2;
+  --pasta-olive: #20231a;
+  --pasta-muted: #665c4c;
+  --pasta-peach: #efbb88;
+  --pasta-terracotta: #b4482d;
+  --pasta-terracotta-dark: #913821;
+  --pasta-line: #e1d2bd;
+  --pasta-serif: Georgia, "Times New Roman", serif;
+}
+
 /* Hace reconocible el título principal dentro de cada pantalla. */
 .page-surface h1 {
   width: fit-content;

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useLocation } from "react-router";
 
 const moduleImages: Readonly<Partial<Record<string, string>>> = {
+  "": "/hero-pastas.jpg",
   ventas: "/module-headers/ventas.jpg",
   compras: "/module-headers/compras.jpg",
   produccion: "/module-headers/produccion.jpg",

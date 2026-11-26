@@ -20,7 +20,7 @@ function PageTransition({ children }: { children: ReactNode }) {
     if (!reduceMotion) animatePage(scope.current, { opacity: [0, 1] }, { duration: 0.22, ease: EASE_OUT });
   }, [pathname]);
 
-  return <main ref={scope} className="flex min-w-0 flex-1 p-3 sm:p-5">
+  return <main id="contenido-gestion" tabIndex={-1} ref={scope} className="flex min-w-0 flex-1 scroll-mt-16 p-3 sm:p-5">
     <div className="page-surface min-w-0 flex-1 rounded-2xl border border-gray-200 bg-white shadow-sm">{children}</div>
   </main>;
 }
@@ -41,7 +41,8 @@ export default function Layout() {
 
   return (
     <MotionConfig reducedMotion="user">
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="staff-shell flex min-h-screen bg-gray-50">
+      <a href="#contenido-gestion" className="sr-only z-60 rounded-lg bg-white p-3 text-gray-900 focus:not-sr-only focus:fixed focus:left-4 focus:top-4">Ir al contenido</a>
       <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} user={user} />
       <div className="flex min-w-0 flex-1 flex-col">
         <Navbar
@@ -51,7 +52,7 @@ export default function Layout() {
         <PageTransition>
           <Outlet context={{ user }} />
         </PageTransition>
-        <footer className="border-t border-gray-200 bg-white py-4 text-center text-xs text-gray-500">
+        <footer className="staff-footer border-t border-gray-200 px-4 py-4 text-center text-xs text-gray-500">
           Fábrica de Pastas © {new Date().getFullYear()} · Sistema de Gestión
         </footer>
       </div>

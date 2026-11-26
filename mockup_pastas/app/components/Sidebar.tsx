@@ -151,18 +151,19 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
     <>
       {open && (
         <div
-          className="fixed inset-0 z-30 bg-gray-900/50 lg:hidden"
+          className="staff-menu-backdrop fixed inset-0 z-40 lg:hidden"
           onClick={onClose}
           aria-hidden="true"
         />
       )}
       <aside
+        id="menu-gestion"
         aria-label="Menú lateral"
-        className={`fixed inset-y-0 left-0 z-50 flex h-dvh w-64 shrink-0 flex-col overflow-hidden border-r border-gray-200 bg-white shadow-xl transition-[width,transform] duration-300 lg:sticky lg:top-0 lg:translate-x-0 lg:shadow-none ${
-          open ? "translate-x-0 lg:w-64" : "-translate-x-full lg:w-20"
+        className={`staff-sidebar fixed inset-y-0 left-0 z-50 flex h-dvh w-64 shrink-0 flex-col overflow-hidden border-r shadow-xl transition-[width,transform] duration-300 lg:sticky lg:top-0 lg:translate-x-0 lg:shadow-none ${
+          open ? "translate-x-0 lg:w-64" : "invisible -translate-x-full lg:visible lg:w-20"
         }`}
       >
-        <div className={`flex h-16 shrink-0 items-center border-b border-gray-100 ${open ? "gap-3 px-4" : "justify-center px-2"}`}>
+        <div className={`staff-sidebar-brand flex h-16 shrink-0 items-center border-b ${open ? "gap-3 px-4" : "justify-center px-2"}`}>
           <NavLink
             to="/"
             onClick={handleNavigate}
@@ -172,8 +173,8 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
             <Logo />
             {open && (
               <span className="min-w-0 leading-tight">
-                <span className="block truncate text-sm font-bold text-gray-900">Fábrica de Pastas</span>
-                <span className="block truncate text-[11px] font-medium text-gray-500">ERP Industrial</span>
+                <span className="staff-brand-name block truncate font-bold">Fábrica de Pastas</span>
+                <span className="staff-sidebar-muted block truncate text-[11px] font-medium">ERP Industrial</span>
               </span>
             )}
           </NavLink>
@@ -182,15 +183,15 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
               type="button"
               onClick={onClose}
               aria-label="Cerrar menú lateral"
-              className="ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 lg:hidden"
+              className="staff-menu-control ml-auto inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg transition lg:hidden"
             >
               <CloseIcon />
             </button>
           )}
         </div>
 
-        <nav className="min-h-0 flex-1 overflow-hidden px-3 py-4" aria-label="Navegación principal">
-          <ul className="flex h-full min-h-0 flex-col gap-1.5">
+        <nav className="sidebar-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-4" aria-label="Navegación principal">
+          <ul className="flex flex-col gap-1.5">
             {filteredSections.map((section) => {
               const expanded = expandedSection === section.label;
               const active = activeSection?.label === section.label;
@@ -198,10 +199,8 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
               return (
                 <li key={section.to} className="shrink-0">
                   <div
-                    className={`relative flex min-h-11 shrink-0 items-center rounded-lg transition-colors ${
-                      active
-                        ? "bg-gray-100 text-amber-700 before:absolute before:inset-y-2 before:left-0 before:w-[3px] before:rounded-r-full before:bg-amber-600"
-                        : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    className={`staff-menu-section relative flex min-h-11 shrink-0 items-center rounded-lg transition-colors ${
+                      active ? "staff-menu-section-active" : ""
                     }`}
                   >
                     <NavLink
@@ -225,11 +224,7 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                         aria-expanded={expanded}
                         aria-controls={`sidebar-${section.label}`}
                         aria-label={`${expanded ? "Contraer" : "Expandir"} ${section.label}`}
-                        className={`mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
-                          active
-                            ? "text-amber-700 hover:bg-amber-100"
-                            : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-                        }`}
+                        className="staff-menu-control mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-md transition-colors"
                       >
                         <Chevron open={expanded} className="h-5 w-5" />
                       </button>
@@ -237,8 +232,8 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                   </div>
 
                     {open && expanded && section.items.length > 0 && (
-                      <div id={`sidebar-${section.label}`} className="sidebar-scrollbar max-h-[35vh] overflow-y-auto overscroll-contain">
-                        <div className="ml-6 mt-1.5 space-y-0.5 border-l border-gray-200 pl-3">
+                      <div id={`sidebar-${section.label}`}>
+                        <div className="staff-submenu ml-6 mt-1.5 space-y-0.5 border-l pl-3">
                           {section.items.map((item) => (
                             <NavLink
                               key={item.to}
@@ -246,8 +241,8 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                               end
                               onClick={handleNavigate}
                               className={({ isActive }) =>
-                                `relative block rounded-md px-3 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
-                                  isCurrentItem(item.to, isActive) ? "font-semibold text-amber-800" : "text-gray-500 hover:bg-gray-50 hover:text-gray-900"
+                                `staff-menu-link relative block rounded-md px-3 py-2 text-sm transition-colors ${
+                                  isCurrentItem(item.to, isActive) ? "staff-menu-link-active font-semibold" : ""
                                 }`
                               }
                             >
@@ -257,7 +252,7 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
                                     <motion.span
                                       layoutId="sidebar-active-item"
                                       aria-hidden="true"
-                                      className="absolute inset-0 rounded-md bg-amber-50"
+                                      className="staff-menu-highlight absolute inset-0 rounded-md"
                                       transition={{ duration: 0.25, ease: EASE_OUT }}
                                     />
                                   )}
@@ -276,34 +271,33 @@ export default function Sidebar({ open, onClose, user }: SidebarProps) {
         </nav>
 
         {canLogout && (
-          <div className="mt-auto shrink-0 border-t border-gray-100 bg-white px-3 pt-3 pb-4">
+          <div className="staff-sidebar-account mt-auto shrink-0 border-t px-3 pt-3 pb-4">
             <div
-              className={`mb-3 rounded-xl border border-amber-100 bg-amber-50/70 ${
+              className={`staff-profile mb-3 rounded-xl border ${
                 open ? "flex items-center gap-3 px-3 py-3" : "flex flex-col items-center gap-1.5 px-1 py-2"
               }`}
               title={`${user.name} · ${user.role}`}
               role="group"
               aria-label={`Usuario ${user.name}, perfil ${user.role}`}
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-sm font-semibold text-amber-900">
+              <span className="staff-avatar flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-semibold">
                 {user.name.charAt(0).toUpperCase()}
               </span>
               {open ? (
                 <span className="min-w-0 leading-tight">
-                  <span className="block text-[10px] font-semibold uppercase tracking-wider text-amber-800">Perfil activo</span>
-                  <span className="mt-1 block truncate text-sm font-semibold text-gray-900">{user.name}</span>
-                  <span className="mt-0.5 block truncate text-xs text-gray-600">{user.role}</span>
+                  <span className="block truncate text-sm font-semibold">{user.name}</span>
+                  <span className="staff-sidebar-muted mt-0.5 block truncate text-xs">{user.role}</span>
                 </span>
               ) : (
-                <span className="max-w-full text-center text-[8px] font-semibold leading-tight text-amber-900">{compactRole}</span>
+                <span className="staff-sidebar-muted max-w-full text-center text-[8px] font-semibold leading-tight">{compactRole}</span>
               )}
             </div>
-            <div className="border-t border-gray-200 pt-3">
+            <div className="staff-submenu border-t pt-3">
               <form action="/logout" method="post">
                 <button
                   type="submit"
                   title="Cerrar sesión"
-                  className={`flex min-h-10 w-full items-center rounded-lg py-2 text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-600 ${
+                  className={`staff-menu-control flex min-h-10 w-full items-center rounded-lg py-2 transition-colors ${
                     open ? "gap-3 px-3" : "flex-col justify-center gap-1 px-1"
                   }`}
                 >

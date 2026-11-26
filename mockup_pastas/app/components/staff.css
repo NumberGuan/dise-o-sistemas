@@ -1,0 +1,331 @@
+@media screen {
+  /* Los componentes internos comparten los tokens, incluidos los diálogos
+     que se montan directamente en el body. */
+  body:has(:is(.staff-shell, .app-error)) {
+    --staff-surface: #fffcf6;
+    --staff-field-line: #93846f;
+    --staff-menu-line: #f5d2ac38;
+    --staff-menu-hover: #fffaf114;
+    --staff-menu-active: #efbb8826;
+    --staff-menu-muted: #dfd3bd;
+
+    --color-white: var(--staff-surface);
+    --color-slateblue-50: var(--pasta-paper);
+    --color-slateblue-100: #eee3d3;
+    --color-slateblue-200: var(--pasta-line);
+    --color-slateblue-300: #c5b7a3;
+    --color-slateblue-400: #857665;
+    --color-slateblue-500: var(--pasta-muted);
+    --color-slateblue-600: #584f42;
+    --color-slateblue-700: #474034;
+    --color-slateblue-800: #343428;
+    --color-slateblue-900: var(--pasta-olive);
+    --color-slateblue-950: #191c18;
+
+    --color-gray-50: var(--color-slateblue-50);
+    --color-gray-100: var(--color-slateblue-100);
+    --color-gray-200: var(--color-slateblue-200);
+    --color-gray-300: var(--color-slateblue-300);
+    --color-gray-400: var(--color-slateblue-400);
+    --color-gray-500: var(--color-slateblue-500);
+    --color-gray-600: var(--color-slateblue-600);
+    --color-gray-700: var(--color-slateblue-700);
+    --color-gray-800: var(--color-slateblue-800);
+    --color-gray-900: var(--color-slateblue-900);
+    --color-gray-950: var(--color-slateblue-950);
+
+    --color-brand-50: #fbefe4;
+    --color-brand-100: #f6e1d0;
+    --color-brand-200: #edc9ab;
+    --color-brand-300: var(--pasta-peach);
+    --color-brand-400: #dc9468;
+    --color-brand-500: #c46243;
+    --color-brand-600: var(--pasta-terracotta);
+    --color-brand-700: var(--pasta-terracotta-dark);
+    --color-brand-800: #81321f;
+    --color-brand-900: #652919;
+    --color-brand-950: #401b12;
+
+    --color-amber-50: var(--color-brand-50);
+    --color-amber-100: var(--color-brand-100);
+    --color-amber-200: var(--color-brand-200);
+    --color-amber-300: var(--color-brand-300);
+    --color-amber-400: var(--color-brand-400);
+    --color-amber-500: var(--color-brand-500);
+    --color-amber-600: var(--color-brand-600);
+    --color-amber-700: var(--color-brand-700);
+    --color-amber-800: var(--color-brand-800);
+    --color-amber-900: var(--color-brand-900);
+    --color-amber-950: var(--color-brand-950);
+
+    --shadow-sm: 0 3px 10px -8px #43331f85;
+    --shadow-md: 0 6px 16px -9px #43331f80;
+    --shadow-lg: 0 12px 24px -14px #43331f94;
+    --shadow-xl: 0 18px 40px -16px #281e16a0;
+  }
+
+  .staff-shell :is(.staff-sidebar, .staff-navbar) {
+    border-color: var(--staff-menu-line);
+    background: var(--pasta-olive);
+    color: var(--pasta-cream);
+  }
+
+  .staff-sidebar :is(.staff-sidebar-brand, .staff-sidebar-account, .staff-submenu, .staff-profile),
+  .staff-navbar .staff-menu-control {
+    border-color: var(--staff-menu-line);
+  }
+
+  .staff-brand-name {
+    font: 700 1.025rem/1.2 var(--pasta-serif);
+  }
+
+  .staff-sidebar-muted,
+  .staff-navbar-title,
+  .staff-menu-link {
+    color: var(--staff-menu-muted);
+  }
+
+  .staff-menu-section:hover,
+  .staff-menu-control:hover,
+  .staff-menu-link:hover {
+    background: var(--staff-menu-hover);
+    color: var(--pasta-cream);
+  }
+
+  .staff-menu-section.staff-menu-section-active,
+  .staff-menu-highlight {
+    background: var(--staff-menu-active);
+  }
+
+  .staff-menu-section.staff-menu-section-active,
+  .staff-menu-link.staff-menu-link-active {
+    color: var(--pasta-peach);
+  }
+
+  .staff-menu-section-active::before {
+    position: absolute;
+    inset: 0.55rem auto 0.55rem 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--pasta-peach);
+    content: "";
+  }
+
+  .staff-profile {
+    background: var(--staff-menu-hover);
+  }
+
+  .staff-avatar {
+    background: var(--pasta-peach);
+    color: var(--pasta-olive);
+  }
+
+  .staff-menu-backdrop {
+    background: #191c18a6;
+  }
+
+  .staff-sidebar .sidebar-scrollbar {
+    scrollbar-color: #9f815e var(--pasta-olive);
+    scrollbar-width: thin;
+  }
+
+  .staff-footer {
+    background: var(--pasta-paper);
+  }
+
+  .staff-shell main > .page-surface {
+    background: var(--staff-surface);
+  }
+
+  :is(.staff-shell, .app-error) .module-page-header {
+    isolation: isolate;
+    min-height: 7.25rem;
+    align-items: center;
+    border-color: #3c3f31;
+    border-radius: 1rem;
+    padding: clamp(1.15rem, 2.8vw, 1.8rem) clamp(1rem, 3vw, 2rem);
+    background: linear-gradient(110deg, #191c18, var(--pasta-olive) 65%, #463729);
+    color: var(--pasta-cream);
+    box-shadow: var(--shadow-md);
+  }
+
+  .staff-shell .module-page-header-image {
+    z-index: -2;
+    width: min(60%, 35rem);
+    border-radius: inherit;
+    opacity: 0.52;
+    mask-image: linear-gradient(to right, transparent, #000 90%);
+  }
+
+  .staff-shell .module-page-header:has(.module-page-header-image)::after {
+    position: absolute;
+    z-index: -1;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, transparent 25%, #20231a91 65%, #20231a30);
+    content: "";
+  }
+
+  :is(.staff-shell, .app-error) .module-page-header h1 {
+    color: var(--pasta-cream);
+    font: 400 clamp(1.75rem, 3.2vw, 2.8rem)/1.08 var(--pasta-serif);
+    letter-spacing: -0.035em;
+  }
+
+  .staff-shell .module-page-header :is(p, label) {
+    color: var(--staff-menu-muted);
+  }
+
+  .staff-shell .module-page-header :is(input, select, textarea) {
+    background-color: var(--staff-surface);
+    color: var(--pasta-olive);
+  }
+
+  .staff-shell .module-page-header p:has(+ h1),
+  .staff-shell .module-page-header h1::before {
+    color: var(--pasta-peach);
+    font: 650 0.6875rem/1.4 var(--font-sans);
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+  }
+
+  .staff-shell .module-page-header :is(a, button).text-white {
+    color: var(--pasta-cream);
+  }
+
+  .staff-shell .form-sheet,
+  body:has(.staff-shell) dialog.form-sheet {
+    border: 1px solid var(--pasta-line);
+    background: var(--staff-surface);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .staff-shell .formal-page-header,
+  body:has(.staff-shell) dialog .form-heading {
+    border-bottom: 1px solid var(--pasta-line);
+    padding: 1.125rem clamp(1rem, 3vw, 1.5rem);
+    background: linear-gradient(100deg, var(--pasta-paper), var(--staff-surface));
+  }
+
+  .staff-shell .formal-page-header {
+    border-radius: 0.75rem;
+  }
+
+  .staff-shell .form-sheet > .formal-page-header {
+    border-radius: calc(1rem - 1px) calc(1rem - 1px) 0 0;
+  }
+
+  .staff-shell .formal-page-header h1,
+  .staff-shell .page-surface h1:not(:is(.module-page-header *, .print-voucher *, .production-document *)) {
+    color: var(--pasta-olive);
+    font: 400 clamp(1.6rem, 2.75vw, 2.2rem)/1.12 var(--pasta-serif);
+    letter-spacing: -0.025em;
+  }
+
+  .staff-shell .formal-page-header p:has(+ h1) {
+    color: var(--pasta-terracotta-dark);
+  }
+
+  .staff-shell .page-surface :is(h2, h3):not(:is(.print-voucher *, .production-document *)),
+  body:has(.staff-shell) dialog h2 {
+    font-family: var(--pasta-serif);
+    letter-spacing: -0.01em;
+  }
+
+  .staff-shell .page-surface :is(thead, fieldset) {
+    border-color: var(--pasta-line);
+  }
+
+  .staff-shell .page-surface thead:not(:is(.print-voucher *, .production-document *)) {
+    background: var(--pasta-paper);
+  }
+
+  :is(.staff-shell main, body:has(.staff-shell) dialog) input:is([type="checkbox"], [type="radio"]) {
+    accent-color: var(--pasta-terracotta);
+  }
+
+  :is(.staff-shell main, body:has(.staff-shell) dialog)
+    :is(input, select, textarea):where(.border):not([aria-invalid="true"]) {
+    border-color: var(--staff-field-line);
+  }
+
+  :is(.staff-shell, body:has(.staff-shell) > dialog)
+    :is(a, button, select, textarea, input, [tabindex]):focus-visible:not([aria-invalid="true"]) {
+    outline: 2px solid var(--pasta-terracotta-dark);
+    outline-offset: 2px;
+  }
+
+  .staff-shell :is(.staff-sidebar, .staff-navbar, .module-page-header) :is(a, button):focus-visible {
+    outline-color: var(--pasta-peach);
+    outline-offset: -2px;
+  }
+
+  body:has(.staff-shell) dialog {
+    background: var(--staff-surface);
+    color: var(--pasta-olive);
+  }
+
+  body:has(.staff-shell) dialog::backdrop,
+  body:has(.staff-shell) .pasta-loading--screen {
+    background: #191c1855;
+  }
+
+  body:has(.staff-shell) .pasta-loading__panel {
+    background: var(--pasta-cream);
+    color: var(--pasta-olive);
+  }
+
+  .staff-shell :is(.production-document, .sales-document.print-voucher) {
+    overflow: hidden;
+    border: 1px solid var(--pasta-line);
+    border-radius: 1rem;
+    background: var(--staff-surface);
+    color: var(--pasta-olive);
+    box-shadow: var(--shadow-md);
+    font: 0.875rem/1.65 var(--font-sans);
+  }
+
+  .staff-shell :is(.production-document-header, .sales-document .voucher-header) {
+    border-top-color: var(--pasta-terracotta);
+    border-bottom-color: var(--pasta-line);
+  }
+
+  .staff-shell :is(.production-document-header, .sales-document .voucher-header) h1 {
+    border: 0;
+    padding: 0;
+    color: var(--pasta-olive);
+    font: 400 clamp(1.55rem, 3.1vw, 2.4rem)/1.15 var(--pasta-serif);
+    letter-spacing: -0.025em;
+  }
+
+  .staff-shell :is(.production-document, .sales-document) :is(th, td) {
+    border-color: var(--pasta-line);
+  }
+
+  .staff-shell :is(.production-document, .sales-document) :is(th, .voucher-grand-total) {
+    background: var(--pasta-paper);
+    color: var(--pasta-olive);
+  }
+
+  .staff-shell :is(
+    .production-document-controls, .production-document-metadata, .production-document-section,
+    .sales-document .voucher-recipient, .sales-document .voucher-references, .sales-document .voucher-observations
+  ) {
+    border-color: var(--pasta-line);
+  }
+
+  .staff-shell .production-document-controls {
+    border-radius: 0.875rem;
+    background: var(--staff-surface);
+  }
+
+  @media (max-width: 39.99rem) {
+    .staff-shell .module-page-header-image {
+      opacity: 0.3;
+    }
+
+    .staff-brand-name {
+      white-space: normal;
+    }
+  }
+}
