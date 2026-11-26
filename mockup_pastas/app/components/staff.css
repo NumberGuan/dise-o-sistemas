@@ -59,7 +59,7 @@
     --shadow-xl: 0 18px 40px -16px #281e16a0;
   }
 
-  .staff-shell :is(.staff-sidebar, .staff-navbar) {
+  .staff-shell :is(.staff-sidebar, .staff-navbar, .staff-footer) {
     border-color: var(--staff-menu-line);
     background: var(--pasta-olive);
     color: var(--pasta-cream);
@@ -122,10 +122,6 @@
   .staff-sidebar .sidebar-scrollbar {
     scrollbar-color: #9f815e var(--pasta-olive);
     scrollbar-width: thin;
-  }
-
-  .staff-footer {
-    background: var(--pasta-paper);
   }
 
   .staff-shell main > .page-surface {
