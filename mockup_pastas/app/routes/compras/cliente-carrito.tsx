@@ -223,59 +223,61 @@ export default function ClienteCarrito() {
       </select>
     </label>
     <div className="flex flex-wrap gap-x-4 gap-y-1">
-      <button type="button" onClick={() => openAddressDialog()} disabled={savingAddress || addressCount >= MAX_CLIENT_ADDRESSES} className="min-h-11 text-sm font-semibold text-amber-800 underline underline-offset-4 hover:text-amber-950 disabled:no-underline disabled:opacity-50">Agregar dirección</button>
-      {selectedAddress && <button type="button" onClick={() => openAddressDialog(true)} disabled={savingAddress} className="min-h-11 text-sm font-semibold text-amber-800 underline underline-offset-4 hover:text-amber-950 disabled:opacity-50">Cambiar nombre</button>}
+      <button type="button" onClick={() => openAddressDialog()} disabled={savingAddress || addressCount >= MAX_CLIENT_ADDRESSES} className="min-h-11 shop-link text-sm font-semibold underline underline-offset-4 disabled:no-underline disabled:opacity-50">Agregar dirección</button>
+      {selectedAddress && <button type="button" onClick={() => openAddressDialog(true)} disabled={savingAddress} className="min-h-11 shop-link text-sm font-semibold underline underline-offset-4 disabled:opacity-50">Cambiar nombre</button>}
     </div>
     {addressCount >= MAX_CLIENT_ADDRESSES && <p className="text-sm text-gray-600">Llegaste al máximo de {MAX_CLIENT_ADDRESSES} direcciones. Podés quitar una desde Mi perfil.</p>}
     {!savingAddress && savedAddressId && <p role="status" className="text-sm text-emerald-800">Dirección guardada en Mi perfil.</p>}
   </div>;
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+    <div className="shop-customer-page mx-auto max-w-5xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       <div className="mb-6">
         <ShopPageHero title="Mi carrito" art="carrito" description="Revisá los productos y ajustá las cantidades.">
-          <span className="rounded-full border border-[#eadfd3] bg-white/85 px-3 py-1.5 text-sm text-gray-700">{totalItems} {totalItems === 1 ? "unidad" : "unidades"}</span>
+          <span className="shop-hero-count rounded-full border px-3 py-1.5 text-sm text-gray-700">{totalItems} {totalItems === 1 ? "unidad" : "unidades"}</span>
         </ShopPageHero>
       </div>
 
       {cart.length === 0 ? (
-        <section className="rounded-2xl border border-dashed border-[#dfd0c0] bg-white px-6 py-14 text-center" aria-labelledby="cart-empty-title">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-amber-50 text-amber-900" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4L20 8H6" /><circle cx="9.5" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /></svg></span>
-          <h2 id="cart-empty-title" className="mt-4 text-lg font-semibold text-gray-900">Tu carrito está vacío</h2>
+        <section className="shop-empty rounded-2xl border border-dashed px-6 py-14 text-center" aria-labelledby="cart-empty-title">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center shop-empty-icon rounded-full" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4L20 8H6" /><circle cx="9.5" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /></svg></span>
+          <h2 id="cart-empty-title" className="shop-heading mt-4 font-semibold">Tu carrito está vacío</h2>
           <p className="mt-2 text-sm text-gray-600">Explorá el catálogo y agregá los productos que quieras consultar.</p>
-          <Link to="/compras/catalogo" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-amber-800 px-4 text-sm font-semibold text-white transition hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Ver catálogo</Link>
+          <Link to="/compras/catalogo" className="mt-5 inline-flex min-h-11 items-center shop-primary px-4 text-sm font-semibold text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Ver catálogo</Link>
         </section>
       ) : (
-        <section className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm" aria-label="Productos en el carrito">
-          <ul className="divide-y divide-[#f0e7dd]">{cart.map((item) => <CustomerCartLine key={item.productId} item={item} />)}</ul>
-          <div className="flex flex-col gap-2 border-t border-[#eadfd3] bg-[#fffdfa] px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
-            <span className="text-sm text-gray-600">Total de referencia</span>
+        <section className="shop-panel overflow-hidden rounded-2xl border" aria-label="Productos en el carrito">
+          <ul className="shop-divide divide-y">{cart.map((item) => <CustomerCartLine key={item.productId} item={item} />)}</ul>
+          <div className="shop-tint flex flex-col gap-2 border-t px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+            <div>
+              <p className="text-sm font-semibold">Total de referencia</p>
+              <p className="catalog-muted mt-1 text-xs leading-5">Importes calculados con los precios de muestra actuales del catálogo.</p>
+            </div>
             <strong className="text-xl tabular-nums text-gray-900">{total === null ? "No disponible" : currency.format(total)}</strong>
           </div>
-          <p className="px-5 pb-5 text-xs leading-5 text-gray-500 sm:px-6">Importes calculados con los precios de muestra actuales del catálogo.</p>
         </section>
       )}
 
-      {cart.length === 0 && <section className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6" aria-label="Direcciones guardadas">{addressControls}</section>}
+      {cart.length === 0 && <section className="shop-panel mt-5 rounded-2xl border p-5 sm:p-6" aria-label="Direcciones guardadas">{addressControls}</section>}
 
       {cart.length > 0 && <fetcher.Form ref={checkoutFormRef} noValidate method="post" onSubmit={(event) => {
         event.preventDefault();
         if (canCheckout) confirmationRef.current?.showModal();
-      }} className="mt-5 rounded-2xl border border-[#eadfd3] bg-white p-5 sm:p-6">
+      }} className="shop-panel mt-5 rounded-2xl border p-5 sm:p-6">
         <input type="hidden" name="intent" value="checkout" />
-        <label className="mb-4 block text-sm font-semibold text-gray-800">Modalidad de entrega<CatalogField catalog="modalidades-entrega" onCreated={entry => setFulfillment(entry.value)} disabled={fetcher.state !== "idle"}><select name="fulfillment" value={fulfillment} onChange={event => setFulfillment(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm"><CatalogOptions catalog="modalidades-entrega" /></select></CatalogField></label>
+        <h2 className="shop-heading font-semibold">Datos para el pedido</h2>
+        <p className="mt-1 text-sm text-gray-600">Se usarán los datos guardados en <Link to="/compras/perfil" className="shop-link font-medium underline">Mi perfil</Link>, iguales a los que consulta Ventas.</p>
+        <label className="mb-4 mt-4 block text-sm font-semibold text-gray-800">Modalidad de entrega<CatalogField catalog="modalidades-entrega" onCreated={entry => setFulfillment(entry.value)} disabled={fetcher.state !== "idle"}><select name="fulfillment" value={fulfillment} onChange={event => setFulfillment(event.target.value)} className="mt-2 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm"><CatalogOptions catalog="modalidades-entrega" /></select></CatalogField></label>
         {needsAddress && addressControls}
-        <h2 className="text-lg font-semibold text-gray-900">Datos para el pedido</h2>
-        <p className="mt-1 text-sm text-gray-600">Se usarán los datos guardados en <Link to="/compras/perfil" className="font-medium text-amber-800 underline">Mi perfil</Link>, iguales a los que consulta Ventas.</p>
         {!isActive && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Tu cuenta está inactiva. Contactá a Ventas para realizar un pedido.</p>}
         {isActive && needsAddress && !selectedAddress && <p role="alert" className="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">Agregá una dirección de entrega para continuar.</p>}
         <label htmlFor="order-observations" className="mt-4 block text-sm font-medium text-gray-700">Observaciones de entrega</label>
         <textarea id="order-observations" name="observations" rows={2} maxLength={500} className="mt-1 w-full rounded-xl border border-[#e5d9cb] px-3 py-2 text-sm focus-visible:outline-2 focus-visible:outline-amber-700" placeholder="Indicaciones para recibir el pedido" />
         {fetcher.state === "idle" && fetcher.data?.error && <p role="alert" className="mt-3 text-sm text-red-700">{fetcher.data.error}</p>}
-        <div className="mt-4 flex flex-col gap-3 border-t border-[#f0e7dd] pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button type="submit" disabled={!canCheckout} className="min-h-11 shrink-0 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
+        <div className="mt-4 flex flex-col gap-3 shop-rule border-t pt-4 sm:flex-row sm:items-center sm:justify-between"><p className="text-xs leading-5 text-gray-500">Al confirmar, el pedido queda registrado como pendiente para que Ventas lo gestione.</p><button type="submit" disabled={!canCheckout} className="min-h-11 shrink-0 shop-primary px-5 text-sm font-semibold text-white disabled:opacity-50">{fetcher.state !== "idle" ? "Confirmando…" : "Confirmar pedido"}</button></div>
       </fetcher.Form>}
-      <dialog ref={addressDialogRef} aria-labelledby="delivery-address-title" onCancel={event => { if (savingAddress) event.preventDefault(); }} className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-[#eadfd3] bg-white p-5 text-gray-900 shadow-xl backdrop:bg-black/50 sm:p-6">
-        <h2 id="delivery-address-title" className="text-xl font-semibold">{renamingAddressId ? "Cambiar nombre de la dirección" : "Agregar dirección de entrega"}</h2>
+      <dialog ref={addressDialogRef} aria-labelledby="delivery-address-title" onCancel={event => { if (savingAddress) event.preventDefault(); }} className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto shop-panel shop-dialog rounded-2xl border p-5 text-gray-900 sm:p-6">
+        <h2 id="delivery-address-title" className="shop-heading font-semibold">{renamingAddressId ? "Cambiar nombre de la dirección" : "Agregar dirección de entrega"}</h2>
         {!renamingAddressId && <p className="mt-2 text-sm text-gray-600">{addressCount ? "La dirección se guardará en Mi perfil para futuros pedidos." : "Tu primera dirección también quedará guardada como dirección fija de facturación."}</p>}
         <addressFetcher.Form method="post" preventScrollReset className="mt-4 space-y-4">
           <input type="hidden" name="intent" value={renamingAddressId ? "rename-delivery-address" : "add-delivery-address"} />
@@ -289,15 +291,15 @@ export default function ClienteCarrito() {
           </>}
           {!savingAddress && addressResult && "error" in addressResult && <p role="alert" className="text-sm text-red-700">{addressResult.error}</p>}
           <div className="flex flex-col-reverse gap-3 sm:justify-end sm:flex-row">
-            <button type="button" disabled={savingAddress} onClick={() => addressDialogRef.current?.close()} className="min-h-11 rounded-xl border border-[#e5d9cb] px-4 text-sm font-semibold hover:bg-amber-50 disabled:opacity-50">Cancelar</button>
-            <button type="submit" disabled={savingAddress} className="min-h-11 rounded-xl bg-amber-800 px-4 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{savingAddress ? "Guardando…" : renamingAddressId ? "Guardar nombre" : "Guardar dirección"}</button>
+            <button type="button" disabled={savingAddress} onClick={() => addressDialogRef.current?.close()} className="shop-secondary min-h-11 px-4 text-sm font-semibold disabled:opacity-50">Cancelar</button>
+            <button type="submit" disabled={savingAddress} className="min-h-11 shop-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{savingAddress ? "Guardando…" : renamingAddressId ? "Guardar nombre" : "Guardar dirección"}</button>
           </div>
         </addressFetcher.Form>
       </dialog>
-      <dialog ref={confirmationRef} aria-labelledby="checkout-confirmation-title" aria-describedby="checkout-confirmation-description" className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto rounded-2xl border border-[#eadfd3] bg-white p-5 text-gray-900 shadow-xl backdrop:bg-black/50 sm:p-6">
-        <h2 id="checkout-confirmation-title" className="text-xl font-semibold">¿Deseás confirmar el pedido?</h2>
+      <dialog ref={confirmationRef} aria-labelledby="checkout-confirmation-title" aria-describedby="checkout-confirmation-description" className="fixed inset-0 m-auto max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto shop-panel shop-dialog rounded-2xl border p-5 text-gray-900 sm:p-6">
+        <h2 id="checkout-confirmation-title" className="shop-heading font-semibold">¿Deseás confirmar el pedido?</h2>
         <p id="checkout-confirmation-description" className="mt-2 text-sm text-gray-600">Revisá los productos que vas a comprar antes de confirmar.</p>
-        <ul aria-label="Productos a comprar" className="mt-5 divide-y divide-[#f0e7dd] border-y border-[#eadfd3]">
+        <ul aria-label="Productos a comprar" className="mt-5 shop-divide shop-rule divide-y border-y">
           {cart.map((item) => <li key={item.productId} className="flex items-start justify-between gap-4 py-4">
             <div className="min-w-0">
               <p className="break-words font-semibold">{item.product?.name ?? "Producto fuera del catálogo"}</p>
@@ -312,19 +314,19 @@ export default function ClienteCarrito() {
         </div>
         <p className="mt-3 text-xs leading-5 text-gray-500">El pedido quedará pendiente para que Ventas lo gestione.</p>
         <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button type="button" autoFocus onClick={() => confirmationRef.current?.close()} className="min-h-11 rounded-xl border border-[#e5d9cb] px-4 text-sm font-semibold hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Volver al carrito</button>
+          <button type="button" autoFocus onClick={() => confirmationRef.current?.close()} className="shop-secondary min-h-11 px-4 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Volver al carrito</button>
           <button type="button" disabled={!canCheckout} onClick={() => {
             if (!canCheckout || !checkoutFormRef.current) return;
             void fetcher.submit(checkoutFormRef.current);
             confirmationRef.current?.close();
-          }} className="min-h-11 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 disabled:opacity-50">Sí, confirmar pedido</button>
+          }} className="min-h-11 shop-primary px-5 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 disabled:opacity-50">Sí, confirmar pedido</button>
         </div>
       </dialog>
       {fetcher.state === "idle" && fetcher.data?.success && fetcher.data.intent === "checkout" && <p role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Pedido confirmado. Ya podés consultarlo en Mis pedidos.</p>}
 
-      <aside className="mt-5 rounded-2xl border border-amber-200 bg-amber-50/70 p-4 sm:p-5" aria-labelledby="order-flow-title">
-        <h2 id="order-flow-title" className="text-sm font-semibold text-amber-950">Precios y disponibilidad</h2>
-        <p className="mt-1 text-sm leading-6 text-amber-900">Los importes y estados corresponden al catálogo de muestra. Ventas revisará el pedido y coordinará la entrega.</p>
+      <aside className="shop-tint mt-5 rounded-2xl border p-4 sm:p-5" aria-labelledby="order-flow-title">
+        <h2 id="order-flow-title" className="shop-heading font-semibold">Precios y disponibilidad</h2>
+        <p className="catalog-muted mt-1 text-sm leading-6">Los importes y estados corresponden al catálogo de muestra. Ventas revisará el pedido y coordinará la entrega.</p>
       </aside>
     </div>
   );

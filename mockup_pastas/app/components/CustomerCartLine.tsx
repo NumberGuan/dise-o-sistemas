@@ -13,7 +13,7 @@ export default function CustomerCartLine({ item, disabled = false }: { item: Car
       <div className="flex min-w-0 items-center gap-4">
         <img src={item.product ? `/products/${item.product.id}.jpg` : "/hero-pastas.jpg"} alt="" className="h-16 w-20 shrink-0 rounded-xl object-cover" />
         <div className="min-w-0">
-          <h2 className="font-semibold text-gray-900">{item.product?.name ?? "Producto fuera del catálogo"}</h2>
+          <h2 className="shop-cart-product font-semibold text-gray-900">{item.product?.name ?? "Producto fuera del catálogo"}</h2>
           {item.product ? (
             <p className="mt-1 text-sm text-gray-600">{currency.format(item.product.price)} por unidad{item.product.stock === "Disponible" && " · Disponible"}</p>
           ) : (
@@ -25,17 +25,17 @@ export default function CustomerCartLine({ item, disabled = false }: { item: Car
       </div>
 
       <div className="flex items-center justify-between gap-3 sm:justify-end">
-        <div className="inline-flex items-center rounded-xl border border-[#e5d9cb] bg-[#fffdfa]">
+        <div className="shop-tint inline-flex items-center rounded-xl border border-[#e5d9cb] bg-[#fffdfa]">
           <fetcher.Form method="post">
             <input type="hidden" name="productId" value={item.productId} />
             <input type="hidden" name="quantity" value={item.quantity - 1} />
-            <button type="submit" name="intent" value="update-quantity" aria-label={`Restar una unidad de ${item.product?.name ?? "este producto"}`} disabled={disabled || fetcher.state !== "idle"} className="h-10 w-10 rounded-l-xl text-lg text-gray-700 hover:bg-amber-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-800">−</button>
+            <button type="submit" name="intent" value="update-quantity" aria-label={`Restar una unidad de ${item.product?.name ?? "este producto"}`} disabled={disabled || fetcher.state !== "idle"} className="h-10 w-10 shop-row-action rounded-l-xl text-lg text-gray-700 hover:bg-amber-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-800">−</button>
           </fetcher.Form>
-          <span className="min-w-10 border-x border-[#e5d9cb] px-2 py-2 text-center text-sm font-semibold tabular-nums" aria-label={`Cantidad: ${item.quantity}`}>{item.quantity}</span>
+          <span className="shop-rule min-w-10 border-x border-[#e5d9cb] px-2 py-2 text-center text-sm font-semibold tabular-nums" aria-label={`Cantidad: ${item.quantity}`}>{item.quantity}</span>
           <fetcher.Form method="post">
             <input type="hidden" name="productId" value={item.productId} />
             <input type="hidden" name="quantity" value={item.quantity + 1} />
-            <button type="submit" name="intent" value="update-quantity" aria-label={`Sumar una unidad de ${item.product?.name ?? "este producto"}`} disabled={disabled || !item.product || fetcher.state !== "idle"} className="h-10 w-10 rounded-r-xl text-lg text-gray-700 hover:bg-amber-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-800">+</button>
+            <button type="submit" name="intent" value="update-quantity" aria-label={`Sumar una unidad de ${item.product?.name ?? "este producto"}`} disabled={disabled || !item.product || fetcher.state !== "idle"} className="h-10 w-10 shop-row-action rounded-r-xl text-lg text-gray-700 hover:bg-amber-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-800">+</button>
           </fetcher.Form>
         </div>
         <p className="w-28 text-right text-sm font-bold tabular-nums text-gray-900">{item.subtotal === null ? "Sin precio" : currency.format(item.subtotal)}</p>

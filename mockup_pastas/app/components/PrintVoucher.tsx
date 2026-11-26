@@ -76,11 +76,11 @@ export default function PrintVoucher({ title, document: voucher, client, recipie
   }
   return <>
     <div className={preview ? "mb-5 flex max-w-full flex-wrap items-center justify-end gap-2" : "inline-flex max-w-full flex-wrap items-center gap-2"}>
-    <button type="button" disabled={!ready} onClick={print} className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50">
+    <button type="button" disabled={!ready} onClick={print} className="shop-primary inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><path d="M6 9V3h12v6M6 18H3v-8h18v8h-3M6 14h12v7H6zM17 11h1" /></svg>
       Imprimir comprobante
     </button>
-    <button type="button" disabled={!ready} onClick={() => setSharing(true)} className="inline-flex items-center gap-2 rounded-lg border border-amber-600 bg-white px-4 py-2.5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50">
+    <button type="button" disabled={!ready} onClick={() => setSharing(true)} className="shop-secondary inline-flex items-center gap-2 rounded-lg border border-amber-600 bg-white px-4 py-2.5 text-sm font-semibold text-amber-800 shadow-sm transition hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600 disabled:opacity-50">
       <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4" /></svg>
       Compartir comprobante
     </button>

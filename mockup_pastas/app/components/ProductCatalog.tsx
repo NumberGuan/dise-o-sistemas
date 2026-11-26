@@ -14,7 +14,6 @@ export default function ProductCatalog({ products, favorites, cart, query, avail
       <ShopPageHero
         title="Catálogo de productos"
         art="catalogo"
-        label="Fábrica de Pastas"
         description={publicMode ? "Explorá nuestros productos y armá tu carrito. Para confirmar el pedido, ingresá o creá una cuenta." : "Consultá el catálogo actual, guardá tus favoritos y armá tu carrito."}
       />
 
@@ -30,8 +29,8 @@ export default function ProductCatalog({ products, favorites, cart, query, avail
             <input type="hidden" name="sort" value={sort} />
             <input type="hidden" name="category" value={category} />
             <div className="flex flex-wrap gap-2">
-              <button type="submit" className="catalog-primary min-h-11 flex-1 px-5 text-sm font-semibold sm:flex-none">Buscar</button>
-              {query && <a href={`${catalogPath}?${new URLSearchParams({ availability, category, sort }).toString()}`} className="catalog-secondary inline-flex min-h-11 items-center px-4 text-sm font-semibold">Limpiar búsqueda</a>}
+              <button type="submit" className="shop-primary min-h-11 flex-1 px-5 text-sm font-semibold sm:flex-none">Buscar</button>
+              {query && <a href={`${catalogPath}?${new URLSearchParams({ availability, category, sort }).toString()}`} className="shop-secondary inline-flex min-h-11 items-center px-4 text-sm font-semibold">Limpiar búsqueda</a>}
             </div>
           </Form>
           <form method="get" className="catalog-filters mt-4 grid grid-cols-1 items-end gap-3 border-t pt-4 sm:grid-cols-3 lg:grid-cols-[repeat(3,minmax(0,1fr))_auto]">
@@ -60,7 +59,7 @@ export default function ProductCatalog({ products, favorites, cart, query, avail
                 <option value="price-desc">Mayor precio</option>
               </select>
             </div>
-            <button type="submit" className="catalog-secondary min-h-11 px-5 text-sm font-semibold sm:col-span-3 lg:col-span-1">Aplicar filtros</button>
+            <button type="submit" className="shop-secondary min-h-11 px-5 text-sm font-semibold sm:col-span-3 lg:col-span-1">Aplicar filtros</button>
           </form>
         </div>
 
@@ -77,7 +76,7 @@ export default function ProductCatalog({ products, favorites, cart, query, avail
           <div className="catalog-empty mt-5 rounded-2xl border border-dashed px-6 py-14 text-center">
             <p className="font-semibold">No encontramos productos con esos filtros.</p>
             <p className="catalog-muted mt-2 text-sm">Probá otra búsqueda o volvé a mostrar todos los productos.</p>
-            <a href={catalogPath} className="catalog-primary mt-5 inline-flex min-h-11 items-center px-4 text-sm font-semibold">Ver catálogo completo</a>
+            <a href={catalogPath} className="shop-primary mt-5 inline-flex min-h-11 items-center px-4 text-sm font-semibold">Ver catálogo completo</a>
           </div>
         ) : (
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

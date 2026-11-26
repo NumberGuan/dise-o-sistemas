@@ -22,12 +22,12 @@ export default function ClientMonthlyAccount({ months, clientId, presentation = 
       </td>
     </tr>)}</tbody></table></div> : <p>Todavía no hay pedidos en la cuenta.</p>}
   </section>;
-  return <section className="mt-5 rounded-xl border border-amber-200 bg-amber-50/40 p-4" aria-label="Cuenta mensual">
-    <h3 className="font-semibold text-gray-900">Cuenta mensual</h3>
+  return <section className="shop-tint mt-5 rounded-xl border border-amber-200 bg-amber-50/40 p-4" aria-label="Cuenta mensual">
+    <h3 className="shop-heading font-semibold text-gray-900">Cuenta mensual</h3>
     <p className="mt-1 text-sm text-gray-700">Saldo total: <strong>{currency(money(months.reduce((sum, month) => sum + month.balance, 0)))}</strong></p>
     <p className="mt-2 text-xs text-gray-600">Los pedidos se agrupan por el mes en que se realizaron y se pueden pagar juntos a partir del mes siguiente. Los pedidos cancelados no suman saldo.</p>
     {!months.length && <p className="mt-3 text-sm text-gray-500">Todavía no hay pedidos en la cuenta.</p>}
-    <ul className="mt-3 space-y-3">{months.map(month => <li key={month.month} className="rounded-lg border border-gray-200 bg-white p-3 text-sm">
+    <ul className="mt-3 space-y-3">{months.map(month => <li key={month.month} className="shop-panel rounded-lg border border-gray-200 bg-white p-3 text-sm">
       <div className="flex flex-wrap justify-between gap-2"><strong className="capitalize">{monthLabel(month.month)}</strong><span>{month.balance === 0 ? "Pagado" : month.month === current ? "En curso" : "Pendiente de pago"}</span></div>
       <p className="mt-1 text-gray-600">{month.orderCount} pedidos · Total: {currency(month.total)} · Pagado: {currency(month.paid)}</p>
       <p className="mt-1 font-semibold">Saldo: {currency(month.balance)}</p>

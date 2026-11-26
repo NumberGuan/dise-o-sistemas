@@ -48,13 +48,13 @@ export default function CustomerOrderEditor({ order, addresses, version, detailU
   }
 
   return (
-    <Form method="post" className="space-y-6 rounded-2xl border border-[#eadfd3] bg-white p-4 shadow-sm sm:p-6">
+    <Form method="post" className="shop-panel space-y-6 rounded-2xl border p-4 sm:p-6">
       <input type="hidden" name="intent" value="edit-order" />
       <input type="hidden" name="orderId" value={order.id} />
       <input type="hidden" name="version" value={version} />
       {!editProducts && <p className="text-sm text-gray-600">Los productos y la seña del evento se gestionan en Ventas.</p>}
       <fieldset disabled={isSaving} className="min-w-0 space-y-5">
-        <legend className="mb-3 text-lg font-semibold text-gray-900">Entrega</legend>
+        <legend className="mb-3 shop-heading font-semibold">Entrega</legend>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>
             Modalidad de entrega
@@ -80,10 +80,10 @@ export default function CustomerOrderEditor({ order, addresses, version, detailU
       </fieldset>
 
       {editProducts && (
-        <fieldset disabled={isSaving} className="min-w-0 space-y-4 border-t border-[#eadfd3] pt-4">
-          <legend className="float-left mb-3 w-full text-lg font-semibold text-gray-900">Productos</legend>
+        <fieldset disabled={isSaving} className="min-w-0 space-y-4 shop-rule border-t pt-4">
+          <legend className="float-left mb-3 w-full shop-heading font-semibold">Productos</legend>
           <input type="hidden" name="items" value={JSON.stringify(lines.map(line => ({ id: line.id, productId: line.productId, quantity: Number(line.quantity) })))} />
-          <ul className="clear-both divide-y divide-[#f0e7dd]">
+          <ul className="clear-both shop-divide divide-y">
             {lines.map((line, index) => (
               <li key={line.id ?? line.productId} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2">
                 <span className="min-w-32 flex-1 text-sm font-medium text-gray-800">{line.productName}</span>
@@ -99,15 +99,15 @@ export default function CustomerOrderEditor({ order, addresses, version, detailU
                 {availableProducts.map(product => <option key={product.id} value={product.id}>{product.name}</option>)}
               </select>
             </label>
-            <button type="button" disabled={!productId || lines.length >= Math.max(100, order.items.length)} onClick={addProduct} className="min-h-11 rounded-xl border border-[#eadfd3] px-4 text-sm font-semibold text-amber-900 hover:bg-amber-50 disabled:opacity-50">Agregar</button>
+            <button type="button" disabled={!productId || lines.length >= Math.max(100, order.items.length)} onClick={addProduct} className="shop-secondary min-h-11 px-4 text-sm font-semibold disabled:opacity-50">Agregar</button>
           </div>
           {lines.length === 0 && <p className="text-sm text-gray-600">Agregá al menos un producto para guardar.</p>}
         </fieldset>
       )}
 
-      <div className="flex flex-wrap justify-end gap-3 border-t border-[#eadfd3] pt-4">
-        <Link to={detailUrl} className="inline-flex min-h-11 items-center rounded-xl border border-[#eadfd3] px-4 text-sm font-semibold hover:bg-amber-50">Cancelar</Link>
-        <button type="submit" disabled={isSaving || (editProducts && !lines.length)} className="min-h-11 rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white hover:bg-amber-900 disabled:opacity-50">{isSaving ? "Guardando…" : "Guardar cambios"}</button>
+      <div className="flex flex-wrap justify-end gap-3 shop-rule border-t pt-4">
+        <Link to={detailUrl} className="inline-flex shop-secondary min-h-11 items-center px-4 text-sm font-semibold">Cancelar</Link>
+        <button type="submit" disabled={isSaving || (editProducts && !lines.length)} className="min-h-11 shop-primary px-5 text-sm font-semibold text-white disabled:opacity-50">{isSaving ? "Guardando…" : "Guardar cambios"}</button>
       </div>
     </Form>
   );

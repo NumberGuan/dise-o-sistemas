@@ -76,7 +76,7 @@ export const action = async ({ request }: Route.ActionArgs) => {
 
 export default function ClientePerfil() {
   const { profile, account } = useLoaderData<typeof loader>();
-  return <div className="mx-auto max-w-3xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+  return <div className="shop-customer-page mx-auto max-w-3xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
     <div className="mb-6">
       <ShopPageHero title="Mi perfil" art="perfil" description="Estos datos se comparten con Ventas y se usan para asociar tus pedidos." />
     </div>
@@ -97,16 +97,17 @@ function CustomerProfileForm({ profile }: { profile: Awaited<ReturnType<typeof l
   const inputClass = "mt-2 min-h-11 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-amber-700";
   const labelClass = "block text-sm font-semibold text-gray-800";
 
-  return <section className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm"><Form noValidate method="post" className="space-y-6 p-5 sm:p-7" autoComplete="on">
+  return <section className="shop-panel rounded-2xl border" aria-labelledby="profile-data-title"><Form noValidate method="post" className="space-y-6 p-5 sm:p-7" autoComplete="on">
+      <h2 id="profile-data-title" className="shop-heading font-semibold">Datos del cliente</h2>
       {actionData?.error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionData.error}</p>}
       {actionData?.success && <p role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">Los datos del cliente se guardaron correctamente.</p>}
       <div className="grid gap-4 sm:grid-cols-2">
-        <div className={labelClass}><span>Categoría de cliente</span><p className={`${inputClass} flex items-center bg-gray-50 text-gray-700`} aria-readonly="true">{profile.type}</p><span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar esta categoría.</span></div>
+        <div className={labelClass}><span>Categoría de cliente</span><p className={`${inputClass} shop-readonly flex items-center`} aria-readonly="true">{profile.type}</p><span className="mt-1 block text-xs font-normal text-gray-500">Solo un administrador puede cambiar esta categoría.</span></div>
         <label className={labelClass}>Nombre o razón social<input name="name" required minLength={2} maxLength={100} defaultValue={profile.name} className={inputClass} /></label>
         <label className={labelClass}>Tipo de documento<CatalogField catalog="tipos-documento" onCreated={entry => setDocumentType(entry.value)} disabled={isSaving}><select name="documentType" value={documentType} onChange={event => setDocumentType(event.target.value)} className={inputClass}><CatalogOptions catalog="tipos-documento" retained={profile.documentType} /></select></CatalogField></label>
         <label className={labelClass}>CUIT/CUIL<input name="cuitCuil" maxLength={30} defaultValue={profile.cuitCuil} className={inputClass} /></label>
         <label className={labelClass}>Tipo IVA<CatalogField catalog="tipos-iva" onCreated={entry => setIvaType(entry.value)} disabled={isSaving}><select name="ivaType" value={ivaType} onChange={event => setIvaType(event.target.value)} className={inputClass}><option value="">Seleccionar</option><CatalogOptions catalog="tipos-iva" retained={profile.ivaType} /></select></CatalogField></label>
-        <label className={labelClass}>Correo electrónico<input type="email" value={profile.email} readOnly aria-readonly="true" className={`${inputClass} bg-gray-50 text-gray-600`} /><span className="mt-1 block text-xs font-normal text-gray-500">El correo identifica tu cuenta y no se puede modificar desde el perfil.</span></label>
+        <label className={labelClass}>Correo electrónico<input type="email" value={profile.email} readOnly aria-readonly="true" className={inputClass} /><span className="mt-1 block text-xs font-normal text-gray-500">El correo identifica tu cuenta y no se puede modificar desde el perfil.</span></label>
         <label className={`${labelClass} sm:col-span-2`}>Observaciones<textarea name="notes" rows={3} maxLength={180} defaultValue={profile.notes} className={inputClass} /></label>
       </div>
       <PhoneFields primary={phone} additional={additionalPhones} onChange={(primary, additional) => { setPhone(primary); setAdditionalPhones(additional); }} disabled={isSaving} />
@@ -115,6 +116,6 @@ function CustomerProfileForm({ profile }: { profile: Awaited<ReturnType<typeof l
       <input type="hidden" name="savedAddresses" value={JSON.stringify(profile.addresses)} />
       <input type="hidden" name="addresses" value={JSON.stringify(addresses)} />
       <ClientAddressesEditor addresses={addresses} onChange={setAddresses} disabled={isSaving} />
-      <div className="flex justify-end border-t border-[#f0e7dd] pt-5"><button type="submit" disabled={isSaving} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-amber-800 px-5 text-sm font-semibold text-white transition hover:bg-amber-900 disabled:cursor-wait disabled:opacity-70">{isSaving ? "Guardando…" : "Guardar datos"}</button></div>
+      <div className="flex justify-end shop-rule border-t pt-5"><button type="submit" disabled={isSaving} className="inline-flex min-h-11 items-center justify-center shop-primary px-5 text-sm font-semibold text-white transition disabled:cursor-wait disabled:opacity-70">{isSaving ? "Guardando…" : "Guardar datos"}</button></div>
     </Form></section>;
 }

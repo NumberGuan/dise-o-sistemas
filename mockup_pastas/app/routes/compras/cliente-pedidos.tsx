@@ -14,7 +14,7 @@ export { default as ErrorBoundary } from "~/components/CustomerErrorBoundary";
 
 const currency = new Intl.NumberFormat("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 2 });
 const ordersUrl = "/compras/pedidos";
-const actionClass = "inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-semibold text-amber-900 hover:bg-amber-50 hover:underline focus-visible:outline-2 focus-visible:outline-amber-700";
+const actionClass = "shop-link shop-row-action inline-flex min-h-10 items-center rounded-lg px-2 text-sm font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-amber-700";
 const statusClasses: Record<OrderStatus, string> = {
   "Pendiente": "bg-amber-100 text-amber-950",
   "En preparación": "bg-sky-100 text-sky-900",
@@ -85,9 +85,9 @@ function OrderStatusLabel({ status }: { status: OrderStatus }) {
 function OrderDetails({ order, recipient }: { order: ReturnType<typeof customerOrderDetails>; recipient: string }) {
   const deliveryDate = `${formatOrderDate(order.deliveryDate)}${order.deliveryTime ? ` a las ${order.deliveryTime}` : ""}`;
   return (
-    <div className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm">
-      <section aria-labelledby="delivery-summary" className="border-b border-[#eadfd3] p-4 sm:p-6">
-        <h2 id="delivery-summary" className="text-lg font-semibold">Datos del pedido</h2>
+    <div className="shop-panel overflow-hidden rounded-2xl border">
+      <section aria-labelledby="delivery-summary" className="shop-rule border-b p-4 sm:p-6">
+        <h2 id="delivery-summary" className="shop-heading font-semibold">Datos del pedido</h2>
         <dl className="mt-4 grid gap-4 text-sm sm:grid-cols-2">
           <div><dt className="font-semibold">Fecha del pedido</dt><dd className="mt-1 text-gray-600">{formatOrderDate(order.date)}</dd></div>
           <div><dt className="font-semibold">Tipo</dt><dd className="mt-1 text-gray-600">{order.kind ?? "Regular"}</dd></div>
@@ -98,14 +98,14 @@ function OrderDetails({ order, recipient }: { order: ReturnType<typeof customerO
         </dl>
       </section>
       <section aria-labelledby="order-products" className="p-4 sm:p-6">
-        <h2 id="order-products" className="text-lg font-semibold">Productos</h2>
-        <ul className="mt-3 divide-y divide-[#f0e7dd]">
+        <h2 id="order-products" className="shop-heading font-semibold">Productos</h2>
+        <ul className="mt-3 shop-divide divide-y">
           {order.items.map(item => <li key={item.id} className="flex justify-between gap-4 py-3 text-sm">
             <span className="text-gray-700">{item.quantity} × {item.productName}</span>
             <span className="shrink-0 tabular-nums text-gray-900">{currency.format(item.subtotal)}</span>
           </li>)}
         </ul>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-[#eadfd3] pt-4">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 shop-rule border-t pt-4">
           <div>
             {order.discount > 0 && <p className="text-sm text-gray-600">Descuento {currency.format(order.discount)}</p>}
             <p className="font-semibold">Total <span className="tabular-nums">{currency.format(order.total)}</span></p>
@@ -129,14 +129,14 @@ export default function ClientePedidos() {
   });
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-7 text-gray-900 sm:px-6 sm:py-9 lg:px-8">
+    <div className="shop-customer-page mx-auto max-w-5xl px-4 py-7 text-gray-900 sm:px-6 sm:py-9 lg:px-8">
       {order ? (
         <>
-          <Link to={ordersUrl} className="text-sm font-semibold text-amber-800 underline underline-offset-4">Volver a Mis pedidos</Link>
+          <Link to={ordersUrl} className="shop-link text-sm font-semibold underline underline-offset-4">Volver a Mis pedidos</Link>
           <div className="mb-5 mt-3">
             <ShopPageHero title={`${version ? "Editar pedido" : "Pedido"} ${order.number}`} art="pedidos">
               <OrderStatusLabel status={order.status} />
-              {!version && order.status === "Pendiente" && <Link to={orderUrl(order.id, "editar")} className={`${actionClass} bg-white`}>Editar</Link>}
+              {!version && order.status === "Pendiente" && <Link to={orderUrl(order.id, "editar")} className="shop-secondary inline-flex min-h-10 items-center px-3 text-sm font-semibold">Editar</Link>}
             </ShopPageHero>
           </div>
           {actionData?.error && <p role="alert" className="mb-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-800">{actionData.error}</p>}
@@ -147,14 +147,14 @@ export default function ClientePedidos() {
         <>
           <div className="mb-6"><ShopPageHero title="Mis pedidos" art="pedidos" /></div>
           {!orders.length ? (
-            <section className="rounded-2xl border border-dashed border-[#dfd0c0] bg-white px-6 py-14 text-center">
-              <h2 className="text-lg font-semibold">Todavía no tenés pedidos</h2>
+            <section className="shop-empty rounded-2xl border border-dashed px-6 py-14 text-center">
+              <h2 className="shop-heading font-semibold">Todavía no tenés pedidos</h2>
               <p className="mt-2 text-sm text-gray-600">Cuando confirmes una compra desde el carrito, aparecerá acá.</p>
-              <Link to="/compras/catalogo" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-amber-800 px-4 text-sm font-semibold text-white">Explorar catálogo</Link>
+              <Link to="/compras/catalogo" className="mt-5 inline-flex min-h-11 items-center shop-primary px-4 text-sm font-semibold text-white">Explorar catálogo</Link>
             </section>
           ) : (
-            <section className="overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm" aria-label="Historial de pedidos">
-              <div className="flex flex-wrap items-end justify-between gap-3 border-b border-[#eadfd3] p-4 sm:p-5">
+            <section className="shop-panel overflow-hidden rounded-2xl border" aria-label="Historial de pedidos">
+              <div className="flex flex-wrap items-end justify-between gap-3 shop-rule border-b p-4 sm:p-5">
                 <label className="w-full text-sm font-semibold text-gray-800 sm:max-w-sm">Buscar pedidos
                   <input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Número, fecha o estado" className="mt-1 block h-11 w-full rounded-xl border border-gray-300 px-3 text-sm font-normal focus-visible:outline-2 focus-visible:outline-amber-700" />
                 </label>
@@ -164,8 +164,8 @@ export default function ClientePedidos() {
                 <SortableTable
                   rows={visibleOrders}
                   className="w-full min-w-[19rem] text-left text-sm"
-                  headClassName="bg-[#fffdfa] text-gray-700"
-                  bodyClassName="divide-y divide-[#f0e7dd] border-t border-[#eadfd3]"
+                  headClassName="shop-tint text-gray-700"
+                  bodyClassName="shop-divide shop-rule divide-y border-t"
                   newest="Fecha"
                   tieBreaker={row => row.number}
                   columns={[

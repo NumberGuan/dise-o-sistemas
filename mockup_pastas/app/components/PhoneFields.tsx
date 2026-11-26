@@ -9,16 +9,16 @@ type PhoneFieldsProps = {
 };
 
 const inputClass = "mt-1 h-10 w-full rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:bg-gray-100";
-const buttonClass = "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600";
+const buttonClass = "shop-secondary rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-amber-600";
 
 export default function PhoneFields({ primary, additional = [], onChange, disabled = false }: PhoneFieldsProps) {
   const id = useId();
-  return <fieldset disabled={disabled} className="space-y-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4 sm:p-5">
+  return <fieldset disabled={disabled} className="shop-tint space-y-4 rounded-xl border border-gray-200 bg-gray-50/60 p-4 sm:p-5">
     <legend className="px-1 text-sm font-semibold text-gray-900">Teléfonos</legend>
     <label htmlFor={`${id}-primary`} className="block text-sm font-medium text-gray-700">Teléfono principal <span className="text-rose-600">*</span>
       <input id={`${id}-primary`} type="tel" autoComplete="tel" required maxLength={40} value={primary} onChange={event => onChange(event.target.value, additional)} placeholder="Código de área y número" className={inputClass} />
     </label>
-    {additional.length > 0 && <div className="space-y-3 border-t border-gray-200 pt-4">{additional.map((phone, index) => <div key={index} className="flex flex-wrap items-end gap-2">
+    {additional.length > 0 && <div className="shop-rule space-y-3 border-t border-gray-200 pt-4">{additional.map((phone, index) => <div key={index} className="flex flex-wrap items-end gap-2">
       <label htmlFor={`${id}-${index}`} className="min-w-44 flex-1 text-sm font-medium text-gray-700">Teléfono adicional {index + 1}
         <input id={`${id}-${index}`} type="tel" required maxLength={40} value={phone} onChange={event => onChange(primary, additional.map((value, position) => position === index ? event.target.value : value))} placeholder="Código de área y número" className={inputClass} />
       </label>

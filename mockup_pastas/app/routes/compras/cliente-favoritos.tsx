@@ -27,21 +27,21 @@ export default function ClienteFavoritos() {
   const { favoriteProducts, favorites, cart } = useLoaderData<typeof loader>();
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+    <div className="shop-customer-page mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
       <div className="mb-6">
         <ShopPageHero title="Mis favoritos" art="favoritos" description="Productos que guardaste desde tu catálogo.">
-          <span className="rounded-full border border-[#eadfd3] bg-white/85 px-3 py-1.5 text-sm text-gray-700">{favoriteProducts.length} {favoriteProducts.length === 1 ? "producto" : "productos"}</span>
+          <span className="shop-hero-count rounded-full border px-3 py-1.5 text-sm text-gray-700">{favoriteProducts.length} {favoriteProducts.length === 1 ? "producto" : "productos"}</span>
         </ShopPageHero>
       </div>
 
       {favoriteProducts.length === 0 ? (
-        <section className="rounded-2xl border border-dashed border-[#dfd0c0] bg-white px-6 py-14 text-center" aria-labelledby="favorites-empty-title">
-          <span className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-50 text-rose-700" aria-hidden="true">
+        <section className="shop-empty rounded-2xl border border-dashed px-6 py-14 text-center" aria-labelledby="favorites-empty-title">
+          <span className="mx-auto flex h-12 w-12 items-center justify-center shop-empty-icon rounded-full" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-6 w-6"><path strokeLinecap="round" strokeLinejoin="round" d="M20.8 8.7c0 5.2-8.8 10.1-8.8 10.1S3.2 13.9 3.2 8.7a4.5 4.5 0 0 1 8-2.8 4.5 4.5 0 0 1 8 2.8Z" /></svg>
           </span>
-          <h2 id="favorites-empty-title" className="mt-4 text-lg font-semibold text-gray-900">Todavía no guardaste favoritos</h2>
+          <h2 id="favorites-empty-title" className="shop-heading mt-4 font-semibold">Todavía no guardaste favoritos</h2>
           <p className="mt-2 text-sm text-gray-600">Usá el corazón en una tarjeta del catálogo para guardar un producto acá.</p>
-          <Link to="/compras/catalogo" className="mt-5 inline-flex min-h-11 items-center rounded-xl bg-amber-800 px-4 text-sm font-semibold text-white transition hover:bg-amber-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Explorar catálogo</Link>
+          <Link to="/compras/catalogo" className="mt-5 inline-flex min-h-11 items-center shop-primary px-4 text-sm font-semibold text-white transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800">Explorar catálogo</Link>
         </section>
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

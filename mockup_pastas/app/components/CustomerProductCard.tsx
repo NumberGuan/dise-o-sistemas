@@ -66,7 +66,7 @@ export default function CustomerProductCard({
             name="intent"
             value="add-to-cart"
             disabled={cartDisabled || cartFetcher.state !== "idle"}
-            className="catalog-primary flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-900 disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800"
+            className="shop-primary flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-amber-800 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-amber-900 disabled:cursor-wait disabled:opacity-70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4 shrink-0" aria-hidden="true"><path d="M3 4h2l2.1 10.1a2 2 0 0 0 2 1.6h7.5a2 2 0 0 0 1.9-1.4L20 8H6" /><circle cx="9.5" cy="19" r="1.2" /><circle cx="17" cy="19" r="1.2" /><path d="M12 8v5m-2.5-2.5h5" /></svg>
             {cartFetcher.state !== "idle" ? "Guardando…" : cartQuantity > 0 ? `Agregar al carrito · ${cartQuantity} en carrito` : "Agregar al carrito"}
