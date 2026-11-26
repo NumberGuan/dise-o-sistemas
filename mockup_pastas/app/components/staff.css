@@ -124,8 +124,12 @@
     scrollbar-width: thin;
   }
 
+  .staff-shell {
+    background-color: #eff0ee;
+  }
+
   .staff-shell main > .page-surface {
-    background: var(--staff-surface);
+    background-color: #f8f9f7;
   }
 
   :is(.staff-shell, .app-error) .module-page-header {
