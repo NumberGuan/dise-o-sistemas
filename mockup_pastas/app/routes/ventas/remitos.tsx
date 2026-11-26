@@ -87,7 +87,7 @@ function RemitForm({ remit, remits, initialOrderId, onCancel, onSave }: RemitFor
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Formulario Nuevo Remito" : `Editar remito ${remit.number}`} onCancel={onCancel}>
+      <SalesFormHeader isNew={isNew} title={isNew ? "Formulario Nuevo Remito" : `Editar remito ${remit.number}`} onCancel={onCancel}>
 
         {errorMsg && (
           <div role="alert" className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">

@@ -125,7 +125,7 @@ function ProductionOrderForm({ order, onCancel, onSave }: { order: OrdenProducci
   }
 
   return (
-    <RecordPage onBack={onCancel}>
+    <RecordPage onBack={onCancel} isNew={!order}>
       <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Producción</p>

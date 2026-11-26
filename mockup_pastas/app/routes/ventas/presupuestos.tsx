@@ -101,7 +101,7 @@ function BudgetForm({ budget, budgets, onCancel, onSave }: BudgetFormProps) {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Formulario Nuevo Presupuesto" : `Editar presupuesto ${budget.number}`} onCancel={onCancel}>
+      <SalesFormHeader isNew={isNew} title={isNew ? "Formulario Nuevo Presupuesto" : `Editar presupuesto ${budget.number}`} onCancel={onCancel}>
 
         {errorMsg && (
           <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">

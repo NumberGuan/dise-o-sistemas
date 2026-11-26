@@ -96,7 +96,7 @@ function CatalogCreateModal({ request, onClose, register }: { request: CreateOpt
 
   if (!mounted) return null;
   return createPortal(<dialog ref={dialog} aria-modal="true" aria-labelledby={titleId} aria-describedby={helpId}
-    className="form-sheet fixed m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%_-_2rem)] max-w-2xl overflow-y-auto p-0 text-gray-900 shadow-2xl backdrop:bg-gray-900/50"
+    className="form-sheet create-form fixed m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%_-_2rem)] max-w-2xl overflow-y-auto p-0 text-gray-900 shadow-2xl backdrop:bg-gray-900/50"
     onCancel={event => { event.preventDefault(); event.stopPropagation(); }}
     onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); } }}>
     <div className="form-heading flex items-start justify-between gap-4">

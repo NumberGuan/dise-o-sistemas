@@ -59,10 +59,10 @@ export default function NewPurchaseDocument() {
 
   return <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
     <ModulePageHeader className="mb-6"><h1 className="text-2xl font-bold text-gray-900">Subir {config.title}</h1><p className="mt-1 text-sm text-gray-500">Registrá los datos del comprobante recibido y adjuntá el archivo del proveedor.</p></ModulePageHeader>
-    <Form method="post" encType="multipart/form-data" className="space-y-6" onSubmit={event => { if (fileError) event.preventDefault(); }}>
+    <Form method="post" encType="multipart/form-data" className="create-form space-y-6" onSubmit={event => { if (fileError) event.preventDefault(); }}>
       {result?.error && <p role="alert" className="rounded-lg border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{result.error}</p>}
       <fieldset disabled={busy} className="space-y-6 disabled:opacity-60">
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="create-form-panel rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-semibold">Datos del comprobante</h2>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {kind === "recibo" ? <>
@@ -84,7 +84,7 @@ export default function NewPurchaseDocument() {
             </>}
           </div>
         </section>
-        {kind !== "recibo" && <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        {kind !== "recibo" && <section className="create-form-panel rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="mb-4 font-semibold">Detalle de materias primas</h2>
           <input type="hidden" name="detalle" value={JSON.stringify(lines.map(({ key, ...line }) => line))} />
           <div className="space-y-3">{lines.map(line => <div key={line.key} className="grid items-end gap-3 rounded-lg bg-gray-50 p-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -96,7 +96,7 @@ export default function NewPurchaseDocument() {
           <button type="button" className="mt-4 text-sm font-semibold text-amber-800 underline" onClick={() => { setLines(current => [...current, { key: nextKey, idMateriaPrima: 0, cantidad: 1, precioUnitario: 0 }]); setNextKey(current => current + 1); }}>Agregar materia prima</button>
           {kind !== "remito" && <p className="mt-4 text-right font-semibold">{kind === "factura" ? `Neto: ${formatMoney(net)} · IVA: ${formatMoney(iva)} · ` : ""}Total: {formatMoney(net + (kind === "factura" ? iva : 0))}</p>}
         </section>}
-        <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+        <section className="create-form-panel rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
           <h2 className="font-semibold">Archivo del proveedor</h2>
           <label className="mt-3 block text-sm font-medium">Adjuntar comprobante<input type="file" name="file" required accept={ATTACHMENT_ACCEPT} className={`${control} file:mr-4 file:rounded-lg file:border-0 file:bg-amber-50 file:px-3 file:py-2 file:text-amber-800`} onChange={event => { const file = event.target.files?.[0]; const message = file && file.size > MAX_ATTACHMENT_SIZE ? "El archivo debe pesar hasta 10 MB." : file && !file.size ? "Seleccioná un archivo con contenido." : ""; setFileError(message); event.target.setCustomValidity(message); }} /></label>
           <p className="mt-2 text-sm text-gray-500">PDF, JPG, PNG o WebP. Máximo 10 MB.</p>

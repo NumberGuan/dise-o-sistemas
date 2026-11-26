@@ -184,7 +184,7 @@ function OrderForm({ order, clients, onCancel, onSave, pending }: OrderFormProps
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Formulario Nuevo Pedido" : `Editar Pedido ${order.number}`} onCancel={onCancel} pending={pending}>
+      <SalesFormHeader isNew={isNew} title={isNew ? "Formulario Nuevo Pedido" : `Editar Pedido ${order.number}`} onCancel={onCancel} pending={pending}>
         {kind === "Evento" && !existingDeposit && !hasOpenCashSession && <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">Necesitás una caja abierta para cobrar la seña del evento. <Link to="/ventas/caja" className="font-semibold underline">Abrir caja</Link></p>}
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
           <div className="flex-1 overflow-y-auto px-6 py-5">

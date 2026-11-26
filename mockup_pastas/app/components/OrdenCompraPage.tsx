@@ -475,7 +475,7 @@ export default function OrdenCompraPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <FormFrame module="Compras" title={esNueva ? "Formulario Nueva Orden de Compra" : "Detalle de Orden de Compra"}
+      <FormFrame module="Compras" isNew={esNueva} title={esNueva ? "Formulario Nueva Orden de Compra" : "Detalle de Orden de Compra"}
         description={esNueva
               ? "Completa la cabecera y agrega los ítems para registrar la orden de compra."
               : `${orden?.numero} · ${proveedor?.nombre ?? "Proveedor"} · ${formatMoney(montoTotal)}`}

@@ -140,7 +140,7 @@ function InvoiceForm({ invoice, invoices, initialOrderId, onCancel, onSave }: In
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Formulario Nueva Factura" : `Editar Factura ${invoice.number}`} onCancel={onCancel}>
+      <SalesFormHeader isNew={isNew} title={isNew ? "Formulario Nueva Factura" : `Editar Factura ${invoice.number}`} onCancel={onCancel}>
 
         {errorMsg && (
           <div className="mb-6 rounded-lg bg-red-50 p-4 text-sm text-red-800">

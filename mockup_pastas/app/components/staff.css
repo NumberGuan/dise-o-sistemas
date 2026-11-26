@@ -256,6 +256,26 @@
     color: var(--pasta-olive);
   }
 
+  body:has(.staff-shell) .create-form {
+    --staff-surface: #f8f9f6;
+    --staff-field-line: #83897e;
+    --pasta-line: var(--pasta-tint-line);
+    --color-gray-50: var(--pasta-list-heading);
+    --color-gray-100: var(--pasta-tint-strong);
+    --color-gray-200: var(--pasta-tint-line);
+    --color-gray-300: #b6bbb0;
+  }
+
+  body:has(.staff-shell) :is(.create-form.form-sheet, dialog.create-form, .create-form-panel) {
+    background: var(--staff-surface);
+    border-color: var(--pasta-tint-line);
+  }
+
+  body:has(.staff-shell) .create-form > :is(.formal-page-header, .form-heading) {
+    background: var(--pasta-list-heading);
+    border-color: var(--pasta-tint-line);
+  }
+
   body:has(.staff-shell) dialog::backdrop,
   body:has(.staff-shell) .pasta-loading--screen {
     background: #191c1855;

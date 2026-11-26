@@ -27,10 +27,10 @@ export function SalesPageHeader({ title, description, action }: SalesPageHeaderP
   );
 }
 
-export function SalesFormHeader({ title, onCancel, pending = false, action, backLabel, children }: { title: string; onCancel: () => void; pending?: boolean; action?: React.ReactNode; backLabel?: string; children?: React.ReactNode }) {
+export function SalesFormHeader({ title, onCancel, pending = false, action, backLabel, children, isNew }: { title: string; onCancel: () => void; pending?: boolean; action?: React.ReactNode; backLabel?: string; children?: React.ReactNode; isNew?: boolean }) {
   return (
     <div className={children ? undefined : "mb-6"}>
-      <FormFrame module="Ventas" title={title} actions={<><BackToListButton onClick={onCancel} disabled={pending} label={backLabel} />{action}</>}>
+      <FormFrame module="Ventas" title={title} isNew={isNew} actions={<><BackToListButton onClick={onCancel} disabled={pending} label={backLabel} />{action}</>}>
         {children}
       </FormFrame>
     </div>

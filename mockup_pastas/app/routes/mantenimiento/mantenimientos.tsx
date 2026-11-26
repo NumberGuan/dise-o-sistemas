@@ -84,7 +84,7 @@ function MaintenanceForm({ item, preselectedMachineId, onCancel, onSave }: { ite
   }
 
   return (
-    <RecordPage onBack={onCancel}>
+    <RecordPage onBack={onCancel} isNew={!item}>
       <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Mantenimiento</p>

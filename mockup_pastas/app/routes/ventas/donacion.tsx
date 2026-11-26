@@ -68,7 +68,7 @@ function DonationForm({ onClose, onSaved }: { onClose: () => void; onSaved: (num
   }
 
   return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-    <SalesFormHeader title="Formulario Nueva Donación" onCancel={onClose} pending={pending}>
+    <SalesFormHeader isNew title="Formulario Nueva Donación" onCancel={onClose} pending={pending}>
       <form onSubmit={submit} className="space-y-6 rounded-xl border border-gray-200 bg-white p-5 shadow-sm sm:p-6">
         {(error || serverError) && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-800">{error || serverError}</p>}
         <fieldset disabled={pending} className="space-y-6">

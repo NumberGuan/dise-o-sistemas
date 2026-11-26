@@ -193,7 +193,7 @@ function ReceiptForm({ receipt, receipts, onCancel, onSave }: ReceiptFormProps) 
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Formulario Nuevo Recibo" : `Editar recibo ${receipt.number}`} onCancel={onCancel}>
+      <SalesFormHeader isNew={isNew} title={isNew ? "Formulario Nuevo Recibo" : `Editar recibo ${receipt.number}`} onCancel={onCancel}>
         <p className="mb-5 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">{hasOpenCashSession ? "El cobro se incorporará a la caja abierta al registrar el recibo." : "No hay caja abierta. Podés guardar un borrador, pero necesitás abrir caja para registrar el cobro."} <Link to="/ventas/caja" className="font-semibold underline">Ir a Caja</Link></p>
 
         {errorMsg && (

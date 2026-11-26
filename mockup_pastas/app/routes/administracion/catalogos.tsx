@@ -95,7 +95,7 @@ function CatalogScreen({ definition }: { definition: (typeof CATALOG_DEFINITIONS
     {!mode && <div className="mb-6 flex flex-wrap items-center justify-end gap-3">{backToAdmin}<Link to="?vista=nuevo" className="rounded-lg bg-amber-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-amber-700">+ Agregar {definition.singular}</Link></div>}
     {notice && !mode && <p role="status" className="mb-5 rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</p>}
     {mode && mode !== "nuevo" && !selected ? <div className="rounded-xl border border-gray-200 bg-white p-6"><p role="alert">El registro solicitado no existe.</p><Link to="?" className="mt-4 inline-block text-amber-800 underline">Volver al listado</Link></div>
-      : isForm ? <section className="form-sheet mx-auto max-w-2xl">
+      : isForm ? <section className={`form-sheet mx-auto max-w-2xl${mode === "nuevo" ? " create-form" : ""}`}>
         <FormalPageHeader>
           <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-gray-600">Administración</p>
           <h1 className="text-xl font-bold text-gray-900">{selected ? `Editar ${selected.name}` : `Formulario para agregar ${definition.singular}`}</h1>

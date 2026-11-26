@@ -302,7 +302,7 @@ export default function ProveedorFormPage({
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-      <FormFrame module="Compras" title={esModificacion ? "Modificar Proveedor" : "Formulario Nuevo Proveedor"}
+      <FormFrame module="Compras" isNew={!esModificacion} title={esModificacion ? "Modificar Proveedor" : "Formulario Nuevo Proveedor"}
         description={esModificacion
               ? "Actualiza los datos del proveedor y guarda los cambios."
               : "Registra un nuevo proveedor en el sistema."}

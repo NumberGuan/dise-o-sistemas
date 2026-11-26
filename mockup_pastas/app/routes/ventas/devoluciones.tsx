@@ -154,7 +154,7 @@ function ReturnForm({ customerReturn, initialRemitId, onCancel, onSave }: Return
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 text-gray-900 sm:px-6 lg:px-8">
-      <SalesFormHeader title={isNew ? "Formulario Nueva Devolución" : `Editar ${customerReturn.number}`} onCancel={onCancel}>
+      <SalesFormHeader isNew={isNew} title={isNew ? "Formulario Nueva Devolución" : `Editar ${customerReturn.number}`} onCancel={onCancel}>
         {error && <p role="alert" className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">{error}</p>}
         <form noValidate className="space-y-6" onSubmit={event => event.preventDefault()}>
           <section className="rounded-xl border border-gray-200 bg-white shadow-sm">

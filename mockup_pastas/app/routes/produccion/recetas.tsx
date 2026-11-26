@@ -39,7 +39,7 @@ function ProductCreateModal({ idReceta, nombre, product, onCancel, onSave }: { i
     return () => { element?.close(); document.body.style.overflow = overflow; };
   }, []);
   return createPortal(<dialog ref={dialog} aria-label="Crear producto para la receta" aria-modal="true"
-    className="fixed m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%_-_2rem)] max-w-4xl overflow-y-auto rounded-xl bg-white p-0 backdrop:bg-gray-900/50"
+    className="create-form fixed m-auto max-h-[calc(100dvh-2rem)] w-[calc(100%_-_2rem)] max-w-4xl overflow-y-auto rounded-xl bg-white p-0 backdrop:bg-gray-900/50"
     onCancel={e => { e.preventDefault(); e.stopPropagation(); }}
     onKeyDown={e => { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); } }}>
     <div className="flex items-center justify-between gap-4 border-b border-gray-200 px-5 py-3">
@@ -107,7 +107,7 @@ function RecipeForm({ recipe, onCancel, onSave }: { recipe: Receta | null; onCan
   }
 
   return (
-    <><RecordPage onBack={onCancel}>
+    <><RecordPage onBack={onCancel} isNew={!recipe}>
       <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Producción</p>

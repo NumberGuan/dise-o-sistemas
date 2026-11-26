@@ -45,7 +45,7 @@ export function ProductForm({ product, onCancel, onSave, recipeDraft }: { produc
   }
 
   return (
-    <RecordPage onBack={onCancel}>
+    <RecordPage onBack={onCancel} isNew={!product || Boolean(recipeDraft)}>
       <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Producción</p>

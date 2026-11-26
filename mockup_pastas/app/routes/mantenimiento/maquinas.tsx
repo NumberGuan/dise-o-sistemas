@@ -42,7 +42,7 @@ function MachineForm({ machine, onCancel, onSave }: { machine: Machine | null; o
   }
 
   return (
-    <RecordPage onBack={onCancel}>
+    <RecordPage onBack={onCancel} isNew={!machine}>
       <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Mantenimiento</p>

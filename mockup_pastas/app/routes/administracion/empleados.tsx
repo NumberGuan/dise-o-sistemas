@@ -157,7 +157,7 @@ function EmployeeForm({ employee, employees, onCancel, onSave }: EmployeeFormPro
   }
 
   return (
-    <RecordPage onBack={onCancel}>
+    <RecordPage onBack={onCancel} isNew={isNew}>
       <FormalPageHeader className="flex items-start justify-between gap-4">
         <div>
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-amber-800">Administración</p>
