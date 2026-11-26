@@ -26,8 +26,8 @@ export default function CarritoPublico() {
   return <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
     <ShopPageHero title="Mi carrito" art="carrito" label="Fábrica de Pastas" description="Podés agregar productos y ajustar las cantidades. Para confirmar el pedido necesitás una cuenta." />
     {cart.length ? <>
-      <ul className="mt-6 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-gray-200 bg-white">{cart.map(item => <CustomerCartLine key={item.productId} item={item} disabled={busy} />)}</ul>
-      <div className="mt-5 flex items-center justify-between rounded-2xl border border-gray-200 bg-white p-5"><span className="font-semibold">Total de productos</span><strong className="text-2xl">{currency(total)}</strong></div>
+      <ul className="mt-6 divide-y divide-gray-100 overflow-hidden rounded-2xl border border-[#eadfd3] bg-white">{cart.map(item => <CustomerCartLine key={item.productId} item={item} disabled={busy} />)}</ul>
+      <div className="mt-5 flex items-center justify-between rounded-2xl border border-[#eadfd3] bg-white p-5"><span className="font-semibold">Total de productos</span><strong className="text-2xl">{currency(total)}</strong></div>
       <section className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-5">
         <h2 className="font-semibold text-amber-950">Continuá con tu cuenta</h2>
         <p className="mt-2 text-sm text-amber-900">Conservaremos estos productos al ingresar o registrarte. Después podrás completar la dirección y confirmar el pedido.</p>
@@ -36,7 +36,7 @@ export default function CarritoPublico() {
           <Link to="?acceso=login" preventScrollReset aria-haspopup="dialog" className="inline-flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-black hover:bg-gray-50">Ya tengo cuenta</Link>
         </div>
       </section>
-    </> : <section className="mt-6 rounded-2xl border border-dashed border-gray-300 bg-white p-10 text-center"><h2 className="font-semibold">Tu carrito está vacío</h2><p className="mt-2 text-sm text-gray-600">Explorá el catálogo y elegí tus productos.</p></section>}
+    </> : <section className="mt-6 rounded-2xl border border-dashed border-[#dfd0c0] bg-white p-10 text-center"><h2 className="font-semibold">Tu carrito está vacío</h2><p className="mt-2 text-sm text-gray-600">Explorá el catálogo y elegí tus productos.</p></section>}
     <Link to="/catalogo" className="mt-6 inline-flex min-h-11 items-center rounded-xl border border-gray-300 bg-white px-5 text-sm font-semibold text-gray-900 hover:bg-amber-50">Seguir explorando el catálogo</Link>
   </div>;
 }

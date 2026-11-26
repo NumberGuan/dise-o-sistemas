@@ -21,7 +21,7 @@ export default function ShopPageHero({ title, description, art, label = "Fábric
   const isCatalog = art === "catalogo";
 
   return (
-    <header aria-labelledby={titleId} className={`shop-hero relative isolate overflow-hidden rounded-3xl border border-gray-200 bg-[var(--pasta-paper)] shadow-sm ${isCatalog ? "shop-hero-catalog" : "shop-hero-illustrated"}`}>
+    <header aria-labelledby={titleId} className={`shop-hero relative isolate overflow-hidden rounded-3xl border border-[#eadfd3] bg-[#fffaf4] shadow-sm ${isCatalog ? "shop-hero-catalog" : "shop-hero-illustrated"}`}>
       <img
         src={heroImages[art]}
         alt=""

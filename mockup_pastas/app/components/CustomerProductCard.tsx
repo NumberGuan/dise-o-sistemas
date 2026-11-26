@@ -24,8 +24,8 @@ export default function CustomerProductCard({
   const cartFetcher = useFetcher<CustomerMutationResult>();
 
   return (
-    <article className="catalog-card group flex h-full flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
-      <div className="catalog-card-image relative aspect-[4/3] overflow-hidden bg-[var(--pasta-paper)]">
+    <article className="catalog-card group flex h-full flex-col overflow-hidden rounded-2xl border border-[#eadfd3] bg-white shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+      <div className="catalog-card-image relative aspect-[4/3] overflow-hidden bg-[#f1e8dc]">
         <img src={`/products/${product.id}.jpg`} alt={product.name} loading="lazy" className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]" />
         {product.stock === "Disponible" && (
           <span className="catalog-card-stock absolute left-3 top-3 rounded-full border border-emerald-200 bg-emerald-50/95 px-2.5 py-1 text-xs font-semibold text-emerald-800 shadow-sm">
@@ -53,14 +53,14 @@ export default function CustomerProductCard({
           <p className="catalog-card-category text-[11px] font-semibold uppercase tracking-[0.16em] text-amber-800">{product.category}</p>
           <h2 className="catalog-card-name mt-1.5 text-base font-semibold leading-6 text-gray-900">{product.name}</h2>
         </div>
-        <div className="catalog-card-price mt-4 flex items-end justify-between gap-3 border-t border-gray-200 pt-4">
+        <div className="catalog-card-price mt-4 flex items-end justify-between gap-3 border-t border-[#f0e7dd] pt-4">
           <span className="catalog-muted text-xs text-gray-500">Precio por envase</span>
           <span className="catalog-card-price-value text-lg font-bold tracking-tight text-gray-900">{currency.format(product.price)}</span>
         </div>
         <cartFetcher.Form method="post" action={action} className="mt-4">
           <input type="hidden" name="productId" value={product.id} />
           <label htmlFor={`quantity-${product.id}`} className="mb-2 block text-sm font-medium text-gray-700">Cantidad</label>
-          <input id={`quantity-${product.id}`} name="quantity" type="number" min="1" max="1000" step="1" defaultValue="1" required disabled={cartDisabled || cartFetcher.state !== "idle"} className="catalog-field mb-3 h-11 w-full rounded-xl border border-gray-300 bg-white px-3 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 disabled:opacity-70" />
+          <input id={`quantity-${product.id}`} name="quantity" type="number" min="1" max="1000" step="1" defaultValue="1" required disabled={cartDisabled || cartFetcher.state !== "idle"} className="catalog-field mb-3 h-11 w-full rounded-xl border border-[#e5d9cb] bg-white px-3 text-sm text-gray-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-800 disabled:opacity-70" />
           <button
             type="submit"
             name="intent"

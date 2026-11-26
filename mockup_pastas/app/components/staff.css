@@ -2,14 +2,57 @@
   /* Los componentes internos comparten los tokens, incluidos los diálogos
      que se montan directamente en el body. */
   body:has(:is(.staff-shell, .app-error)) {
-    --staff-surface: #fcfbf7;
-    --staff-field-line: #858e80;
-    --staff-menu-line: #d2d8cb38;
+    --staff-surface: #fffcf6;
+    --staff-field-line: #93846f;
+    --staff-menu-line: #f5d2ac38;
     --staff-menu-hover: #fffaf114;
-    --staff-menu-active: #d2d8cb26;
-    --staff-menu-muted: var(--pasta-muted-olive);
+    --staff-menu-active: #efbb8826;
+    --staff-menu-muted: #dfd3bd;
 
     --color-white: var(--staff-surface);
+    --color-slateblue-50: var(--pasta-paper);
+    --color-slateblue-100: #eee3d3;
+    --color-slateblue-200: var(--pasta-line);
+    --color-slateblue-300: #c5b7a3;
+    --color-slateblue-400: #857665;
+    --color-slateblue-500: var(--pasta-muted);
+    --color-slateblue-600: #584f42;
+    --color-slateblue-700: #474034;
+    --color-slateblue-800: #343428;
+    --color-slateblue-900: var(--pasta-olive);
+    --color-slateblue-950: #191c18;
+
+    --color-gray-50: var(--color-slateblue-50);
+    --color-gray-100: var(--color-slateblue-100);
+    --color-gray-200: var(--color-slateblue-200);
+    --color-gray-300: var(--color-slateblue-300);
+    --color-gray-400: var(--color-slateblue-400);
+    --color-gray-500: var(--color-slateblue-500);
+    --color-gray-600: var(--color-slateblue-600);
+    --color-gray-700: var(--color-slateblue-700);
+    --color-gray-800: var(--color-slateblue-800);
+    --color-gray-900: var(--color-slateblue-900);
+    --color-gray-950: var(--color-slateblue-950);
+
+    --color-brand-500: #c46243;
+    --color-brand-600: var(--pasta-terracotta);
+    --color-brand-700: var(--pasta-terracotta-dark);
+    --color-brand-800: #81321f;
+    --color-brand-900: #652919;
+    --color-brand-950: #401b12;
+
+    --color-amber-50: var(--color-brand-50);
+    --color-amber-100: var(--color-brand-100);
+    --color-amber-200: var(--color-brand-200);
+    --color-amber-300: var(--color-brand-300);
+    --color-amber-400: var(--color-brand-400);
+    --color-amber-500: var(--color-brand-500);
+    --color-amber-600: var(--color-brand-600);
+    --color-amber-700: var(--color-brand-700);
+    --color-amber-800: var(--color-brand-800);
+    --color-amber-900: var(--color-brand-900);
+    --color-amber-950: var(--color-brand-950);
+
     --shadow-sm: 0 3px 10px -8px #43331f85;
     --shadow-md: 0 6px 16px -9px #43331f80;
     --shadow-lg: 0 12px 24px -14px #43331f94;
@@ -51,7 +94,7 @@
 
   .staff-menu-section.staff-menu-section-active,
   .staff-menu-link.staff-menu-link-active {
-    color: var(--pasta-muted-olive);
+    color: var(--pasta-peach);
   }
 
   .staff-menu-section-active::before {
@@ -59,7 +102,7 @@
     inset: 0.55rem auto 0.55rem 0;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: var(--pasta-muted-olive);
+    background: var(--pasta-peach);
     content: "";
   }
 
@@ -68,7 +111,7 @@
   }
 
   .staff-avatar {
-    background: var(--pasta-muted-olive);
+    background: var(--pasta-peach);
     color: var(--pasta-olive);
   }
 
@@ -77,7 +120,7 @@
   }
 
   .staff-sidebar .sidebar-scrollbar {
-    scrollbar-color: #8b9584 var(--pasta-olive);
+    scrollbar-color: #9f815e var(--pasta-olive);
     scrollbar-width: thin;
   }
 
@@ -96,7 +139,7 @@
     border-color: #3c3f31;
     border-radius: 1rem;
     padding: clamp(1.15rem, 2.8vw, 1.8rem) clamp(1rem, 3vw, 2rem);
-    background: linear-gradient(110deg, #191c18, var(--pasta-olive) 65%, #3b4337);
+    background: linear-gradient(110deg, #191c18, var(--pasta-olive) 65%, #463729);
     color: var(--pasta-cream);
     box-shadow: var(--shadow-md);
   }
@@ -135,7 +178,7 @@
 
   .staff-shell .module-page-header p:has(+ h1),
   .staff-shell .module-page-header h1::before {
-    color: var(--pasta-muted-olive);
+    color: var(--pasta-peach);
     font: 650 0.6875rem/1.4 var(--font-sans);
     letter-spacing: 0.13em;
     text-transform: uppercase;
@@ -175,7 +218,7 @@
   }
 
   .staff-shell .formal-page-header p:has(+ h1) {
-    color: var(--pasta-action-dark);
+    color: var(--pasta-terracotta-dark);
   }
 
   .staff-shell .page-surface :is(h2, h3):not(:is(.print-voucher *, .production-document *)),
@@ -189,7 +232,7 @@
   }
 
   :is(.staff-shell main, body:has(.staff-shell) dialog) input:is([type="checkbox"], [type="radio"]) {
-    accent-color: var(--pasta-action);
+    accent-color: var(--pasta-terracotta);
   }
 
   :is(.staff-shell main, body:has(.staff-shell) dialog)
@@ -199,12 +242,12 @@
 
   :is(.staff-shell, body:has(.staff-shell) > dialog)
     :is(a, button, select, textarea, input, [tabindex]):focus-visible:not([aria-invalid="true"]) {
-    outline: 2px solid var(--pasta-action-dark);
+    outline: 2px solid var(--pasta-terracotta-dark);
     outline-offset: 2px;
   }
 
   .staff-shell :is(.staff-sidebar, .staff-navbar, .module-page-header) :is(a, button):focus-visible {
-    outline-color: var(--pasta-muted-olive);
+    outline-color: var(--pasta-peach);
     outline-offset: -2px;
   }
 
@@ -234,7 +277,7 @@
   }
 
   .staff-shell :is(.production-document-header, .sales-document .voucher-header) {
-    border-top-color: var(--pasta-action);
+    border-top-color: var(--pasta-terracotta);
     border-bottom-color: var(--pasta-line);
   }
 

@@ -3,8 +3,11 @@
   --shop-paper: var(--pasta-paper);
   --shop-olive: var(--pasta-olive);
   --shop-muted: var(--pasta-muted);
+  --shop-peach: var(--pasta-peach);
+  --shop-terracotta: var(--pasta-terracotta);
+  --shop-terracotta-dark: var(--pasta-terracotta-dark);
   --shop-line: var(--pasta-line);
-  --shop-field-line: #858e80;
+  --shop-field-line: #a89983;
   --shop-serif: var(--pasta-serif);
   background: var(--shop-paper);
   color: var(--shop-olive);
@@ -22,7 +25,7 @@
 }
 
 .shop-store > header :is(nav, nav a, button) {
-  border-color: #d2d8cb55;
+  border-color: #f5d2ac55;
 }
 
 .shop-store > header :is(nav a, button) {
@@ -36,20 +39,20 @@
 }
 
 .shop-store > header nav a[aria-current="page"] {
-  background: #d2d8cb26;
+  background: #cdd8bf26;
   color: var(--pasta-muted-olive);
 }
 
 .shop-store > header .shop-store-register {
-  background: var(--pasta-action);
+  background: var(--shop-terracotta);
 }
 
 .shop-store > header .shop-store-register:hover {
-  background: var(--pasta-action-dark);
+  background: var(--shop-terracotta-dark);
 }
 
 .shop-store > header :is(a, button):focus-visible {
-  outline: 2px solid var(--pasta-muted-olive);
+  outline: 2px solid var(--shop-peach);
   outline-offset: 3px;
 }
 
@@ -59,7 +62,7 @@
 }
 
 .shop-store .shop-store-user {
-  color: var(--pasta-muted-olive);
+  color: #e4d5c1;
 }
 
 .shop-store > main > .page-surface {
@@ -91,7 +94,7 @@
 }
 
 .shop-store .shop-hero-illustrated {
-  background: radial-gradient(ellipse at 90% 50%, #454d3e, var(--shop-olive) 75%);
+  background: radial-gradient(ellipse at 90% 50%, #6a4b31, var(--shop-olive) 75%);
 }
 
 .shop-store .shop-hero-illustrated .shop-hero-shade {
@@ -106,7 +109,7 @@
   border: 0;
   padding: 0;
   background: transparent;
-  color: var(--pasta-muted-olive);
+  color: #f5d2ac;
   font-size: 0.6875rem;
   font-weight: 650;
   letter-spacing: 0.18em;
@@ -116,7 +119,7 @@
 .shop-store .shop-hero-label::before {
   width: 1.75rem;
   height: 1px;
-  background: var(--pasta-muted-olive);
+  background: var(--shop-peach);
   content: "";
 }
 
@@ -138,13 +141,13 @@
 }
 
 .shop-store .shop-hero-count {
-  border-color: #d2d8cb66;
+  border-color: #f5d2ac66;
   background: #fffaf114;
   color: var(--shop-cream);
 }
 
 .shop-store .shop-hero :is(a, button):focus-visible {
-  outline-color: var(--pasta-muted-olive);
+  outline-color: var(--shop-peach);
 }
 
 .shop-store .shop-panel {
@@ -166,7 +169,7 @@
 
 .shop-store .shop-empty-icon {
   background: var(--pasta-tint-strong);
-  color: var(--pasta-action-dark);
+  color: var(--shop-terracotta-dark);
 }
 
 .catalog-filters,
@@ -195,7 +198,7 @@
 }
 
 .shop-store .shop-customer-page :is(input, select, textarea):focus-visible {
-  border-color: var(--pasta-action-dark);
+  border-color: var(--shop-terracotta-dark);
   box-shadow: none;
 }
 
@@ -216,11 +219,11 @@
 }
 
 .shop-store .shop-link {
-  color: var(--pasta-action-dark);
+  color: var(--shop-terracotta-dark);
 }
 
 .shop-store .shop-link:hover:not(:disabled) {
-  color: var(--pasta-olive);
+  color: #722b19;
 }
 
 .shop-store .shop-row-action:hover {
@@ -229,7 +232,7 @@
 
 .shop-store .shop-primary {
   border-radius: 0.5rem;
-  background: var(--pasta-action);
+  background: var(--shop-terracotta);
   color: var(--shop-cream);
 }
 
@@ -238,7 +241,7 @@
 }
 
 .shop-store .shop-primary:hover:not(:disabled) {
-  background: var(--pasta-action-dark);
+  background: var(--shop-terracotta-dark);
 }
 
 .shop-store .shop-secondary:hover {
@@ -247,7 +250,7 @@
 
 .shop-store main :is(a, button, select, textarea, input, [tabindex]):focus-visible,
 .catalog-search:focus-within {
-  outline: 2px solid var(--pasta-action-dark);
+  outline: 2px solid var(--shop-terracotta-dark);
   outline-offset: 2px;
 }
 
@@ -285,7 +288,7 @@
 .shop-store .catalog-card-favorite {
   border-color: var(--shop-line);
   background: var(--shop-cream);
-  color: var(--pasta-action-dark);
+  color: var(--shop-terracotta-dark);
 }
 
 .shop-store .catalog-card-favorite:is(:hover, [aria-pressed="true"]) {
@@ -293,7 +296,7 @@
 }
 
 .shop-store .catalog-card-category {
-  color: var(--pasta-action-dark);
+  color: var(--shop-terracotta-dark);
 }
 
 .shop-store .catalog-card-name {
