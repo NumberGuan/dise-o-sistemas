@@ -1,5 +1,5 @@
-import AuthPasswordField from "~/components/AuthPasswordField";
-import { data, Form, useActionData, useSearchParams, useNavigation, redirect } from "react-router";
+import AuthLayout from "~/components/AuthLayout";
+import { data, redirect } from "react-router";
 import { createUserSession, getUser } from "~/utils/session.server";
 import { canAccessAccount, getUserByEmail, verifyPassword } from "~/utils/db.server";
 import type { Route } from "./+types/login";
@@ -62,66 +62,6 @@ export const action = async ({ request }: Route.ActionArgs) => {
   }
 };
 
-import AuthLayout from "~/components/AuthLayout";
-
 export default function Login() {
-  const actionData = useActionData<typeof action>();
-  const [searchParams] = useSearchParams();
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state !== "idle" && navigation.formMethod === "POST";
-
-  return (
-    <AuthLayout
-      title="Iniciar sesión"
-      subtitle="Ingresá para comprar, guardar favoritos y consultar tus pedidos."
-    >
-      <Form noValidate method="post" className="space-y-6">
-        <input type="hidden" name="redirectTo" value={searchParams.get("redirectTo") ?? undefined} />
-        
-        <div className="space-y-4">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-              Correo electrónico
-            </label>
-            <div className="relative mt-1 rounded-md shadow-sm">
-              <input
-                id="email"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                className="block w-full rounded-md border border-gray-300 px-3 py-2 placeholder-gray-400 shadow-sm focus:border-amber-500 focus:outline-none focus:ring-amber-500 sm:text-sm"
-                placeholder="nombre@correo.com"
-              />
-            </div>
-          </div>
-          <div>
-            <div className="flex items-center justify-between">
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Contraseña
-              </label>
-            </div>
-            <AuthPasswordField invalid={Boolean(actionData?.error)} />
-          </div>
-          
-        </div>
-
-        {actionData?.error && (
-          <div id="auth-error" role="alert" className="rounded-md bg-red-50 p-4">
-            <div className="text-sm text-red-700">{actionData.error}</div>
-          </div>
-        )}
-
-        <div>
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="flex w-full justify-center rounded-md border border-transparent bg-amber-700 py-3 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-800 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2 disabled:opacity-70"
-          >
-            {isSubmitting ? "Ingresando..." : "Ingresar al Sistema"}
-          </button>
-        </div>
-      </Form>
-    </AuthLayout>
-  );
+  return <AuthLayout mode="login" />;
 }
