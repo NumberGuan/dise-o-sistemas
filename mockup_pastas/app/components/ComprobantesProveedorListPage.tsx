@@ -1,6 +1,7 @@
 import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
+import NewPurchaseDocumentButton from "~/components/NewPurchaseDocumentButton";
 import { useNavigate } from "react-router";
 
 import { getTotalComprobante, type EstadoPago } from "~/data/facturacion-proveedores";
@@ -23,10 +24,10 @@ export default function ComprobantesProveedorListPage() {
           Factura Proveedor
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Comprobantes de venta emitidos por los proveedores. Se consultan, no
-          se crean ni modifican en el sistema.
+          Registrá las facturas recibidas de los proveedores y sus archivos.
         </p>
       </ModulePageHeader>
+      <NewPurchaseDocumentButton kind="factura" />
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <SortableTable

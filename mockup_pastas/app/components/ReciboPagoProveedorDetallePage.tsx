@@ -44,6 +44,7 @@ export default function ReciboPagoProveedorDetallePage({
   const orden = comprobante ? getOrdenes().find(candidate => candidate.id === comprobante.idOrdenCompraProveedor) : undefined;
 
   return <PurchaseDocument onClose={irVolver} title="Recibo de Pago Proveedor" supplier={proveedor} signature totalLabel="Monto abonado"
+    attachment={{ kind: "recibo", documentId: recibo.id }}
     document={{ number: recibo.numero, date: recibo.fechaEmision, total: recibo.montoPagado }}
     payments={[{ method: medio?.tipo ?? "Sin informar", reference: medio?.observacion, amount: recibo.montoPagado }]}
     details={[

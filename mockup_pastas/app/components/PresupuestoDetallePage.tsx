@@ -42,6 +42,7 @@ export default function PresupuestoDetallePage({
   const montoTotal = getMontoPresupuesto(presupuesto.detalle);
 
   return <PurchaseDocument onClose={irVolver} title="Presupuesto Proveedor" supplier={proveedor} signature
+    attachment={{ kind: "presupuesto", documentId: presupuesto.id }}
     document={{ number: presupuesto.numero, date: presupuesto.fechaEmision, status: vencido ? "Vencido" : "Vigente", total: montoTotal,
       items: presupuesto.detalle.map(linea => {
         const producto = getMateriaPrimaPorId(linea.idMateriaPrima);

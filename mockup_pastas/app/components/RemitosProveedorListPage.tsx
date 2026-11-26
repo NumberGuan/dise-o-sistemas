@@ -1,6 +1,7 @@
 import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
+import NewPurchaseDocumentButton from "~/components/NewPurchaseDocumentButton";
 import { useNavigate } from "react-router";
 
 import { getCantidadTotalRemito } from "~/data/remitos";
@@ -17,10 +18,10 @@ export default function RemitosProveedorListPage() {
           Remito Proveedor
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Remitos con la mercadería recibida de los proveedores. Se reciben y
-          almacenan, no se crean ni modifican en el sistema.
+          Registrá los remitos de mercadería recibida de los proveedores y sus archivos.
         </p>
       </ModulePageHeader>
+      <NewPurchaseDocumentButton kind="remito" />
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">

@@ -47,6 +47,7 @@ export default function ComprobanteVentaProveedorDetallePage({
   const estado = getEstadoPago(comprobante);
 
   return <PurchaseDocument onClose={irVolver} title="Factura Proveedor" supplier={proveedor}
+    attachment={{ kind: "factura", documentId: comprobante.id }}
     document={{ number: comprobante.numero, date: comprobante.fechaEmision, status: estado, subtotal: comprobante.importeNeto, tax: comprobante.importeIVA, total,
       items: comprobante.detalle.map(linea => {
         const producto = getMateriaPrimaPorId(linea.idMateriaPrima);

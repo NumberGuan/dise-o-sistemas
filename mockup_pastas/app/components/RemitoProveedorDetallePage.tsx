@@ -44,6 +44,7 @@ export default function RemitoProveedorDetallePage({
   const cantidadTotal = getCantidadTotalRemito(remito.detalle);
 
   return <PurchaseDocument onClose={irVolver} title="Remito Proveedor" supplier={proveedor} signature
+    attachment={{ kind: "remito", documentId: remito.id }}
     document={{ number: remito.numero, date: remito.fecha,
       items: remito.detalle.map(linea => {
         const producto = getMateriaPrimaPorId(linea.idMateriaPrima);

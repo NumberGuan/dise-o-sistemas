@@ -1,6 +1,7 @@
 import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
+import NewPurchaseDocumentButton from "~/components/NewPurchaseDocumentButton";
 import { useNavigate } from "react-router";
 
 import { getMontoPresupuesto } from "~/data/presupuestos";
@@ -18,10 +19,10 @@ export default function PresupuestosListPage() {
           Presupuesto Proveedor
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Presupuestos recibidos por mensaje desde los proveedores. No se crean
-          en el sistema.
+          Registrá los presupuestos recibidos de los proveedores y sus archivos.
         </p>
       </ModulePageHeader>
+      <NewPurchaseDocumentButton kind="presupuesto" />
 
       <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
         <div className="overflow-x-auto">

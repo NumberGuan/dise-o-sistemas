@@ -3,13 +3,15 @@ import type { ComponentProps } from "react";
 import { EMPRESA, formatearCUIT } from "~/data/facturacion-proveedores";
 import { TIPOS_DOCUMENTO, type Proveedor } from "~/data/proveedores";
 import SalesDocument from "./SalesDocument";
+import PurchaseAttachment from "./PurchaseAttachment";
 
 type Props = Omit<ComponentProps<typeof SalesDocument>, "moduleLabel" | "client" | "issuer" | "recipient" | "recipientLines" | "recipientLabel"> & {
   supplier?: Proveedor;
   issuedBySupplier?: boolean;
+  attachment?: { kind: "presupuesto" | "factura" | "recibo" | "remito"; documentId: number };
 };
 
-export default function PurchaseDocument({ supplier, issuedBySupplier = true, ...document }: Props) {
+export default function PurchaseDocument({ supplier, issuedBySupplier = true, attachment, actions, ...document }: Props) {
   const { getDomicilioPorId } = useInternalData("purchases");
   const address = supplier ? getDomicilioPorId(supplier.idDomicilio) : undefined;
   const supplierLines = supplier ? [
@@ -25,6 +27,7 @@ export default function PurchaseDocument({ supplier, issuedBySupplier = true, ..
   const companyLines = [`CUIT: ${EMPRESA.cuit} · ${EMPRESA.condicionIVA}`, EMPRESA.domicilio];
 
   return <SalesDocument {...document} moduleLabel="Compras"
+    actions={<>{attachment && <PurchaseAttachment key={`${attachment.kind}-${attachment.documentId}`} {...attachment} />}{actions}</>}
     issuer={issuedBySupplier ? { name: supplier?.nombre ?? "Proveedor no registrado", lines: supplierLines } : { name: EMPRESA.razonSocial, lines: companyLines }}
     recipient={issuedBySupplier ? EMPRESA.razonSocial : supplier?.nombre ?? "Proveedor no registrado"}
     recipientLines={issuedBySupplier ? companyLines : supplierLines}

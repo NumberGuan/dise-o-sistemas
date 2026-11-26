@@ -7,13 +7,14 @@ import { CATALOG_DEFINITIONS, canCreateCatalog } from "~/data/catalogs";
 import { getInternalData } from "~/data/internal.server";
 import { InternalDataProvider } from "~/components/InternalDataProvider";
 import { requireSession } from "~/utils/access.server";
+import { getPurchaseData } from "~/data/purchase-registration.server";
 
 export const middleware = [requireSession];
 
 export const loader = async ({ request }: Route.LoaderArgs) => {
   const user = await requireUser(request);
   const publicUser = { name: user.name, role: user.role, cart: user.role === "Cliente" ? user.cart : undefined };
-  return { user: publicUser, catalogs: await getCatalogsForRole(user.role), internalData: getInternalData(user.role) };
+  return { user: publicUser, catalogs: await getCatalogsForRole(user.role), internalData: getInternalData(user.role, user.role === "Administrador" ? await getPurchaseData() : undefined) };
 };
 
 export default function ProtectedLayout() {

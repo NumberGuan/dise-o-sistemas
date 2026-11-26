@@ -29,6 +29,8 @@ export default [
 
       route("compras", "routes/compras/layout.tsx", [
         layout("routes/compras.tsx", [
+          route("comprobante-adjunto/:kind/:id", "routes/compras/comprobante-adjunto.ts"),
+          route(":documento/nuevo", "routes/compras/comprobante-nuevo.tsx"),
           route("proveedores", "routes/compras/proveedores.tsx"),
           route("proveedores/nueva", "routes/compras/proveedores-nuevo.tsx"),
           route("proveedores/:id", "routes/compras/proveedores-detalle.tsx"),

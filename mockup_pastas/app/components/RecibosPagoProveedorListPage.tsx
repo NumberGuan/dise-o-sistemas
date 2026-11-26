@@ -1,6 +1,7 @@
 import { useInternalData } from "~/components/InternalDataProvider";
 import { SortableTable } from "~/components/SortableRows";
 import ModulePageHeader from "~/components/ModulePageHeader";
+import NewPurchaseDocumentButton from "~/components/NewPurchaseDocumentButton";
 import { Link, useNavigate } from "react-router";
 
 import { getMedioPagoPorId } from "~/data/facturacion-proveedores";
@@ -17,10 +18,10 @@ export default function RecibosPagoProveedorListPage() {
           Recibo de Pago Proveedor
         </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Constancias de los pagos realizados para saldar comprobantes de
-          proveedores. Se consultan, no se crean ni modifican en el sistema.
+          Registrá los recibos de pago de los proveedores y sus archivos.
         </p>
       </ModulePageHeader>
+      <NewPurchaseDocumentButton kind="recibo" />
 
       <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
         <SortableTable
