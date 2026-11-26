@@ -4,6 +4,11 @@
   --pasta-cream: #fffaf1;
   --pasta-paper: #f6efe2;
   --pasta-olive: #20231a;
+  --pasta-list-heading: #353b2e;
+  --pasta-tint: #f0f2eb;
+  --pasta-tint-strong: #e4e8dc;
+  --pasta-tint-line: #c8cfbd;
+  --pasta-muted-olive: #cdd8bf;
   --pasta-muted: #665c4c;
   --pasta-peach: #efbb88;
   --pasta-terracotta: #b4482d;
@@ -126,6 +131,31 @@
 }
 
 @media screen {
+  :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) {
+    border-color: var(--pasta-list-heading);
+    background: var(--pasta-list-heading);
+    color: var(--pasta-cream);
+  }
+
+  :is(.staff-shell, .shop-store) .page-surface thead :is(tr, th, td) {
+    border-color: #ffffff2b;
+    background: transparent;
+    color: inherit;
+  }
+
+  :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button:hover,
+  :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button[data-sorted] {
+    color: var(--pasta-muted-olive);
+  }
+
+  :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button:focus-visible {
+    outline-color: var(--pasta-muted-olive);
+  }
+
+  :is(.staff-shell, .shop-store) .page-surface :is(thead, .sortable-list-heading) .sort-button svg {
+    color: inherit;
+  }
+
   .purchases-page .module-page-header h1::before {
     display: block;
     margin-bottom: 0.3rem;
@@ -165,11 +195,11 @@
     "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
 
   /* Identidad cromatica: terracota, ladrillo, azul pizarra y superficies suaves. */
-  --color-brand-50: #fff5f0;
-  --color-brand-100: #fde6dc;
-  --color-brand-200: #f8c9b7;
-  --color-brand-300: #efa184;
-  --color-brand-400: #df7655;
+  --color-brand-50: var(--pasta-tint);
+  --color-brand-100: var(--pasta-tint-strong);
+  --color-brand-200: var(--pasta-tint-line);
+  --color-brand-300: #aab39e;
+  --color-brand-400: #bd8563;
   --color-brand-500: #c25b3e;
   --color-brand-600: #ad452b;
   --color-brand-700: #8f3522;
@@ -267,13 +297,13 @@
   --color-violet-100: #e7ebf1;
   --color-violet-700: #3f5068;
 
-  --color-red-50: #fff2f0;
-  --color-red-100: #ffe1dc;
-  --color-red-200: #ffc8be;
-  --color-red-300: #f89f90;
-  --color-red-500: #d95443;
-  --color-red-600: #bd3f31;
-  --color-red-700: #9d3027;
+  --color-red-50: var(--pasta-tint);
+  --color-red-100: var(--pasta-tint-strong);
+  --color-red-200: var(--pasta-tint-line);
+  --color-red-300: #aab39e;
+  --color-red-500: #b15838;
+  --color-red-600: #9d432c;
+  --color-red-700: #873824;
   --color-red-800: #822a24;
   --color-red-900: #6d2823;
   --color-rose-50: var(--color-red-50);
@@ -382,7 +412,7 @@ body {
   display: block;
   width: 100%;
   margin-top: 0.375rem;
-  color: #b91c1c;
+  color: var(--color-red-700);
   font-size: 0.8125rem;
   font-weight: 500;
   line-height: 1.25rem;
@@ -390,8 +420,8 @@ body {
   text-align: left;
 }
 input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] {
-  border-color: #dc2626;
-  outline-color: #dc2626;
+  border-color: var(--color-red-600);
+  outline-color: var(--color-red-600);
 }
 [aria-invalid="true"] { scroll-margin-block: 12rem 3rem; }
 

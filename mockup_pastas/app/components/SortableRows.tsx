@@ -70,7 +70,8 @@ function SortButton({ label, direction, onClick }: { label: string; direction?: 
   return (
     <button
       type="button"
-      className="inline-flex min-w-0 cursor-pointer items-center gap-1 rounded px-0.5 py-1 text-inherit hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+      className="sort-button inline-flex min-w-0 cursor-pointer items-center gap-1 rounded px-0.5 py-1 text-inherit hover:text-amber-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-600"
+      data-sorted={direction}
       aria-label={`Ordenar por ${label}${current}`}
       onClick={onClick}
     >
@@ -141,7 +142,7 @@ export function SortableList<Row>(props: SortableProps<Row> & {
   const { sort, changeSort, mapRows } = useSortedRows(props);
   return (
     <>
-      <div className={props.headerClassName}>
+      <div className={`sortable-list-heading ${props.headerClassName}`}>
         {props.columns.map(([heading, className, extraFields = []], index) => (
           <div key={index} className={typeof heading === "string" ? props.actionClassName : className}>
             {renderHeading(heading, extraFields, sort, changeSort, props.compactHeadings)}

@@ -39,8 +39,8 @@
 }
 
 .shop-store > header nav a[aria-current="page"] {
-  background: #efbb8822;
-  color: var(--shop-peach);
+  background: #cdd8bf26;
+  color: var(--pasta-muted-olive);
 }
 
 .shop-store > header .shop-store-register {
@@ -57,7 +57,7 @@
 }
 
 .shop-store .shop-store-count {
-  background: var(--shop-peach);
+  background: var(--pasta-muted-olive);
   color: var(--shop-olive);
 }
 
@@ -168,7 +168,7 @@
 }
 
 .shop-store .shop-empty-icon {
-  background: #f1dfce;
+  background: var(--pasta-tint-strong);
   color: var(--shop-terracotta-dark);
 }
 
@@ -227,7 +227,7 @@
 }
 
 .shop-store .shop-row-action:hover {
-  background: #f7e7d7;
+  background: var(--pasta-tint-strong);
 }
 
 .shop-store .shop-primary {
@@ -245,7 +245,7 @@
 }
 
 .shop-store .shop-secondary:hover {
-  background: #f7e7d7;
+  background: var(--pasta-tint-strong);
 }
 
 .shop-store main :is(a, button, select, textarea, input, [tabindex]):focus-visible,
@@ -292,7 +292,7 @@
 }
 
 .shop-store .catalog-card-favorite:is(:hover, [aria-pressed="true"]) {
-  background: #f7e7d7;
+  background: var(--pasta-tint-strong);
 }
 
 .shop-store .catalog-card-category {

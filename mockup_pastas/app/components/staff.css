@@ -6,7 +6,7 @@
     --staff-field-line: #93846f;
     --staff-menu-line: #f5d2ac38;
     --staff-menu-hover: #fffaf114;
-    --staff-menu-active: #efbb8826;
+    --staff-menu-active: #cdd8bf26;
     --staff-menu-muted: #dfd3bd;
 
     --color-white: var(--staff-surface);
@@ -34,11 +34,6 @@
     --color-gray-900: var(--color-slateblue-900);
     --color-gray-950: var(--color-slateblue-950);
 
-    --color-brand-50: #fbefe4;
-    --color-brand-100: #f6e1d0;
-    --color-brand-200: #edc9ab;
-    --color-brand-300: var(--pasta-peach);
-    --color-brand-400: #dc9468;
     --color-brand-500: #c46243;
     --color-brand-600: var(--pasta-terracotta);
     --color-brand-700: var(--pasta-terracotta-dark);
@@ -99,7 +94,7 @@
 
   .staff-menu-section.staff-menu-section-active,
   .staff-menu-link.staff-menu-link-active {
-    color: var(--pasta-peach);
+    color: var(--pasta-muted-olive);
   }
 
   .staff-menu-section-active::before {
@@ -107,7 +102,7 @@
     inset: 0.55rem auto 0.55rem 0;
     width: 3px;
     border-radius: 0 3px 3px 0;
-    background: var(--pasta-peach);
+    background: var(--pasta-muted-olive);
     content: "";
   }
 
@@ -116,7 +111,7 @@
   }
 
   .staff-avatar {
-    background: var(--pasta-peach);
+    background: var(--pasta-muted-olive);
     color: var(--pasta-olive);
   }
 
@@ -232,12 +227,8 @@
     letter-spacing: -0.01em;
   }
 
-  .staff-shell .page-surface :is(thead, fieldset) {
+  .staff-shell .page-surface fieldset {
     border-color: var(--pasta-line);
-  }
-
-  .staff-shell .page-surface thead:not(:is(.print-voucher *, .production-document *)) {
-    background: var(--pasta-paper);
   }
 
   :is(.staff-shell main, body:has(.staff-shell) dialog) input:is([type="checkbox"], [type="radio"]) {
@@ -302,8 +293,8 @@
     border-color: var(--pasta-line);
   }
 
-  .staff-shell :is(.production-document, .sales-document) :is(th, .voucher-grand-total) {
-    background: var(--pasta-paper);
+  .staff-shell .sales-document .voucher-grand-total {
+    background: var(--pasta-tint);
     color: var(--pasta-olive);
   }
 
