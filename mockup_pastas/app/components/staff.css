@@ -257,7 +257,7 @@
   }
 
   body:has(.staff-shell) .create-form {
-    --staff-surface: #f8f9f6;
+    --staff-surface: var(--pasta-form-surface);
     --staff-field-line: #83897e;
     --pasta-line: var(--pasta-tint-line);
     --color-gray-50: var(--pasta-list-heading);

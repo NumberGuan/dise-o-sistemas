@@ -53,7 +53,7 @@ function metricGridClass(metricCount: number) {
 
 export function DashboardEmptyState({ message }: { message: string }) {
   return (
-    <p className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+    <p className="rounded-lg border border-dashed border-gray-300 bg-[var(--pasta-list-heading)] px-4 py-6 text-center text-sm text-gray-500">
       {message}
     </p>
   );
@@ -126,7 +126,7 @@ export default function ModuleDashboard({
           {distribution.length > 0 ? (
             <dl className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {distribution.map((item) => (
-                <div key={item.label} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-gray-50 px-4 py-3">
+                <div key={item.label} className="flex min-w-0 items-center justify-between gap-3 rounded-lg bg-[var(--pasta-list-heading)] px-4 py-3">
                   <dt className="min-w-0 break-words text-sm text-gray-600">{item.label}</dt>
                   <dd className="shrink-0 font-semibold text-gray-900">{item.value}</dd>
                 </div>
