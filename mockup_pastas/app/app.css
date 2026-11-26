@@ -1,5 +1,4 @@
 @import "tailwindcss";
-@import "./components/product-catalog.css";
 
 /* Hace reconocible el título principal dentro de cada pantalla. */
 .page-surface h1 {

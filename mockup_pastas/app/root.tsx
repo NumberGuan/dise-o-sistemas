@@ -9,6 +9,7 @@ import {
 
 import type { Route } from "./+types/root";
 import "./app.css";
+import catalogStylesheet from "./components/product-catalog.css?url";
 import FormValidation from "~/components/FormValidation";
 import NavigationLoading from "~/components/NavigationLoading";
 import { protectResponse } from "~/utils/access.server";
@@ -16,6 +17,7 @@ import { protectResponse } from "~/utils/access.server";
 export const middleware = [protectResponse];
 
 export const links: Route.LinksFunction = () => [
+  { rel: "stylesheet", href: catalogStylesheet },
   { rel: "preconnect", href: "https://fonts.googleapis.com" },
   {
     rel: "preconnect",
