@@ -1,4 +1,4 @@
-import { Form, Link, NavLink } from "react-router";
+import { Form, Link, NavLink, useMatch } from "react-router";
 
 import { Logo, ShopMenuIcon } from "~/components/icons";
 import type { PublicUser } from "~/utils/db.server";
@@ -13,15 +13,16 @@ const customerLinks = [
 
 export default function CustomerLayout({ user, children }: { user: PublicUser; children: React.ReactNode }) {
   const cartCount = (user.cart ?? []).reduce((total, item) => total + item.quantity, 0);
+  const isCatalog = useMatch("/compras/catalogo");
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#fbf8f3] text-gray-900">
+    <div className={`flex min-h-screen flex-col bg-[#fbf8f3] text-gray-900${isCatalog ? " catalog-store" : ""}`}>
       <a href="#contenido" className="sr-only z-50 rounded bg-white p-3 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-700">
         Ir al contenido
       </a>
       <header className="sticky top-0 z-30 border-b border-[#eadfd3] bg-[#fffdfa]/95 shadow-sm backdrop-blur">
         <div className="mx-auto grid max-w-7xl grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 px-4 py-3 sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-x-4 xl:px-8">
-          <Link to="/compras/catalogo" className="col-start-1 row-start-1 flex w-fit items-center gap-2 rounded-lg text-sm font-bold leading-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-700">
+          <Link to="/compras/catalogo" className="catalog-store-brand col-start-1 row-start-1 flex w-fit items-center gap-2 rounded-lg text-sm font-bold leading-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-amber-700">
             <Logo />
             <span>Fábrica de Pastas</span>
           </Link>
@@ -40,7 +41,7 @@ export default function CustomerLayout({ user, children }: { user: PublicUser; c
                     <ShopMenuIcon name={icon} />
                     <span>{label}</span>
                     {to === "/compras/carrito" && (
-                      <span className="min-w-5 rounded-full bg-amber-700 px-1.5 py-0.5 text-center text-xs font-bold text-white">
+                      <span className="catalog-store-count min-w-5 rounded-full bg-amber-700 px-1.5 py-0.5 text-center text-xs font-bold text-white">
                         {cartCount}
                         <span className="sr-only"> {cartCount === 1 ? "producto" : "productos"}</span>
                       </span>
@@ -52,7 +53,7 @@ export default function CustomerLayout({ user, children }: { user: PublicUser; c
           </nav>
 
           <div className="col-start-2 row-start-1 flex items-center gap-3 lg:col-start-3">
-            <span className="hidden max-w-32 truncate text-sm font-medium text-gray-600 sm:block lg:max-w-24 xl:max-w-32" title={user.name}>
+            <span className="catalog-store-user hidden max-w-32 truncate text-sm font-medium text-gray-600 sm:block lg:max-w-24 xl:max-w-32" title={user.name}>
               {user.name}
             </span>
             <Form action="/logout" method="post">
